@@ -158,10 +158,16 @@ public class WebSocketManager {
         isConnecting = false;
         if (webSocket != null) {
             try {
+                webSocket.cancel();
+            } catch (Exception ignored) {}
+            try {
                 webSocket.close(1000, "User disconnected");
             } catch (Exception ignored) {}
             webSocket = null;
         }
+        try {
+            client.connectionPool().evictAll();
+        } catch (Exception ignored) {}
     }
 
     public boolean isConnected() {
@@ -304,6 +310,13 @@ public class WebSocketManager {
         JsonObject obj = new JsonObject();
         obj.addProperty("type", "media_key");
         obj.addProperty("key", key);
+        sendJson(obj);
+    }
+
+    public void sendBrightness(int level) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("type", "set_brightness");
+        obj.addProperty("level", level);
         sendJson(obj);
     }
 }

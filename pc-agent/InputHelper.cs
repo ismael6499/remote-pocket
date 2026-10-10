@@ -284,8 +284,8 @@ namespace InputHelper {
         public static void Main(string[] args) {
             try { SetProcessDPIAware(); } catch { }
             try { EnsureDesktopAccess(); } catch { }
-            Console.OutputEncoding = Encoding.UTF8;
-            Console.InputEncoding = Encoding.UTF8;
+            try { Console.OutputEncoding = Encoding.UTF8; } catch { }
+            try { Console.InputEncoding = Encoding.UTF8; } catch { }
 
             if (args.Length > 0 && args[0] == "--pipe") {
                 RunPipeLoop();
@@ -595,6 +595,7 @@ namespace InputHelper {
             int x, y;
             if (int.TryParse(coords[0], out x) && int.TryParse(coords[1], out y)) {
                 SetCursorPos(x, y);
+                mouse_event(MOUSEEVENTF_MOVE, 0, 0, 0, UIntPtr.Zero);
             }
         }
 

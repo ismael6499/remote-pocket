@@ -702,7 +702,7 @@ public class MainActivity extends AppCompatActivity {
         updateFpsUi();
         if (currentDevice != null) {
             if (!webSocketManager.isConnected()) {
-                webSocketManager.connect(currentDevice, true);
+                selectDevice(currentDevice);
             } else if (isScreenMode) {
                 webSocketManager.startScreenStream();
                 webSocketManager.sendScreenFps(currentFps);
@@ -711,14 +711,22 @@ public class MainActivity extends AppCompatActivity {
             // Restore from SharedPreferences
             SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
             String lastHost = prefs.getString(KEY_LAST_DEVICE_HOST, null);
+            Device found = null;
             if (lastHost != null) {
                 for (Device d : knownDevices) {
                     String key = d.getHost() + ":" + d.getPort();
                     if (key.equals(lastHost) || d.getHost().equals(lastHost)) {
-                        selectDevice(d);
+                        found = d;
                         break;
                     }
                 }
+            }
+            if (found != null) {
+                selectDevice(found);
+            } else if (!knownDevices.isEmpty()) {
+                selectDevice(knownDevices.get(0));
+            } else {
+                startUdpDiscovery(true);
             }
         }
     }

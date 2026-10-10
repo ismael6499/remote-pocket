@@ -86,6 +86,9 @@ public class SystemSheet extends Dialog {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 txtBrightnessVal.setText(progress + "%");
+                if (fromUser && webSocketManager != null) {
+                    webSocketManager.sendBrightness(progress);
+                }
             }
 
             @Override
@@ -102,6 +105,9 @@ public class SystemSheet extends Dialog {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 txtVolumeVal.setText(progress + "%");
+                if (fromUser && webSocketManager != null) {
+                    webSocketManager.sendAudioVolume(progress);
+                }
             }
 
             @Override
@@ -109,25 +115,15 @@ public class SystemSheet extends Dialog {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                if (webSocketManager != null) {
-                    webSocketManager.sendAudioVolume(seekBar.getProgress());
-                }
+                postAudioVolume(seekBar.getProgress());
             }
         });
 
         // Media Buttons
-        findViewById(R.id.btnMediaPrev).setOnClickListener(v -> {
-            if (webSocketManager != null) webSocketManager.sendMediaKey("media_prev");
-        });
-        findViewById(R.id.btnMediaPlayPause).setOnClickListener(v -> {
-            if (webSocketManager != null) webSocketManager.sendMediaKey("media_play_pause");
-        });
-        findViewById(R.id.btnMediaNext).setOnClickListener(v -> {
-            if (webSocketManager != null) webSocketManager.sendMediaKey("media_next");
-        });
-        findViewById(R.id.btnMediaMute).setOnClickListener(v -> {
-            if (webSocketManager != null) webSocketManager.sendAudioMute();
-        });
+        findViewById(R.id.btnMediaPrev).setOnClickListener(v -> postMediaAction("media_prev"));
+        findViewById(R.id.btnMediaPlayPause).setOnClickListener(v -> postMediaAction("media_play_pause"));
+        findViewById(R.id.btnMediaNext).setOnClickListener(v -> postMediaAction("media_next"));
+        findViewById(R.id.btnMediaMute).setOnClickListener(v -> postAudioMute());
 
         // Power Buttons
         findViewById(R.id.btnPowerLock).setOnClickListener(v -> postSystemAction("lock"));
@@ -228,7 +224,72 @@ public class SystemSheet extends Dialog {
         });
     }
 
+    private void postAudioVolume(int volume) {
+        if (webSocketManager != null) {
+            webSocketManager.sendAudioVolume(volume);
+        }
+        if (device == null) return;
+        executor.execute(() -> {
+            try {
+                MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+                String payload = "{\"volume\":" + volume + "}";
+                RequestBody body = RequestBody.create(payload, JSON);
+                Request req = new Request.Builder()
+                        .url(device.getBaseHttpUrl() + "/api/audio/volume")
+                        .post(body)
+                        .build();
+                httpClient.newCall(req).execute();
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to post audio volume", e);
+            }
+        });
+    }
+
+    private void postAudioMute() {
+        if (webSocketManager != null) {
+            webSocketManager.sendAudioMute();
+        }
+        if (device == null) return;
+        executor.execute(() -> {
+            try {
+                MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+                RequestBody body = RequestBody.create("{}", JSON);
+                Request req = new Request.Builder()
+                        .url(device.getBaseHttpUrl() + "/api/audio/mute")
+                        .post(body)
+                        .build();
+                httpClient.newCall(req).execute();
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to post audio mute", e);
+            }
+        });
+    }
+
+    private void postMediaAction(String action) {
+        if (webSocketManager != null) {
+            webSocketManager.sendMediaKey(action);
+        }
+        if (device == null) return;
+        executor.execute(() -> {
+            try {
+                MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+                String payload = "{\"action\":\"" + action + "\"}";
+                RequestBody body = RequestBody.create(payload, JSON);
+                Request req = new Request.Builder()
+                        .url(device.getBaseHttpUrl() + "/api/audio/action")
+                        .post(body)
+                        .build();
+                httpClient.newCall(req).execute();
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to post media action", e);
+            }
+        });
+    }
+
     private void postBrightness(int level) {
+        if (webSocketManager != null) {
+            webSocketManager.sendBrightness(level);
+        }
         if (device == null) return;
         executor.execute(() -> {
             try {

@@ -293,7 +293,7 @@ function getBrightness() {
 function setBrightness(level) {
   return new Promise((resolve) => {
     const safeLevel = Math.max(0, Math.min(100, parseInt(level, 10) || 50));
-    const cmd = `powershell -NoProfile -Command "try { (Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorBrightnessMethods -ErrorAction Stop).WmiSetBrightness(1, ${safeLevel}) } catch { }"`;
+    const cmd = `powershell -NoProfile -Command "try { Invoke-CimMethod -InputObject (Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorBrightnessMethods -ErrorAction Stop) -MethodName WmiSetBrightness -Arguments @{ Timeout = 1; Brightness = ${safeLevel} } -ErrorAction Stop } catch { }"`;
     exec(cmd, { timeout: 3000 }, () => resolve(safeLevel));
   });
 }
@@ -424,12 +424,15 @@ app.post('/api/audio/action', verifyPin, (req, res) => {
       sendInputCommand('k volume_mute');
       break;
     case 'play_pause':
+    case 'media_play_pause':
       sendInputCommand('k media_play_pause');
       break;
     case 'next':
+    case 'media_next':
       sendInputCommand('k media_next');
       break;
     case 'prev':
+    case 'media_prev':
       sendInputCommand('k media_prev');
       break;
     default:
@@ -719,6 +722,15 @@ function handleWebSocketMessage(ws, data) {
     case 'media_key':
       if (data.key) {
         sendInputCommand(`k ${data.key}`);
+      }
+      break;
+
+    // Brightness
+    case 'set_brightness':
+    case 'brightness':
+      if (data.level !== undefined || data.brightness !== undefined) {
+        const b = data.brightness !== undefined ? data.brightness : data.level;
+        setBrightness(b);
       }
       break;
 
