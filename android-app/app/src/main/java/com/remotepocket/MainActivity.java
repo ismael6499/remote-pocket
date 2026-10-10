@@ -566,7 +566,9 @@ public class MainActivity extends AppCompatActivity {
             fabKeyboard.setVisibility(View.VISIBLE);
         }
 
-        Toast.makeText(this, R.string.btn_fullscreen, Toast.LENGTH_SHORT).show();
+        if (touchpadView != null) {
+            touchpadView.onEnterFullscreenLandscape();
+        }
     }
 
     private void exitFullscreen() {
@@ -605,6 +607,22 @@ public class MainActivity extends AppCompatActivity {
         } else {
             if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.GONE);
             if (txtTouchpadHint != null) txtTouchpadHint.setVisibility(View.VISIBLE);
+        }
+
+        if (touchpadView != null) {
+            touchpadView.onExitFullscreen();
+        }
+    }
+
+    @Override
+    public void onConfigurationChanged(@androidx.annotation.NonNull android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (isFullscreen) {
+            WindowInsetsControllerCompat insetsController = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+            if (insetsController != null) {
+                insetsController.hide(WindowInsetsCompat.Type.systemBars());
+                insetsController.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
         }
     }
 
