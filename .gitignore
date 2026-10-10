@@ -1,0 +1,22 @@
+# Node & PC Agent
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+*.log
+
+# C# compilation
+pc-agent/bin/
+pc-agent/obj/
+pc-agent/*.exe
+
+# Android
+android-app/.gradle/
+android-app/build/
+android-app/app/build/
+android-app/.idea/
+android-app/*.iml
+android-app/local.properties
+.DS_Store
+Thumbs.db
