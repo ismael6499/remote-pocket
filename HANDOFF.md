@@ -93,15 +93,24 @@ Remote Pocket is a monorepo containing:
     - Comprehensive `try-catch` guards around OkHttp `newWebSocket` creation and dialog dismissal prevent crashes.
   - Direct touch mouse movement across live screen preview with sub-pixel motion accumulation.
   - Multi-touch gestures directly on the screen:
-    - 1-finger tap: Left click at tapped coordinates.
-    - 2-finger tap: Right click at tapped coordinates.
-    - 3-finger tap: Middle click.
+    - 1-finger tap: Left click directly at CURRENT mouse position on PC (no coordinate jump/snap).
+    - 2-finger tap: Right click directly at CURRENT mouse position on PC.
+    - 3-finger tap: Middle click directly at CURRENT mouse position.
     - 2-finger vertical drag: Smooth mouse wheel scrolling.
-    - Long-press hold (>380ms): Engages left-click drag & drop with haptic pulse, automatically releasing on touch up.
+    - Double-Tap & Hold to Drag (Tap-and-Half gesture): Quick tap followed by hold-and-move engages left button drag with haptic pulse, releasing cleanly on finger lift. Normal sliding never engages accidental drag.
   - Persistent bottom mouse buttons: `L` (Left click), `Mid` (Middle click), `R` (Right click), `Hold` (Toggle drag lock), `2x` (Double click), and `▲`/`▼` (Mouse scroll).
-- [x] Auto-Reconnect & Connection Stability:
-  - Automatic reconnection on `onResume()` restoring last active PC from `SharedPreferences`.
-  - Guarded `WebSocketManager.connect()` with `isConnecting()` to prevent UDP discovery reconnect storms.
+- [x] Configurable Live Screen FPS & Stream Optimization:
+  - Dynamic FPS selector pill in Live Screen toolbar: `⚡ 30 FPS` (default, emerald), `⚡ 60 FPS` (cyan), `⚡ 2 FPS` (amber), `⚡ 15 FPS` (indigo).
+  - Persisted in `SharedPreferences` and communicated on-the-fly via WebSocket `set_screen_fps` to `InputHelper.exe` without restarting the process.
+- [x] Robust Auto-Reconnect & Background Lifecycle Management:
+  - Fixed `WebSocketManager.isConnected()` which previously retained non-null dead socket references following `SocketException` connection aborts.
+  - Cleaned up dead socket references in `onClosed()` and `onFailure()`.
+  - In `MainActivity.onResume()`: automatically forces reconnect (`connect(currentDevice, true)`) when returning from Android Home/background.
+  - In `MainActivity.onPause()`: cleanly stops screen streaming to prevent socket buffer exhaustion and aborts in background.
+  - Background disconnects trigger `scheduleAutoReconnect()` with 1.2s delay for seamless recovery without user intervention.
+- [x] Silent Windows Server Execution:
+  - Fixed `run_silent.vbs` to directly spawn `node.exe server.js` with window style 0 (`hidden`), completely eliminating visible CMD windows.
+  - Added `start_console.bat` for visible console debugging when desired.
 - [x] PC Agent Remote Management & System Sheet (`SystemSheet`):
   - "Restart PC Agent" button with confirmation prompt, triggering `/api/server/restart` for 3-second background reboot.
   - Real-time display brightness slider (0-100%).

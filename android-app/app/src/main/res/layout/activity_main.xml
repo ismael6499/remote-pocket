@@ -214,6 +214,23 @@
                 android:textColor="@color/text_primary"
                 android:textSize="12sp"
                 android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="14dp"
+                android:background="#334155" />
+
+            <TextView
+                android:id="@+id/btnFpsSelector"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⚡ 30 FPS"
+                android:textColor="@color/accent_emerald"
+                android:textSize="12sp"
+                android:paddingStart="8dp"
                 android:clickable="true"
                 android:focusable="true" />
         </LinearLayout>

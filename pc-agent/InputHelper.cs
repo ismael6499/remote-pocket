@@ -346,7 +346,7 @@ namespace InputHelper {
         }
 
         private static void RunStreamLoop(int fps, int quality, int targetHeight) {
-            if (fps <= 0) fps = 2;
+            if (fps <= 0) fps = 30;
             int intervalMs = 1000 / fps;
             Console.WriteLine("STREAM_READY");
 
@@ -361,6 +361,23 @@ namespace InputHelper {
                             line.Equals("quit", StringComparison.OrdinalIgnoreCase)) {
                             running = false;
                             break;
+                        }
+                        if (line.StartsWith("fps ", StringComparison.OrdinalIgnoreCase)) {
+                            int newFps;
+                            if (int.TryParse(line.Substring(4).Trim(), out newFps) && newFps > 0) {
+                                fps = Math.Max(1, Math.Min(60, newFps));
+                                intervalMs = 1000 / fps;
+                                if (fps >= 60) quality = 70;
+                                else if (fps >= 30) quality = 75;
+                                else if (fps >= 15) quality = 80;
+                                else quality = 85;
+                            }
+                        }
+                        if (line.StartsWith("quality ", StringComparison.OrdinalIgnoreCase)) {
+                            int newQ;
+                            if (int.TryParse(line.Substring(8).Trim(), out newQ) && newQ > 0) {
+                                quality = Math.Max(10, Math.Min(100, newQ));
+                            }
                         }
                     }
                 } catch { }

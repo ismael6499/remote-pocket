@@ -7,6 +7,8 @@ import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
@@ -45,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String PREFS_NAME = "remote_pocket_prefs";
     private static final String KEY_SAVED_DEVICES = "saved_devices";
     private static final String KEY_LAST_DEVICE_HOST = "last_device_host";
+    private static final String KEY_SCREEN_FPS = "screen_fps";
 
     private final List<Device> knownDevices = new ArrayList<>();
     private Device currentDevice;
@@ -63,7 +66,26 @@ public class MainActivity extends AppCompatActivity {
     private FloatingActionButton fabKeyboard;
 
     private LinearLayout layoutScreenControls;
-    private TextView btnToggleFollow, btnZoomLevel;
+    private TextView btnToggleFollow, btnZoomLevel, btnFpsSelector;
+    private int currentFps = 30;
+
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private boolean isAppInForeground = false;
+    private final Runnable reconnectRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (isAppInForeground && currentDevice != null && !webSocketManager.isConnected() && !webSocketManager.isConnecting()) {
+                AppLogger.i("MainActivity", "Auto-reconnecting to " + currentDevice.getHost() + ":" + currentDevice.getPort());
+                webSocketManager.connect(currentDevice, true);
+            }
+        }
+    };
+
+    private void scheduleAutoReconnect() {
+        if (!isAppInForeground || currentDevice == null) return;
+        handler.removeCallbacks(reconnectRunnable);
+        handler.postDelayed(reconnectRunnable, 1200);
+    }
 
     private boolean isScreenMode = false;
     private DeviceManagerDialog deviceDialog;
@@ -99,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
         layoutScreenControls = findViewById(R.id.layoutScreenControls);
         btnToggleFollow = findViewById(R.id.btnToggleFollow);
         btnZoomLevel = findViewById(R.id.btnZoomLevel);
+        btnFpsSelector = findViewById(R.id.btnFpsSelector);
     }
 
     private final java.util.concurrent.ExecutorService frameDecoderExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
@@ -114,9 +137,11 @@ public class MainActivity extends AppCompatActivity {
         webSocketManager.setConnectionListener(new WebSocketManager.ConnectionListener() {
             @Override
             public void onConnected() {
+                handler.removeCallbacks(reconnectRunnable);
                 updateConnectionUi(true);
                 if (isScreenMode) {
                     webSocketManager.startScreenStream();
+                    webSocketManager.sendScreenFps(currentFps);
                 }
                 if (currentDevice != null) {
                     updateManager.checkForUpdates(currentDevice, true);
@@ -126,6 +151,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDisconnected() {
                 updateConnectionUi(false);
+                if (isAppInForeground) {
+                    scheduleAutoReconnect();
+                }
             }
 
             @Override
@@ -162,6 +190,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onError(String error) {
                 updateConnectionUi(false);
+                if (isAppInForeground) {
+                    scheduleAutoReconnect();
+                }
             }
         });
     }
@@ -225,6 +256,24 @@ public class MainActivity extends AppCompatActivity {
             btnZoomLevel.setOnClickListener(v -> {
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                 touchpadView.cycleZoomLevel();
+            });
+        }
+        if (btnFpsSelector != null) {
+            btnFpsSelector.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                if (currentFps == 30) currentFps = 60;
+                else if (currentFps == 60) currentFps = 2;
+                else if (currentFps == 2) currentFps = 15;
+                else currentFps = 30;
+
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                        .putInt(KEY_SCREEN_FPS, currentFps)
+                        .apply();
+                updateFpsUi();
+                if (webSocketManager.isConnected()) {
+                    webSocketManager.sendScreenFps(currentFps);
+                }
+                Toast.makeText(this, "Screen FPS: " + currentFps, Toast.LENGTH_SHORT).show();
             });
         }
 
@@ -404,6 +453,7 @@ public class MainActivity extends AppCompatActivity {
                 updateScreenControlsUi(touchpadView.getCurrentScale(), touchpadView.isFollowCursor());
             }
             webSocketManager.startScreenStream();
+            webSocketManager.sendScreenFps(currentFps);
         } else {
             tabTrackpad.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.accent_indigo)));
             tabTrackpad.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
@@ -420,6 +470,19 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void updateFpsUi() {
+        runOnUiThread(() -> {
+            if (btnFpsSelector != null) {
+                btnFpsSelector.setText("⚡ " + currentFps + " FPS");
+                int colorRes = R.color.accent_emerald;
+                if (currentFps == 60) colorRes = R.color.accent_cyan;
+                else if (currentFps == 2) colorRes = R.color.accent_amber;
+                else if (currentFps == 15) colorRes = R.color.accent_indigo;
+                btnFpsSelector.setTextColor(ContextCompat.getColor(this, colorRes));
+            }
+        });
+    }
+
     private void updateScreenControlsUi(float scale, boolean followCursor) {
         runOnUiThread(() -> {
             if (btnToggleFollow != null) {
@@ -433,6 +496,7 @@ public class MainActivity extends AppCompatActivity {
                     btnZoomLevel.setText(getString(R.string.screen_zoom_format, scale));
                 }
             }
+            updateFpsUi();
         });
     }
 
@@ -599,6 +663,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadSavedDevices() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        currentFps = prefs.getInt(KEY_SCREEN_FPS, 30);
+        updateFpsUi();
+
         String json = prefs.getString(KEY_SAVED_DEVICES, null);
         if (json != null) {
             try {
@@ -631,9 +698,14 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        isAppInForeground = true;
+        updateFpsUi();
         if (currentDevice != null) {
-            if (!webSocketManager.isConnected() && !webSocketManager.isConnecting()) {
-                webSocketManager.connect(currentDevice);
+            if (!webSocketManager.isConnected()) {
+                webSocketManager.connect(currentDevice, true);
+            } else if (isScreenMode) {
+                webSocketManager.startScreenStream();
+                webSocketManager.sendScreenFps(currentFps);
             }
         } else {
             // Restore from SharedPreferences
@@ -649,15 +721,14 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-        if (isScreenMode && webSocketManager.isConnected()) {
-            webSocketManager.startScreenStream();
-        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (isScreenMode) {
+        isAppInForeground = false;
+        handler.removeCallbacks(reconnectRunnable);
+        if (isScreenMode && webSocketManager.isConnected()) {
             webSocketManager.stopScreenStream();
         }
     }

@@ -132,13 +132,24 @@ startInputProcess();
 let screenStreamProcess = null;
 const screenSubscribers = new Set();
 
-function startScreenStreamer() {
+let currentScreenFps = 30;
+
+function qualityForFps(fps) {
+  if (fps >= 60) return '70';
+  if (fps >= 30) return '75';
+  if (fps >= 15) return '80';
+  return '85';
+}
+
+function startScreenStreamer(fps = currentScreenFps) {
   if (screenStreamProcess) return;
   if (!fs.existsSync(INPUT_HELPER_PATH)) return;
 
-  console.log('[ScreenStream] Starting on-demand screen stream (2 FPS, 85% quality, 1080p Full HD)...');
+  const targetFps = Math.max(1, Math.min(60, fps));
+  const q = qualityForFps(targetFps);
+  console.log(`[ScreenStream] Starting on-demand screen stream (${targetFps} FPS, ${q}% quality, 1080p Full HD)...`);
   try {
-    screenStreamProcess = spawn(INPUT_HELPER_PATH, ['--stream', '2', '85', '1080'], {
+    screenStreamProcess = spawn(INPUT_HELPER_PATH, ['--stream', String(targetFps), q, '1080'], {
       stdio: ['pipe', 'pipe', 'ignore']
     });
 
@@ -677,6 +688,22 @@ function handleWebSocketMessage(ws, data) {
         ws.isSubscribedToScreen = false;
         unsubscribeScreen(ws);
         ws.send(JSON.stringify({ type: 'screen_stream_stopped' }));
+      }
+      break;
+    case 'set_screen_fps':
+    case 'screen_fps':
+      if (typeof data.fps === 'number') {
+        const newFps = Math.max(1, Math.min(60, Math.round(data.fps)));
+        currentScreenFps = newFps;
+        console.log(`[ScreenStream] Client requested ${newFps} FPS`);
+        if (screenStreamProcess && screenStreamProcess.stdin && !screenStreamProcess.stdin.destroyed) {
+          try {
+            screenStreamProcess.stdin.write(`fps ${newFps}\n`);
+          } catch (e) {}
+        }
+        try {
+          ws.send(JSON.stringify({ type: 'screen_fps_updated', fps: newFps }));
+        } catch (e) {}
       }
       break;
 

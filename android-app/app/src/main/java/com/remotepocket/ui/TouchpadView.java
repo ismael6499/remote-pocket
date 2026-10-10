@@ -52,16 +52,19 @@ public class TouchpadView extends View {
     private long touchDownTime;
     private boolean isMultiTouch = false;
     private boolean hasMoved = false;
-    private boolean isDragging = false;
     private boolean isScaling = false;
 
+    // Tap and Drag tracking (double tap and hold to drag)
+    private long lastTapTime = 0;
+    private float lastTapX = 0f, lastTapY = 0f;
+    private static final int DOUBLE_TAP_TIMEOUT_MS = 280;
+    private boolean isTapAndDrag = false;
+    private boolean mayBeTapAndDrag = false;
+
     private static final int TAP_TIMEOUT_MS = 240;
-    private static final int LONG_PRESS_TIMEOUT_MS = 380;
     private static final float MOVE_SLOP = 12f;
     private static final float SENSITIVITY = 1.35f;
 
-    private final Handler handler = new Handler(Looper.getMainLooper());
-    private Runnable longPressRunnable;
     private ScaleGestureDetector scaleGestureDetector;
     private GestureDetector gestureDetector;
 
@@ -86,23 +89,12 @@ public class TouchpadView extends View {
         setWillNotDraw(false);
         vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
 
-        // Double-Tap sends double-click directly to PC (at tapped desktop coordinate in screen mode)
+        // Double-Tap sends double-click directly to PC at current mouse cursor position
         gestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onDoubleTap(MotionEvent e) {
                 if (webSocketManager != null && webSocketManager.isConnected()) {
                     triggerHaptic(30);
-                    if (isScreenMode) {
-                        int[] coords = viewToDesktopCoords(e.getX(), e.getY());
-                        if (coords != null) {
-                            curX = coords[0];
-                            curY = coords[1];
-                            webSocketManager.sendMouseAbsolute(coords[0], coords[1]);
-                            if (followCursor && currentScale > 1.05f) {
-                                applyCenterTranslationDirect();
-                            }
-                        }
-                    }
                     webSocketManager.sendMouseDoubleClick("left");
                     return true;
                 }
@@ -244,7 +236,7 @@ public class TouchpadView extends View {
             if (followCursor && currentScale > 1.0f) {
                 applyCenterTranslationDirect();
             }
-        } else if (!hasMoved && !isDragging) {
+        } else if (!hasMoved && !isTapAndDrag) {
             // Keep coordinates up to date, but NEVER pan viewport on PC mouse movement
             this.curX = x;
             this.curY = y;
@@ -369,28 +361,22 @@ public class TouchpadView extends View {
                 isMultiTouch = false;
                 isScaling = false;
 
-                // Schedule long press to Hold & Drag
-                cancelLongPress();
-                longPressRunnable = () -> {
-                    if (!hasMoved && !isMultiTouch && !isScaling) {
-                        isDragging = true;
-                        triggerHaptic(45);
-                        if (isScreenMode) {
-                            int[] coords = viewToDesktopCoords(lastX, lastY);
-                            if (coords != null) {
-                                curX = coords[0];
-                                curY = coords[1];
-                                webSocketManager.sendMouseAbsolute(curX, curY);
-                            }
-                        }
-                        webSocketManager.sendMouseDown("left");
-                    }
-                };
-                handler.postDelayed(longPressRunnable, LONG_PRESS_TIMEOUT_MS);
+                // Check if this touch is the second tap of a double-tap-to-drag gesture
+                long timeSinceLastTap = touchDownTime - lastTapTime;
+                float distFromLastTap = (float) Math.hypot(lastX - lastTapX, lastY - lastTapY);
+                if (timeSinceLastTap < DOUBLE_TAP_TIMEOUT_MS && distFromLastTap < 100f) {
+                    mayBeTapAndDrag = true;
+                } else {
+                    mayBeTapAndDrag = false;
+                }
                 break;
 
             case MotionEvent.ACTION_POINTER_DOWN:
-                cancelLongPress();
+                mayBeTapAndDrag = false;
+                if (isTapAndDrag) {
+                    webSocketManager.sendMouseUp("left");
+                    isTapAndDrag = false;
+                }
                 if (pointerCount == 2) {
                     isMultiTouch = true;
                     lastTwoFingerY = (event.getY(0) + event.getY(1)) / 2f;
@@ -406,26 +392,17 @@ public class TouchpadView extends View {
 
                     if (Math.abs(deltaRawX) > MOVE_SLOP || Math.abs(deltaRawY) > MOVE_SLOP) {
                         hasMoved = true;
-                        if (!isDragging) {
-                            cancelLongPress();
+                        if (mayBeTapAndDrag && !isTapAndDrag) {
+                            isTapAndDrag = true;
+                            triggerHaptic(40);
+                            webSocketManager.sendMouseDown("left");
                         }
                     }
 
                     if (isScreenMode) {
-                        if (isDragging) {
-                            // Dragging mouse: smoothly move to touch point
-                            int[] coords = viewToDesktopCoords(currentX, currentY);
-                            if (coords != null) {
-                                curX = coords[0];
-                                curY = coords[1];
-                                webSocketManager.sendMouseAbsolute(curX, curY);
-                                if (followCursor && currentScale > 1.05f) {
-                                    applyCenterTranslationDirect();
-                                }
-                            }
-                        } else if (currentScale > 1.05f) {
-                            if (followCursor) {
-                                // Locked center cursor mode: sliding finger moves cursor absolutely and pans viewport
+                        if (currentScale > 1.05f) {
+                            if (followCursor || isTapAndDrag) {
+                                // Locked center cursor mode: sliding finger moves cursor relative to desktop
                                 int viewW = getWidth();
                                 int viewH = getHeight();
                                 if (viewW > 0 && viewH > 0 && scrW > 0 && scrH > 0) {
@@ -449,7 +426,7 @@ public class TouchpadView extends View {
                                     }
                                 }
                             } else {
-                                // Free viewport panning
+                                // Free viewport panning (when followCursor is disabled and not dragging)
                                 currentTransX += deltaRawX;
                                 currentTransY += deltaRawY;
                                 if (zoomTargetView != null) {
@@ -458,12 +435,26 @@ public class TouchpadView extends View {
                                 }
                             }
                         } else {
-                            // Direct touch movement across full desktop fit
-                            int[] coords = viewToDesktopCoords(currentX, currentY);
-                            if (coords != null) {
-                                curX = coords[0];
-                                curY = coords[1];
-                                webSocketManager.sendMouseAbsolute(curX, curY);
+                            // Full desktop fit (scale 1.0x): relative desktop movement without snapping to touch
+                            int viewW = getWidth();
+                            int viewH = getHeight();
+                            if (viewW > 0 && viewH > 0 && scrW > 0 && scrH > 0) {
+                                float scaleFit = Math.min((float) viewW / scrW, (float) viewH / scrH);
+                                if (scaleFit > 0) {
+                                    float moveDesktopX = deltaRawX / scaleFit;
+                                    float moveDesktopY = deltaRawY / scaleFit;
+                                    accumX += moveDesktopX;
+                                    accumY += moveDesktopY;
+                                    int stepX = Math.round(accumX);
+                                    int stepY = Math.round(accumY);
+                                    if (stepX != 0 || stepY != 0) {
+                                        accumX -= stepX;
+                                        accumY -= stepY;
+                                        curX = Math.max(0, Math.min(scrW - 1, (curX >= 0 ? curX : scrW / 2) + stepX));
+                                        curY = Math.max(0, Math.min(scrH - 1, (curY >= 0 ? curY : scrH / 2) + stepY));
+                                        webSocketManager.sendMouseAbsolute(curX, curY);
+                                    }
+                                }
                             }
                         }
                     } else {
@@ -498,44 +489,37 @@ public class TouchpadView extends View {
                 break;
 
             case MotionEvent.ACTION_POINTER_UP:
-                cancelLongPress();
                 break;
 
             case MotionEvent.ACTION_UP:
-                cancelLongPress();
                 long duration = System.currentTimeMillis() - touchDownTime;
 
-                if (isDragging) {
-                    // Release drag
+                if (isTapAndDrag) {
+                    // Released tap-and-drag
                     triggerHaptic(25);
                     webSocketManager.sendMouseUp("left");
-                    isDragging = false;
+                    isTapAndDrag = false;
+                    mayBeTapAndDrag = false;
+                    lastTapTime = 0;
                 } else if (!hasMoved && duration < TAP_TIMEOUT_MS && !isScaling) {
-                    if (isScreenMode) {
-                        int[] coords = viewToDesktopCoords(event.getX(), event.getY());
-                        if (coords != null) {
-                            curX = coords[0];
-                            curY = coords[1];
-                            webSocketManager.sendMouseAbsolute(coords[0], coords[1]);
-                            if (followCursor && currentScale > 1.05f) {
-                                applyCenterTranslationDirect();
-                            }
-                        }
-                    }
-
+                    // Single or multi-finger tap directly at CURRENT mouse cursor position (no jump!)
                     if (pointerCount == 3) {
-                        // 3 Finger Tap -> Middle Click
                         triggerHaptic(35);
                         webSocketManager.sendMouseClick("middle");
+                        lastTapTime = 0;
                     } else if (isMultiTouch || pointerCount == 2) {
-                        // 2 Finger Tap -> Right Click
                         triggerHaptic(30);
                         webSocketManager.sendMouseClick("right");
+                        lastTapTime = 0;
                     } else {
-                        // Single Finger Tap -> Left Click
                         triggerHaptic(20);
                         webSocketManager.sendMouseClick("left");
+                        lastTapTime = System.currentTimeMillis();
+                        lastTapX = event.getX();
+                        lastTapY = event.getY();
                     }
+                } else {
+                    mayBeTapAndDrag = false;
                 }
 
                 isMultiTouch = false;
@@ -544,11 +528,11 @@ public class TouchpadView extends View {
                 break;
 
             case MotionEvent.ACTION_CANCEL:
-                cancelLongPress();
-                if (isDragging) {
+                if (isTapAndDrag) {
                     webSocketManager.sendMouseUp("left");
-                    isDragging = false;
+                    isTapAndDrag = false;
                 }
+                mayBeTapAndDrag = false;
                 isMultiTouch = false;
                 hasMoved = false;
                 isScaling = false;
@@ -568,9 +552,5 @@ public class TouchpadView extends View {
     @Override
     public void cancelLongPress() {
         super.cancelLongPress();
-        if (longPressRunnable != null) {
-            handler.removeCallbacks(longPressRunnable);
-            longPressRunnable = null;
-        }
     }
 }
