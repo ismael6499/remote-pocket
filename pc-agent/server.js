@@ -8,6 +8,18 @@ const fs = require('fs');
 const { spawn, exec } = require('child_process');
 require('dotenv').config();
 
+process.on('uncaughtException', (err) => {
+  try {
+    fs.appendFileSync(path.join(__dirname, 'server_err.log'), `[${new Date().toISOString()}] Uncaught: ${err.stack || err}\n`);
+  } catch (e) {}
+});
+
+process.on('unhandledRejection', (reason) => {
+  try {
+    fs.appendFileSync(path.join(__dirname, 'server_err.log'), `[${new Date().toISOString()}] Rejection: ${reason}\n`);
+  } catch (e) {}
+});
+
 // ==========================================
 // CONFIGURATION & PATHS
 // ==========================================
@@ -50,7 +62,8 @@ function startInputProcess() {
 
   try {
     inputProcess = spawn(INPUT_HELPER_PATH, ['--pipe'], {
-      stdio: ['pipe', 'pipe', 'inherit']
+      stdio: ['pipe', 'pipe', 'ignore'],
+      windowsHide: true
     });
 
     inputProcess.stdout.on('data', (data) => {
