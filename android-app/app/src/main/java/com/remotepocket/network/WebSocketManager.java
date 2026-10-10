@@ -175,6 +175,14 @@ public class WebSocketManager {
         sendJson(obj);
     }
 
+    public void sendMouseAbsolute(int x, int y) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("type", "mouse_abs");
+        obj.addProperty("x", x);
+        obj.addProperty("y", y);
+        sendJson(obj);
+    }
+
     public void sendMouseClick(String button) {
         JsonObject obj = new JsonObject();
         obj.addProperty("type", "mouse_click");

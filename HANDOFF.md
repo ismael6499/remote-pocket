@@ -70,27 +70,30 @@ Remote Pocket is a monorepo containing:
     - Header quick `Esc` button for instantaneous one-touch escape/exit.
     - Collapsible "⚡ Special Actions & F-Keys ▾" panel with 1-click shortcuts (`Ctrl+Alt+Del`, `Alt+Tab`, `Win+D`, `TaskMgr`, `Win+L`, `Ctrl+C`, `Ctrl+V`), navigation (`Ins`, `Del`, `Home`, `End`, `PgUp`, `PgDn`, `PrtScn`), and `F1` to `F12`.
     - Crisp tactile haptic feedback on every key, letter, number, modifier, and shortcut press.
-- [x] Live Screen & Direct Touch Interactions (`TouchpadView`):
-  - **Centered Mouse Follow & Camera Tracking (AnyDesk / Google Remote Desktop Style)**:
-    - The mouse cursor stays centered on the phone display whenever zoomed in (`currentScale > 1.05f`).
-    - 0ms latency direct hardware translation: dragging your finger on the phone moves the desktop smoothly underneath the centered cursor at 60/120 FPS without waiting for server network frames.
-    - Viewport is decoupled from PC-side mouse movement: moving the physical mouse on the PC does NOT jerk or pan the phone's camera.
-    - Double-tap gesture: sends double click directly to the PC (opening files/folders), with dedicated zoom cycling button (`2.0x`) in the overlay.
-  - **Crisp Windows Arrow Cursor Overlay**:
-    - Removed golden halo beacon rings, circles, and crosshairs for a clean, professional aesthetic.
-    - PC Agent captures clean desktop frames without burning in lagged cursors.
-    - Android Client renders an iconic, crisp Windows mouse arrow (white fill, sleek black contrast stroke) centered on the screen.
+- [x] Live Screen & Direct Touch Precision (`TouchpadView` & `InputHelper`):
+  - **Real PC Mouse Cursor on Live Stream (DrawIconEx)**:
+    - `InputHelper.cs` uses Win32 `GetCursorInfo`, `GetIconInfo`, and `DrawIconEx` on the desktop DC to paint the physical Windows cursor directly into the desktop frame at its exact hotspot.
+    - Completely removed synthetic cursor overlay from Android's `onDraw()`. The user sees the genuine Windows cursor directly in the video stream, eliminating mismatch between PC and phone pointer positions.
+  - **1080p Full HD Streaming Quality**:
+    - Screen streamer upgraded to native 1080p Full HD at 85% JPEG quality (`--stream 2 85 1080`).
+    - Added native resolution bypass in `InputHelper.cs`: when `destW == srcW && destH == srcH`, skips downscaling and encodes the GDI bitmap directly to high-quality JPEG.
+  - **Direct Touch Desktop Coordinate Mapping**:
+    - `viewToDesktopCoords(touchX, touchY)` mathematically maps phone touch coordinates to exact desktop pixel coordinates taking into account aspect-ratio letterboxing, zoom scale, and viewport pan offsets.
+    - Single-tap, double-tap, and 2-finger right-click in Live Screen mode dispatch `mouse_abs(x, y)` (`SetCursorPos(x, y)`) before clicking, ensuring clicks occur exactly where the user taps on the screen.
+  - **Drift-Free Centered Cursor Tracking (AnyDesk / Google Remote Desktop Style)**:
+    - In zoomed mode with `followCursor` enabled, sliding a finger moves the cursor via `sendMouseAbsolute` without Windows pointer acceleration drift, smoothly panning the viewport to keep the cursor centered.
+    - Decoupled from PC mouse moves: moving the mouse on the PC updates cursor coordinates without jerking the phone's camera.
+  - **Distinct System Controls Header Icon**:
+    - Replaced duplicate refresh icon on `btnOpenSystemSheet` with Material sliders/tune vector (`@drawable/ic_tune`).
   - **Offloaded Frame Decoding & UI Smoothness**:
     - Binary JPEG frame decoding executed on a dedicated background `ExecutorService` rather than the main thread, keeping the UI silky smooth at all times.
   - **Manual Device Addition & URL Sanitization**:
-    - Fixed crash when manually adding server with custom ports or formatted hostnames (`192.168.1.33:5051`, `http://`, etc.).
     - Robust `sanitizeHostAndPort()` splits combined `host:port` strings and strips protocol prefixes.
     - Comprehensive `try-catch` guards around OkHttp `newWebSocket` creation and dialog dismissal prevent crashes.
-    - Improved deduplication and `host:port` persistence in `SharedPreferences`.
   - Direct touch mouse movement across live screen preview with sub-pixel motion accumulation.
   - Multi-touch gestures directly on the screen:
-    - 1-finger tap: Left click.
-    - 2-finger tap: Right click.
+    - 1-finger tap: Left click at tapped coordinates.
+    - 2-finger tap: Right click at tapped coordinates.
     - 3-finger tap: Middle click.
     - 2-finger vertical drag: Smooth mouse wheel scrolling.
     - Long-press hold (>380ms): Engages left-click drag & drop with haptic pulse, automatically releasing on touch up.

@@ -95,7 +95,7 @@
             android:layout_height="44dp"
             android:layout_marginStart="8dp"
             android:background="@drawable/bg_btn_rounded"
-            android:src="@drawable/ic_refresh"
+            android:src="@drawable/ic_tune"
             android:tint="@color/accent_indigo" />
     </LinearLayout>
 

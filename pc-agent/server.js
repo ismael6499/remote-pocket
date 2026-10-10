@@ -136,9 +136,9 @@ function startScreenStreamer() {
   if (screenStreamProcess) return;
   if (!fs.existsSync(INPUT_HELPER_PATH)) return;
 
-  console.log('[ScreenStream] Starting on-demand screen stream (2 FPS, 65% quality, 720p)...');
+  console.log('[ScreenStream] Starting on-demand screen stream (2 FPS, 85% quality, 1080p Full HD)...');
   try {
-    screenStreamProcess = spawn(INPUT_HELPER_PATH, ['--stream', '2', '65', '720'], {
+    screenStreamProcess = spawn(INPUT_HELPER_PATH, ['--stream', '2', '85', '1080'], {
       stdio: ['pipe', 'pipe', 'ignore']
     });
 
@@ -619,6 +619,12 @@ function handleWebSocketMessage(ws, data) {
     case 'mouse_move':
       if (typeof data.dx === 'number' && typeof data.dy === 'number') {
         sendInputCommand(`m ${Math.round(data.dx)} ${Math.round(data.dy)}`);
+      }
+      break;
+    case 'mouse_abs':
+    case 'mouse_move_abs':
+      if (typeof data.x === 'number' && typeof data.y === 'number') {
+        sendInputCommand(`ma ${Math.round(data.x)} ${Math.round(data.y)}`);
       }
       break;
     case 'mouse_click':

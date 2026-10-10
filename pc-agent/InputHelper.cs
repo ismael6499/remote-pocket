@@ -83,6 +83,21 @@ namespace InputHelper {
         [DllImport("user32.dll")]
         private static extern bool GetCursorInfo(out CURSORINFO pci);
 
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ICONINFO {
+            public bool fIcon;
+            public int xHotspot;
+            public int yHotspot;
+            public IntPtr hbmMask;
+            public IntPtr hbmColor;
+        }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool GetIconInfo(IntPtr hIcon, out ICONINFO piconinfo);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        private static extern bool DeleteObject(IntPtr hObject);
+
         [DllImport("user32.dll")]
         private static extern bool DrawIcon(IntPtr hDC, int X, int Y, IntPtr hIcon);
 
@@ -378,6 +393,12 @@ namespace InputHelper {
             string rest = parts.Length > 1 ? parts[1].Trim() : "";
 
             switch (action) {
+                case "ma":
+                case "moveabs":
+                case "setpos":
+                    MouseSetPos(rest);
+                    Console.WriteLine("OK");
+                    break;
                 case "m":
                 case "move":
                     MouseMove(rest);
@@ -549,6 +570,15 @@ namespace InputHelper {
             SetClipboardText(text);
             Thread.Sleep(30);
             PressKey("ctrl+v");
+        }
+
+        private static void MouseSetPos(string args) {
+            string[] coords = args.Split(new char[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+            if (coords.Length < 2) return;
+            int x, y;
+            if (int.TryParse(coords[0], out x) && int.TryParse(coords[1], out y)) {
+                SetCursorPos(x, y);
+            }
         }
 
         private static void MouseMove(string args) {
@@ -875,7 +905,7 @@ namespace InputHelper {
                 curY = srcH / 2;
             }
 
-            int destH = targetHeight > 0 ? targetHeight : 720;
+            int destH = targetHeight > 0 ? targetHeight : srcH;
             if (destH > srcH) destH = srcH;
             int destW = (int)Math.Round((double)srcW * destH / srcH);
             if (destW % 2 != 0) destW++;
@@ -898,15 +928,44 @@ namespace InputHelper {
                             IntPtr hDestDC = gSrc.GetHdc();
                             try {
                                 BitBlt(hDestDC, 0, 0, srcW, srcH, hSrcDC, 0, 0, SRCCOPY | CAPTUREBLT);
+
+                                // Render the real physical Windows mouse cursor onto the desktop frame
+                                try {
+                                    CURSORINFO pci;
+                                    pci.cbSize = Marshal.SizeOf(typeof(CURSORINFO));
+                                    if (GetCursorInfo(out pci) && pci.flags == 0x00000001 && pci.hCursor != IntPtr.Zero) {
+                                        ICONINFO ii;
+                                        if (GetIconInfo(pci.hCursor, out ii)) {
+                                            int drawX = pci.ptScreenPos.X - ii.xHotspot;
+                                            int drawY = pci.ptScreenPos.Y - ii.yHotspot;
+                                            DrawIconEx(hDestDC, drawX, drawY, pci.hCursor, 0, 0, 0, IntPtr.Zero, 0x0003);
+                                            if (ii.hbmMask != IntPtr.Zero) DeleteObject(ii.hbmMask);
+                                            if (ii.hbmColor != IntPtr.Zero) DeleteObject(ii.hbmColor);
+                                        } else {
+                                            DrawIconEx(hDestDC, pci.ptScreenPos.X, pci.ptScreenPos.Y, pci.hCursor, 0, 0, 0, IntPtr.Zero, 0x0003);
+                                        }
+                                    }
+                                } catch { }
                             } finally {
                                 gSrc.ReleaseHdc(hDestDC);
                             }
                         }
 
+                        // If native resolution, save srcBmp directly without downscaling
+                        if (destW == srcW && destH == srcH) {
+                            ImageCodecInfo jpgEncoder = GetEncoder(ImageFormat.Jpeg);
+                            EncoderParameters encParams = new EncoderParameters(1);
+                            encParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)Math.Max(10, Math.Min(100, quality)));
+                            using (MemoryStream ms = new MemoryStream()) {
+                                srcBmp.Save(ms, jpgEncoder, encParams);
+                                return ms.ToArray();
+                            }
+                        }
+
                         using (Bitmap destBmp = new Bitmap(destW, destH, PixelFormat.Format24bppRgb)) {
                             using (Graphics gDest = Graphics.FromImage(destBmp)) {
-                                gDest.InterpolationMode = InterpolationMode.Bilinear;
-                                gDest.PixelOffsetMode = PixelOffsetMode.Half;
+                                gDest.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                                gDest.PixelOffsetMode = PixelOffsetMode.HighQuality;
                                 gDest.DrawImage(srcBmp, 0, 0, destW, destH);
                             }
 

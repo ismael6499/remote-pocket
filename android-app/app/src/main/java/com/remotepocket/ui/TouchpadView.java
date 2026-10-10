@@ -65,11 +65,6 @@ public class TouchpadView extends View {
     private ScaleGestureDetector scaleGestureDetector;
     private GestureDetector gestureDetector;
 
-    // Clean Windows cursor arrow graphics
-    private Paint paintCursorFill;
-    private Paint paintCursorStroke;
-    private android.graphics.Path cursorPath;
-
     public TouchpadView(Context context) {
         super(context);
         init();
@@ -91,34 +86,23 @@ public class TouchpadView extends View {
         setWillNotDraw(false);
         vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
 
-        // Classic crisp Windows cursor arrow
-        paintCursorFill = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paintCursorFill.setStyle(Paint.Style.FILL);
-        paintCursorFill.setColor(Color.WHITE);
-
-        paintCursorStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paintCursorStroke.setStyle(Paint.Style.STROKE);
-        paintCursorStroke.setColor(Color.BLACK);
-        paintCursorStroke.setStrokeWidth(2.0f);
-        paintCursorStroke.setStrokeJoin(Paint.Join.ROUND);
-
-        cursorPath = new android.graphics.Path();
-        float s = getResources().getDisplayMetrics().density * 1.15f;
-        cursorPath.moveTo(0 * s, 0 * s);
-        cursorPath.lineTo(0 * s, 17 * s);
-        cursorPath.lineTo(4.5f * s, 13 * s);
-        cursorPath.lineTo(8 * s, 21 * s);
-        cursorPath.lineTo(11 * s, 19.5f * s);
-        cursorPath.lineTo(7.5f * s, 12 * s);
-        cursorPath.lineTo(13 * s, 12 * s);
-        cursorPath.close();
-
-        // Double-Tap sends double-click directly to PC
+        // Double-Tap sends double-click directly to PC (at tapped desktop coordinate in screen mode)
         gestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onDoubleTap(MotionEvent e) {
                 if (webSocketManager != null && webSocketManager.isConnected()) {
                     triggerHaptic(30);
+                    if (isScreenMode) {
+                        int[] coords = viewToDesktopCoords(e.getX(), e.getY());
+                        if (coords != null) {
+                            curX = coords[0];
+                            curY = coords[1];
+                            webSocketManager.sendMouseAbsolute(coords[0], coords[1]);
+                            if (followCursor && currentScale > 1.05f) {
+                                applyCenterTranslationDirect();
+                            }
+                        }
+                    }
                     webSocketManager.sendMouseDoubleClick("left");
                     return true;
                 }
@@ -329,6 +313,34 @@ public class TouchpadView extends View {
         }
     }
 
+    /**
+     * Converts a touch point on TouchpadView to the corresponding desktop pixel coordinate.
+     */
+    public int[] viewToDesktopCoords(float touchX, float touchY) {
+        int viewW = getWidth();
+        int viewH = getHeight();
+        if (viewW <= 0 || viewH <= 0 || scrW <= 0 || scrH <= 0) {
+            return null;
+        }
+
+        float scaleFit = Math.min((float) viewW / scrW, (float) viewH / scrH);
+        float renderW = scrW * scaleFit;
+        float renderH = scrH * scaleFit;
+        float offsetX = (viewW - renderW) / 2f;
+        float offsetY = (viewH - renderH) / 2f;
+
+        float localX = (touchX - currentTransX - viewW / 2f) / currentScale + viewW / 2f;
+        float localY = (touchY - currentTransY - viewH / 2f) / currentScale + viewH / 2f;
+
+        int dx = Math.round((localX - offsetX) / scaleFit);
+        int dy = Math.round((localY - offsetY) / scaleFit);
+
+        dx = Math.max(0, Math.min(scrW - 1, dx));
+        dy = Math.max(0, Math.min(scrH - 1, dy));
+
+        return new int[]{dx, dy};
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (scaleGestureDetector != null && event.getPointerCount() >= 2) {
@@ -363,6 +375,14 @@ public class TouchpadView extends View {
                     if (!hasMoved && !isMultiTouch && !isScaling) {
                         isDragging = true;
                         triggerHaptic(45);
+                        if (isScreenMode) {
+                            int[] coords = viewToDesktopCoords(lastX, lastY);
+                            if (coords != null) {
+                                curX = coords[0];
+                                curY = coords[1];
+                                webSocketManager.sendMouseAbsolute(curX, curY);
+                            }
+                        }
                         webSocketManager.sendMouseDown("left");
                     }
                 };
@@ -391,25 +411,73 @@ public class TouchpadView extends View {
                         }
                     }
 
-                    accumX += deltaRawX * SENSITIVITY;
-                    accumY += deltaRawY * SENSITIVITY;
-
-                    int moveX = Math.round(accumX);
-                    int moveY = Math.round(accumY);
-
-                    if (moveX != 0 || moveY != 0) {
-                        webSocketManager.sendMouseMove(moveX, moveY);
-                        accumX -= moveX;
-                        accumY -= moveY;
-
-                        // Predictive instant cursor update for 0ms camera tracking
-                        if (curX >= 0 && curY >= 0) {
-                            curX = Math.max(0, Math.min(scrW, curX + moveX));
-                            curY = Math.max(0, Math.min(scrH, curY + moveY));
-                            if (isScreenMode && followCursor && currentScale > 1.05f) {
-                                applyCenterTranslationDirect();
+                    if (isScreenMode) {
+                        if (isDragging) {
+                            // Dragging mouse: smoothly move to touch point
+                            int[] coords = viewToDesktopCoords(currentX, currentY);
+                            if (coords != null) {
+                                curX = coords[0];
+                                curY = coords[1];
+                                webSocketManager.sendMouseAbsolute(curX, curY);
+                                if (followCursor && currentScale > 1.05f) {
+                                    applyCenterTranslationDirect();
+                                }
                             }
-                            invalidate();
+                        } else if (currentScale > 1.05f) {
+                            if (followCursor) {
+                                // Locked center cursor mode: sliding finger moves cursor absolutely and pans viewport
+                                int viewW = getWidth();
+                                int viewH = getHeight();
+                                if (viewW > 0 && viewH > 0 && scrW > 0 && scrH > 0) {
+                                    float scaleFit = Math.min((float) viewW / scrW, (float) viewH / scrH);
+                                    float effectiveScale = scaleFit * currentScale;
+                                    if (effectiveScale > 0) {
+                                        float moveDesktopX = deltaRawX / effectiveScale;
+                                        float moveDesktopY = deltaRawY / effectiveScale;
+                                        accumX += moveDesktopX;
+                                        accumY += moveDesktopY;
+                                        int stepX = Math.round(accumX);
+                                        int stepY = Math.round(accumY);
+                                        if (stepX != 0 || stepY != 0) {
+                                            accumX -= stepX;
+                                            accumY -= stepY;
+                                            curX = Math.max(0, Math.min(scrW - 1, (curX >= 0 ? curX : scrW / 2) + stepX));
+                                            curY = Math.max(0, Math.min(scrH - 1, (curY >= 0 ? curY : scrH / 2) + stepY));
+                                            webSocketManager.sendMouseAbsolute(curX, curY);
+                                            applyCenterTranslationDirect();
+                                        }
+                                    }
+                                }
+                            } else {
+                                // Free viewport panning
+                                currentTransX += deltaRawX;
+                                currentTransY += deltaRawY;
+                                if (zoomTargetView != null) {
+                                    zoomTargetView.setTranslationX(currentTransX);
+                                    zoomTargetView.setTranslationY(currentTransY);
+                                }
+                            }
+                        } else {
+                            // Direct touch movement across full desktop fit
+                            int[] coords = viewToDesktopCoords(currentX, currentY);
+                            if (coords != null) {
+                                curX = coords[0];
+                                curY = coords[1];
+                                webSocketManager.sendMouseAbsolute(curX, curY);
+                            }
+                        }
+                    } else {
+                        // Classic Trackpad Mode: relative trackpad movements
+                        accumX += deltaRawX * SENSITIVITY;
+                        accumY += deltaRawY * SENSITIVITY;
+
+                        int moveX = Math.round(accumX);
+                        int moveY = Math.round(accumY);
+
+                        if (moveX != 0 || moveY != 0) {
+                            webSocketManager.sendMouseMove(moveX, moveY);
+                            accumX -= moveX;
+                            accumY -= moveY;
                         }
                     }
 
@@ -443,6 +511,18 @@ public class TouchpadView extends View {
                     webSocketManager.sendMouseUp("left");
                     isDragging = false;
                 } else if (!hasMoved && duration < TAP_TIMEOUT_MS && !isScaling) {
+                    if (isScreenMode) {
+                        int[] coords = viewToDesktopCoords(event.getX(), event.getY());
+                        if (coords != null) {
+                            curX = coords[0];
+                            curY = coords[1];
+                            webSocketManager.sendMouseAbsolute(coords[0], coords[1]);
+                            if (followCursor && currentScale > 1.05f) {
+                                applyCenterTranslationDirect();
+                            }
+                        }
+                    }
+
                     if (pointerCount == 3) {
                         // 3 Finger Tap -> Middle Click
                         triggerHaptic(35);
@@ -481,47 +561,8 @@ public class TouchpadView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
-        if (!isScreenMode || scrW <= 0 || scrH <= 0) {
-            return;
-        }
-
-        int viewW = getWidth();
-        int viewH = getHeight();
-        if (viewW <= 0 || viewH <= 0) return;
-
-        float pointerX;
-        float pointerY;
-
-        if (currentScale > 1.05f && followCursor) {
-            // In centered follow mode: mouse cursor is locked at the exact center of mobile screen
-            pointerX = viewW / 2f;
-            pointerY = viewH / 2f;
-        } else {
-            float scaleFit = Math.min((float) viewW / scrW, (float) viewH / scrH);
-            float renderW = scrW * scaleFit;
-            float renderH = scrH * scaleFit;
-            float offsetX = (viewW - renderW) / 2f;
-            float offsetY = (viewH - renderH) / 2f;
-
-            float normCurX = curX >= 0 ? curX : scrW / 2f;
-            float normCurY = curY >= 0 ? curY : scrH / 2f;
-
-            float cursorViewX = offsetX + (normCurX / (float) scrW) * renderW;
-            float cursorViewY = offsetY + (normCurY / (float) scrH) * renderH;
-
-            pointerX = viewW / 2f + (cursorViewX - viewW / 2f) * currentScale + currentTransX;
-            pointerY = viewH / 2f + (cursorViewY - viewH / 2f) * currentScale + currentTransY;
-        }
-
-        // Draw crisp iconic Windows mouse arrow (tip at pointerX, pointerY)
-        if (pointerX >= -30 && pointerX <= viewW + 30 && pointerY >= -30 && pointerY <= viewH + 30) {
-            canvas.save();
-            canvas.translate(pointerX, pointerY);
-            canvas.drawPath(cursorPath, paintCursorFill);
-            canvas.drawPath(cursorPath, paintCursorStroke);
-            canvas.restore();
-        }
+        // The real Windows cursor is rendered directly inside the desktop frame by InputHelper (DrawIconEx).
+        // No synthetic cursor or overlay is drawn here to ensure 100% visual fidelity and zero latency.
     }
 
     @Override
