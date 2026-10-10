@@ -38,6 +38,7 @@ Remote Pocket is a monorepo containing:
   - Windows Startup Shortcut: Shortcut placed in `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\RemotePocket_silent.vbs.lnk` so the agent starts automatically upon user logon in full interactive session.
   - REST Restart Endpoint: `/api/server/restart`, `/api/agent/restart`, `/gateway/restart` and WebSocket `'restart_agent'` command.
   - `start.bat`: Self-healing launcher (auto-installs npm dependencies and auto-compiles C# if missing on new PCs).
+  - Autonomous Agent Restarts: Whenever files change or when requested by Agustín, the server is cleanly restarted detached in his interactive desktop session via `explorer.exe run_silent.vbs` without holding background daemon tasks in Antigravity.
   - `install.bat` & `uninstall.bat`: Setup wizards configuring/removing the Startup folder link and dependencies.
 - [x] End-to-End Verification:
   - Verified via `test_agent.js`: HTTP status, shortcuts, UDP broadcast response, WebSocket ping/pong, and clean shutdown passed 100%.
