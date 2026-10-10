@@ -119,4 +119,5 @@
     <string name="toast_logs_copied">Logs copiados al portapapeles</string>
     <string name="badge_discovered_udp">🟢 Descubierto en vivo (UDP 5051)</string>
     <string name="badge_saved_device">💾 Dispositivo Guardado</string>
+    <string name="btn_close">Cerrar</string>
 </resources>

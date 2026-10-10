@@ -169,8 +169,17 @@ public class MainActivity extends AppCompatActivity {
     private boolean isManualDragActive = false;
 
     private void setupListeners() {
-        // Device Selector Click
-        findViewById(R.id.btnDeviceSelector).setOnClickListener(v -> showDeviceManagerDialog());
+        // Device Selector Click (Click anywhere on card, texts, dot or arrow to open selector)
+        View.OnClickListener openDeviceSelectorClick = v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            showDeviceManagerDialog();
+        };
+        findViewById(R.id.btnDeviceSelector).setOnClickListener(openDeviceSelectorClick);
+        txtDeviceName.setOnClickListener(openDeviceSelectorClick);
+        txtDeviceStatus.setOnClickListener(openDeviceSelectorClick);
+        viewStatusDot.setOnClickListener(openDeviceSelectorClick);
+        View arrowView = findViewById(R.id.btnDeviceSelectorArrow);
+        if (arrowView != null) arrowView.setOnClickListener(openDeviceSelectorClick);
 
         // Refresh Discovery (Single tap = Fresh force scan, Long press = Diagnostics Logs)
         findViewById(R.id.btnRefreshDiscovery).setOnClickListener(v -> {
@@ -183,9 +192,11 @@ public class MainActivity extends AppCompatActivity {
             showLogViewerDialog();
             return true;
         };
+        findViewById(R.id.btnDeviceSelector).setOnLongClickListener(openLogsLongClick);
         txtDeviceStatus.setOnLongClickListener(openLogsLongClick);
         txtDeviceName.setOnLongClickListener(openLogsLongClick);
         viewStatusDot.setOnLongClickListener(openLogsLongClick);
+        if (arrowView != null) arrowView.setOnLongClickListener(openLogsLongClick);
         findViewById(R.id.btnRefreshDiscovery).setOnLongClickListener(openLogsLongClick);
 
         // Open System Controls Sheet
@@ -443,6 +454,10 @@ public class MainActivity extends AppCompatActivity {
         if (device == null) return;
         this.currentDevice = device;
         txtDeviceName.setText(device.getDeviceName());
+        txtDeviceStatus.setText(R.string.status_connecting);
+        txtDeviceStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_amber));
+        viewStatusDot.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.accent_amber)));
+
         AppLogger.i("MainActivity", "Selected device: " + device.getDeviceName() + " (" + device.getHost() + ":" + device.getPort() + ")");
 
         // Save last connected host and port
@@ -450,13 +465,16 @@ public class MainActivity extends AppCompatActivity {
                 .putString(KEY_LAST_DEVICE_HOST, device.getHost() + ":" + device.getPort())
                 .apply();
 
-        // Connect WebSocket
-        webSocketManager.connect(device);
+        // Connect WebSocket (force clean reconnect)
+        webSocketManager.connect(device, true);
     }
 
     private void startUdpDiscovery(boolean forceFresh) {
-        txtDeviceStatus.setText(R.string.status_searching);
-        txtDeviceStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_amber));
+        if (!webSocketManager.isConnected()) {
+            txtDeviceStatus.setText(R.string.status_searching);
+            txtDeviceStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_amber));
+            viewStatusDot.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.accent_amber)));
+        }
         AppLogger.i("MainActivity", "Triggering discovery scan (forceFresh: " + forceFresh + ")");
 
         if (forceFresh) {
@@ -504,14 +522,21 @@ public class MainActivity extends AppCompatActivity {
                 if (deviceDialog != null && deviceDialog.isShowing()) {
                     deviceDialog.setStatusText("Scan finished (" + knownDevices.size() + " devices found)");
                 }
-                if (!webSocketManager.isConnected() && !webSocketManager.isConnecting()) {
-                    if (currentDevice == null && !knownDevices.isEmpty()) {
-                        selectDevice(knownDevices.get(0));
-                    } else if (knownDevices.isEmpty()) {
-                        txtDeviceStatus.setText(R.string.status_disconnected);
-                        txtDeviceStatus.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.accent_coral));
+                runOnUiThread(() -> {
+                    if (webSocketManager.isConnected()) {
+                        updateConnectionUi(true);
+                    } else if (webSocketManager.isConnecting()) {
+                        txtDeviceStatus.setText(R.string.status_connecting);
+                        txtDeviceStatus.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.accent_amber));
+                        viewStatusDot.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(MainActivity.this, R.color.accent_amber)));
+                    } else {
+                        if (currentDevice == null && !knownDevices.isEmpty()) {
+                            selectDevice(knownDevices.get(0));
+                        } else if (knownDevices.isEmpty() || currentDevice == null) {
+                            updateConnectionUi(false);
+                        }
                     }
-                }
+                });
             }
         });
     }

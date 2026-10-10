@@ -193,6 +193,16 @@ public class PcKeyboardDialog extends Dialog {
         setupKey(R.id.key_arrow_right, "right");
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Window window = getWindow();
+        if (window != null) {
+            window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            window.setGravity(Gravity.BOTTOM);
+        }
+    }
+
     private void triggerHaptic(View v) {
         if (v != null) {
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);

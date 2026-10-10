@@ -142,12 +142,15 @@ public class DeviceManagerDialog extends Dialog {
             sub.setTextSize(11f);
             textBlock.addView(sub);
 
-            textBlock.setOnClickListener(v -> {
+            View.OnClickListener onSelectClick = v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                 if (listener != null) {
                     listener.onDeviceSelected(d);
                 }
                 dismiss();
-            });
+            };
+            row.setOnClickListener(onSelectClick);
+            textBlock.setOnClickListener(onSelectClick);
 
             row.addView(textBlock);
 

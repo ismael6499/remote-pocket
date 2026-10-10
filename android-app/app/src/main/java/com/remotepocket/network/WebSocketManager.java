@@ -53,8 +53,12 @@ public class WebSocketManager {
     }
 
     public void connect(Device device) {
+        connect(device, false);
+    }
+
+    public void connect(Device device, boolean forceReconnect) {
         if (device == null) return;
-        if (currentDevice != null && currentDevice.getHost().equals(device.getHost()) && currentDevice.getPort() == device.getPort()) {
+        if (!forceReconnect && currentDevice != null && currentDevice.getHost().equals(device.getHost()) && currentDevice.getPort() == device.getPort()) {
             if (isConnected() || isConnecting) {
                 Log.d(TAG, "Already connected or connecting to: " + device.getHost());
                 return;

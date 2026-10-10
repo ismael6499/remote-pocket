@@ -20,6 +20,18 @@ process.on('unhandledRejection', (reason) => {
   } catch (e) {}
 });
 
+process.on('beforeExit', (code) => {
+  try {
+    fs.appendFileSync(path.join(__dirname, 'server_err.log'), `[${new Date().toISOString()}] beforeExit code=${code}\n`);
+  } catch (e) {}
+});
+
+process.on('exit', (code) => {
+  try {
+    fs.appendFileSync(path.join(__dirname, 'server_err.log'), `[${new Date().toISOString()}] exit code=${code}\n`);
+  } catch (e) {}
+});
+
 // ==========================================
 // CONFIGURATION & PATHS
 // ==========================================
@@ -66,6 +78,12 @@ function startInputProcess() {
       windowsHide: true
     });
 
+    if (inputProcess.stdin) {
+      inputProcess.stdin.on('error', (err) => {
+        console.warn('[InputHelper] stdin stream error (prevented crash):', err.message);
+      });
+    }
+
     inputProcess.stdout.on('data', (data) => {
       const str = data.toString().trim();
       if (str.includes('READY')) {
@@ -95,7 +113,9 @@ function sendInputCommand(cmd) {
   }
   if (inputProcess && inputProcess.stdin && !inputProcess.stdin.destroyed) {
     try {
-      inputProcess.stdin.write(cmd + '\n');
+      inputProcess.stdin.write(cmd + '\n', (err) => {
+        if (err) console.warn('[InputHelper] write error callback:', err.message);
+      });
       return true;
     } catch (e) {
       console.error('[InputHelper] Write error:', e.message);
