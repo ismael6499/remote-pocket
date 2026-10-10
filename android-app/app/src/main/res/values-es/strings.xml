@@ -99,4 +99,10 @@
     <string name="toast_update_downloaded">Actualización descargada. Abriendo instalador...</string>
     <string name="toast_clipboard_sent">Texto del portapapeles enviado a la PC</string>
     <string name="toast_failed_command">Error al enviar comando</string>
+    <string name="btn_switch_normal_kb">Teclado Estándar</string>
+    <string name="btn_switch_pc_kb">Teclado PC</string>
+    <string name="btn_restart_agent">Reiniciar Agente PC</string>
+    <string name="confirm_restart_agent_title">Reiniciar Agente PC</string>
+    <string name="confirm_restart_agent_msg">¿Deseas reiniciar el Agente de PC de Remote Pocket en segundo plano? Se reiniciará y se reconectará automáticamente.</string>
+    <string name="toast_restarting_agent">Reiniciando el agente de PC en segundo plano...</string>
 </resources>

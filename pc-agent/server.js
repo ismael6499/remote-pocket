@@ -435,6 +435,24 @@ app.post('/api/system/restart', verifyPin, (req, res) => {
   }, 1000);
 });
 
+// Agent Self-Restart Endpoint (Express Gateway style via remote_restart.vbs)
+app.post(['/api/server/restart', '/api/agent/restart', '/gateway/restart'], verifyPin, (req, res) => {
+  console.log('[Server] Received agent restart request (/api/server/restart)...');
+  res.json({ success: true, message: 'Restarting Remote Pocket agent in background...' });
+
+  const vbsPath = path.join(__dirname, 'remote_restart.vbs');
+  const child = spawn('wscript.exe', [vbsPath], {
+    detached: true,
+    stdio: 'ignore'
+  });
+  child.unref();
+
+  setTimeout(() => {
+    cleanup();
+    process.exit(0);
+  }, 1000);
+});
+
 // OTA Updates Endpoint
 app.get('/api/version', (req, res) => {
   const apkPath = path.join(UPDATES_DIR, 'app-release.apk');
@@ -567,6 +585,25 @@ function handleWebSocketMessage(ws, data) {
       ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
       break;
 
+    // Agent Self-Restart (Express Gateway style)
+    case 'restart_agent':
+    case 'restart_server':
+      console.log('[WebSocket] Restart agent requested from client');
+      try {
+        ws.send(JSON.stringify({ type: 'restarting_agent' }));
+      } catch (e) {}
+      const restartVbs = path.join(__dirname, 'remote_restart.vbs');
+      const rChild = spawn('wscript.exe', [restartVbs], {
+        detached: true,
+        stdio: 'ignore'
+      });
+      rChild.unref();
+      setTimeout(() => {
+        cleanup();
+        process.exit(0);
+      }, 1000);
+      break;
+
     default:
       console.warn('[WebSocket] Unknown command type:', data.type);
   }
@@ -680,5 +717,40 @@ function startHttpServer(initialPort, maxAttempts = 15) {
 
   tryListen();
 }
+
+function cleanup() {
+  if (inputProcess) {
+    try {
+      inputProcess.stdin.write('exit\n');
+      inputProcess.kill();
+    } catch (e) {}
+    inputProcess = null;
+  }
+  if (screenStreamProcess) {
+    try {
+      screenStreamProcess.kill();
+    } catch (e) {}
+    screenStreamProcess = null;
+  }
+  try {
+    udpSocket.close();
+  } catch (e) {}
+  try {
+    wss.close();
+  } catch (e) {}
+  try {
+    server.close();
+  } catch (e) {}
+}
+
+process.on('SIGINT', () => {
+  cleanup();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  cleanup();
+  process.exit(0);
+});
 
 startHttpServer(config.port || 5050);

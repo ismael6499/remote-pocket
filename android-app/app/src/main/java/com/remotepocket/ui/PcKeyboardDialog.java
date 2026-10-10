@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.HapticFeedbackConstants;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
 
@@ -30,6 +31,7 @@ import java.util.List;
 public class PcKeyboardDialog extends Dialog {
     private final WebSocketManager webSocketManager;
     private Vibrator vibrator;
+    private Runnable onSwitchToNormalKeyboard;
 
     private boolean isCtrlActive = false;
     private boolean isAltActive = false;
@@ -48,6 +50,10 @@ public class PcKeyboardDialog extends Dialog {
         this.webSocketManager = webSocketManager;
     }
 
+    public void setOnSwitchToNormalKeyboard(Runnable runnable) {
+        this.onSwitchToNormalKeyboard = runnable;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,6 +67,8 @@ public class PcKeyboardDialog extends Dialog {
             window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             window.setGravity(Gravity.BOTTOM);
+            window.setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL, WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL);
+            window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
         }
 
         // Header controls
@@ -69,6 +77,17 @@ public class PcKeyboardDialog extends Dialog {
             triggerHaptic(v);
             sendKeyWithModifiers("esc");
         });
+
+        View btnSwitchToNormal = findViewById(R.id.btnSwitchToNormal);
+        if (btnSwitchToNormal != null) {
+            btnSwitchToNormal.setOnClickListener(v -> {
+                triggerHaptic(v);
+                dismiss();
+                if (onSwitchToNormalKeyboard != null) {
+                    onSwitchToNormalKeyboard.run();
+                }
+            });
+        }
 
         // Special section toggle
         btnToggleSpecial = findViewById(R.id.btnToggleSpecial);

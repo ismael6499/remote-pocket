@@ -31,12 +31,14 @@ Remote Pocket is a monorepo containing:
   - WebSocket server on port 5050 handling mouse, keyboard, clipboard, media keys, and binary JPEG frames.
   - REST endpoints: `/api/status`, `/api/screen/frame`, `/api/audio`, `/api/brightness`, `/api/clipboard`, `/api/shortcuts`, `/api/system/lock|sleep|shutdown|restart`, `/api/version`, and OTA static APK server at `/updates`.
   - Ngrok tunnel integration with `@ngrok/ngrok` (using `NGROK_AUTHTOKEN`).
-- [x] Setup & Execution Scripts:
-  - `install.bat`: Self-install wizard that verifies Node.js, runs `npm install --production`, auto-detects `csc.exe` in .NET 4.0, compiles `InputHelper.cs`, creates `run_silent.vbs`, and registers Windows Scheduled Task (`schtasks /sc onlogon`).
+- [x] Setup & Execution Scripts (Express Gateway Architecture):
+  - `run_silent.vbs`: Visual Basic Script launching `start.bat` in user interactive session with hidden window (`0, False`).
+  - `remote_restart.vbs` & `remote_restart.bat`: Clean 3-second delay restart releasing ports and restarting daemon silently.
+  - `restart_server.bat` & `stop_server.bat`: Quick manual stop/restart scripts cleanly terminating processes on port 5050 and `InputHelper.exe`.
+  - Windows Startup Shortcut: Shortcut placed in `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\RemotePocket_silent.vbs.lnk` so the agent starts automatically upon user logon in full interactive session.
+  - REST Restart Endpoint: `/api/server/restart`, `/api/agent/restart`, `/gateway/restart` and WebSocket `'restart_agent'` command.
   - `start.bat`: Self-healing launcher (auto-installs npm dependencies and auto-compiles C# if missing on new PCs).
-  - `uninstall.bat`: Clean uninstaller removing scheduled tasks and stopping background processes.
-  - `update.bat`: Git pull, package update, C# recompilation, and scheduled task refresh.
-  - `run_silent.vbs`: Hidden window runner.
+  - `install.bat` & `uninstall.bat`: Setup wizards configuring/removing the Startup folder link and dependencies.
 - [x] End-to-End Verification:
   - Verified via `test_agent.js`: HTTP status, shortcuts, UDP broadcast response, WebSocket ping/pong, and clean shutdown passed 100%.
 
@@ -51,9 +53,13 @@ Remote Pocket is a monorepo containing:
   - Dynamic PC selector toolbar with live status dot (Green connected, Red disconnected).
   - Mode Tabs: Trackpad vs Live Screen view.
   - Live Screen stream viewer with simultaneous trackpad interaction.
-  - Bottom mouse action buttons (Left, Right, Double Click, Scroll Up, Scroll Down).
-  - Floating Action Button (FAB) draggable anywhere on screen to choose between Gboard or Extended PC Keyboard.
-- [x] Dual Keyboards:
+  - Bottom mouse action buttons (Left, Middle, Right, Hold drag lock, Double Click, Scroll Up, Scroll Down).
+  - Floating Action Button (FAB) draggable anywhere on screen:
+    - Default first tap: Opens normal soft keyboard (Gboard) input bar with auto-focus.
+    - Subsequent tap: Toggles directly to Extended PC Keyboard (`PcKeyboardDialog`).
+    - Next tap: Toggles back to normal keyboard.
+    - Dedicated switch button ("💻") on the typing input bar to jump to PC keyboard directly.
+    - Dedicated switch button ("⌨️ Standard") on PC keyboard header to jump to normal keyboard directly.
 - [x] Dual Keyboards:
   - Standard Android Keyboard (Gboard): soft input with direct text transmission and voice-to-text.
   - Full Extended PC Keyboard (`PcKeyboardDialog`):
@@ -77,11 +83,8 @@ Remote Pocket is a monorepo containing:
 - [x] Auto-Reconnect & Connection Stability:
   - Automatic reconnection on `onResume()` restoring last active PC from `SharedPreferences`.
   - Guarded `WebSocketManager.connect()` with `isConnecting()` to prevent UDP discovery reconnect storms.
-- [x] PC Agent Input Injection Architecture (`InputHelper.cs`):
-  - High-performance Win32 `SendInput` (`MOUSEINPUT` / `KEYBDINPUT`) with automatic fallback to legacy APIs.
-  - Desktop station attachment via `EnsureDesktopAccess()` (`winsta0\default`).
-  - Interactive Windows session requirement noted for simulated input rights.
-- [x] System & Shortcuts Sheet (`SystemSheet`):
+- [x] PC Agent Remote Management & System Sheet (`SystemSheet`):
+  - "Restart PC Agent" button with confirmation prompt, triggering `/api/server/restart` for 3-second background reboot.
   - Real-time display brightness slider (0-100%).
   - Audio volume slider (0-100%), mute toggle, media controls (Prev, Play/Pause, Next).
   - Power action buttons (Sleep, Lock, Restart, Shutdown) with modal confirmations.

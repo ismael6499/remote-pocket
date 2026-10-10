@@ -34,12 +34,7 @@ if !CSC_EXE! NEQ "" (
 
 echo.
 echo [4/4] Restarting background service...
-schtasks /run /tn "RemotePocketAgent" >nul 2>nul
-if %ERRORLEVEL% EQU 0 (
-    echo [OK] RemotePocketAgent restarted via Windows Scheduled Task.
-) else (
-    echo [INFO] You can run start.bat manually to restart the agent.
-)
+call restart_server.bat
 
 echo.
 echo ========================================================

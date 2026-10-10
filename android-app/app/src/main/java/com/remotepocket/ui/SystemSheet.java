@@ -11,6 +11,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.Button;
@@ -134,6 +135,12 @@ public class SystemSheet extends Dialog {
         findViewById(R.id.btnPowerRestart).setOnClickListener(v -> confirmPowerAction("restart"));
         findViewById(R.id.btnPowerShutdown).setOnClickListener(v -> confirmPowerAction("shutdown"));
 
+        // Restart PC Agent Button
+        View btnRestartAgent = findViewById(R.id.btnRestartAgent);
+        if (btnRestartAgent != null) {
+            btnRestartAgent.setOnClickListener(v -> confirmRestartAgent());
+        }
+
         // Load Initial State & Shortcuts
         loadInitialState();
     }
@@ -249,6 +256,35 @@ public class SystemSheet extends Dialog {
                 .setPositiveButton(R.string.action_yes, (d, w) -> postSystemAction(action))
                 .setNegativeButton(R.string.action_cancel, null)
                 .show();
+    }
+
+    private void confirmRestartAgent() {
+        new AlertDialog.Builder(getContext())
+                .setTitle(R.string.confirm_restart_agent_title)
+                .setMessage(R.string.confirm_restart_agent_msg)
+                .setPositiveButton(R.string.action_yes, (d, w) -> {
+                    Toast.makeText(getContext(), R.string.toast_restarting_agent, Toast.LENGTH_SHORT).show();
+                    postRestartAgent();
+                })
+                .setNegativeButton(R.string.action_cancel, null)
+                .show();
+    }
+
+    private void postRestartAgent() {
+        if (device == null) return;
+        executor.execute(() -> {
+            try {
+                RequestBody body = RequestBody.create("", MediaType.parse("application/json"));
+                Request req = new Request.Builder()
+                        .url(device.getBaseHttpUrl() + "/api/server/restart")
+                        .post(body)
+                        .build();
+                httpClient.newCall(req).execute();
+                mainHandler.post(this::dismiss);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed agent restart request", e);
+            }
+        });
     }
 
     private void postSystemAction(String action) {

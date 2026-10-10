@@ -27,6 +27,24 @@
             android:textSize="16sp"
             android:textStyle="bold" />
 
+        <!-- Switch to Standard Keyboard Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSwitchToNormal"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginEnd="6dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:text="@string/btn_switch_normal_kb"
+            android:textColor="@color/text_primary"
+            android:textSize="11sp"
+            app:cornerRadius="8dp"
+            app:strokeColor="@color/surface_card_border" />
+
         <!-- Toggle Special Actions & F-Keys -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnToggleSpecial"

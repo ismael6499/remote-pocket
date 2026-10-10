@@ -99,4 +99,10 @@
     <string name="toast_update_downloaded">Update downloaded. Launching installer...</string>
     <string name="toast_clipboard_sent">Clipboard text sent to PC</string>
     <string name="toast_failed_command">Failed to send command</string>
+    <string name="btn_switch_normal_kb">Standard Keyboard</string>
+    <string name="btn_switch_pc_kb">PC Keyboard</string>
+    <string name="btn_restart_agent">Restart PC Agent</string>
+    <string name="confirm_restart_agent_title">Restart PC Agent</string>
+    <string name="confirm_restart_agent_msg">Restart the Remote Pocket PC Agent in background? It will reboot and reconnect automatically.</string>
+    <string name="toast_restarting_agent">Restarting PC agent in background...</string>
 </resources>

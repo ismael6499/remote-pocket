@@ -67,18 +67,10 @@ echo Set WshShell = CreateObject^("WScript.Shell"^)
 echo WshShell.Run Chr^(34^) ^& "%~dp0start.bat" ^& Chr^(34^), 0, False
 ) > "%~dp0run_silent.vbs"
 
-:: Register Windows Scheduled Task
-schtasks /create /tn "RemotePocketAgent" /tr "wscript.exe \"%~dp0run_silent.vbs\"" /sc onlogon /f /rl highest >nul 2>nul
+:: Create shortcut in Windows Startup folder (same as Express Gateway)
+powershell -NoProfile -Command "$ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut(\"$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\RemotePocket_silent.vbs.lnk\"); $sc.TargetPath = \"%~dp0run_silent.vbs\"; $sc.WorkingDirectory = \"%~dp0\"; $sc.Save()" >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
-    echo [OK] Windows Scheduled Task 'RemotePocketAgent' created successfully (runs silently on logon).
-) else (
-    echo [WARN] Could not register elevated task, trying standard task...
-    schtasks /create /tn "RemotePocketAgent" /tr "wscript.exe \"%~dp0run_silent.vbs\"" /sc onlogon /f >nul 2>nul
-    if %ERRORLEVEL% EQU 0 (
-        echo [OK] Windows Scheduled Task 'RemotePocketAgent' created successfully.
-    ) else (
-        echo [WARN] Failed to register task. You can still launch start.bat or place a shortcut in shell:startup.
-    )
+    echo [OK] Windows Startup shortcut created in shell:startup.
 )
 
 echo.

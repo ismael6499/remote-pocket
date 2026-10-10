@@ -222,6 +222,23 @@
             android:textSize="12sp" />
     </LinearLayout>
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnRestartAgent"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginBottom="16dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:text="@string/btn_restart_agent"
+        android:textColor="@color/accent_indigo"
+        android:textSize="13sp"
+        app:cornerRadius="10dp"
+        app:icon="@drawable/ic_refresh"
+        app:iconGravity="textStart"
+        app:iconTint="@color/accent_indigo"
+        app:strokeColor="@color/accent_indigo" />
+
     <!-- SECTION: SHORTCUTS -->
     <TextView
         android:layout_width="wrap_content"

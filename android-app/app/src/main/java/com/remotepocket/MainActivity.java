@@ -204,6 +204,13 @@ public class MainActivity extends AppCompatActivity {
 
         // Send text typing
         findViewById(R.id.btnSendTyping).setOnClickListener(v -> sendEnteredText());
+        View btnSwitchToPcKb = findViewById(R.id.btnSwitchToPcKb);
+        if (btnSwitchToPcKb != null) {
+            btnSwitchToPcKb.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                showPcKeyboard();
+            });
+        }
         editTypingText.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEND) {
                 sendEnteredText();
@@ -215,6 +222,8 @@ public class MainActivity extends AppCompatActivity {
         // Draggable Floating Keyboard Action Button (FAB)
         setupDraggableFab();
     }
+
+    private PcKeyboardDialog activePcKeyboardDialog = null;
 
     private void setupDraggableFab() {
         fabKeyboard.setOnTouchListener(new View.OnTouchListener() {
@@ -244,7 +253,8 @@ public class MainActivity extends AppCompatActivity {
                         float diffX = Math.abs(event.getRawX() - startX);
                         float diffY = Math.abs(event.getRawY() - startY);
                         if (diffX < CLICK_DRAG_TOLERANCE && diffY < CLICK_DRAG_TOLERANCE) {
-                            showKeyboardOptionsDialog();
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                            onKeyboardFabClicked();
                         }
                         return true;
                     default:
@@ -254,31 +264,54 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void showKeyboardOptionsDialog() {
-        CharSequence[] options = new CharSequence[] {
-                getString(R.string.keyboard_android),
-                getString(R.string.keyboard_extended)
-        };
+    private void onKeyboardFabClicked() {
+        if (activePcKeyboardDialog != null && activePcKeyboardDialog.isShowing()) {
+            activePcKeyboardDialog.dismiss();
+            activePcKeyboardDialog = null;
+            showNormalKeyboard();
+        } else if (layoutTypingInput.getVisibility() == View.VISIBLE) {
+            hideNormalKeyboard();
+            showPcKeyboard();
+        } else {
+            showNormalKeyboard();
+        }
+    }
 
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.choose_keyboard)
-                .setItems(options, (dialog, which) -> {
-                    if (which == 0) {
-                        // Show Android Gboard input bar
-                        layoutTypingInput.setVisibility(View.VISIBLE);
-                        editTypingText.requestFocus();
-                        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                        if (imm != null) {
-                            imm.showSoftInput(editTypingText, InputMethodManager.SHOW_IMPLICIT);
-                        }
-                    } else {
-                        // Show extended PC keyboard dialog
-                        layoutTypingInput.setVisibility(View.GONE);
-                        PcKeyboardDialog pcKeyboard = new PcKeyboardDialog(this, webSocketManager);
-                        pcKeyboard.show();
-                    }
-                })
-                .show();
+    private void showNormalKeyboard() {
+        if (activePcKeyboardDialog != null && activePcKeyboardDialog.isShowing()) {
+            activePcKeyboardDialog.dismiss();
+            activePcKeyboardDialog = null;
+        }
+        layoutTypingInput.setVisibility(View.VISIBLE);
+        editTypingText.requestFocus();
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) {
+            imm.showSoftInput(editTypingText, InputMethodManager.SHOW_IMPLICIT);
+        }
+    }
+
+    private void hideNormalKeyboard() {
+        layoutTypingInput.setVisibility(View.GONE);
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) {
+            imm.hideSoftInputFromWindow(editTypingText.getWindowToken(), 0);
+        }
+    }
+
+    private void showPcKeyboard() {
+        hideNormalKeyboard();
+        if (activePcKeyboardDialog != null && activePcKeyboardDialog.isShowing()) {
+            activePcKeyboardDialog.dismiss();
+        }
+        activePcKeyboardDialog = new PcKeyboardDialog(this, webSocketManager);
+        activePcKeyboardDialog.setOnSwitchToNormalKeyboard(() -> {
+            activePcKeyboardDialog = null;
+            showNormalKeyboard();
+        });
+        activePcKeyboardDialog.setOnDismissListener(dialog -> {
+            activePcKeyboardDialog = null;
+        });
+        activePcKeyboardDialog.show();
     }
 
     private void sendEnteredText() {

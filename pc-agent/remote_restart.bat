@@ -1,0 +1,6 @@
+@echo off
+cd /d "%~dp0"
+echo [Remote Restart] Waiting for previous process to release ports...
+ping 127.0.0.1 -n 3 > nul
+echo [Remote Restart] Starting Remote Pocket Agent in background...
+wscript.exe run_silent.vbs

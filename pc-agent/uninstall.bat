@@ -7,14 +7,9 @@ echo        Remote Pocket PC Agent - Uninstaller
 echo ========================================================
 echo.
 
-echo Removing Windows Scheduled Task 'RemotePocketAgent'...
-schtasks /end /tn "RemotePocketAgent" >nul 2>nul
-schtasks /delete /tn "RemotePocketAgent" /f >nul 2>nul
-if %ERRORLEVEL% EQU 0 (
-    echo [OK] Scheduled task removed.
-) else (
-    echo [INFO] No scheduled task found.
-)
+echo Removing Windows Startup shortcut...
+del "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\RemotePocket_silent.vbs.lnk" >nul 2>nul
+echo [OK] Startup shortcut removed.
 
 echo Stopping any running agent processes on port 5050...
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5050" ^| findstr "LISTENING"') do (
