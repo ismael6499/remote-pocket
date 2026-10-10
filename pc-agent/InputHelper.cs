@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -7,9 +10,113 @@ using System.Threading;
 using System.Windows.Forms;
 
 namespace InputHelper {
+    [Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IAudioEndpointVolume {
+        [PreserveSig] int RegisterControlChangeNotify(IntPtr pNotify);
+        [PreserveSig] int UnregisterControlChangeNotify(IntPtr pNotify);
+        [PreserveSig] int GetChannelCount(out uint pnChannelCount);
+        [PreserveSig] int SetMasterVolumeLevel(float fLevelDB, ref Guid pguidEventContext);
+        [PreserveSig] int SetMasterVolumeLevelScalar(float fLevel, ref Guid pguidEventContext);
+        [PreserveSig] int GetMasterVolumeLevel(out float pfLevelDB);
+        [PreserveSig] int GetMasterVolumeLevelScalar(out float pfLevel);
+        [PreserveSig] int SetChannelVolumeLevel(uint nChannel, float fLevelDB, ref Guid pguidEventContext);
+        [PreserveSig] int SetChannelVolumeLevelScalar(uint nChannel, float fLevel, ref Guid pguidEventContext);
+        [PreserveSig] int GetChannelVolumeLevel(uint nChannel, out float pfLevelDB);
+        [PreserveSig] int GetChannelVolumeLevelScalar(uint nChannel, out float pfLevel);
+        [PreserveSig] int SetMute([MarshalAs(UnmanagedType.Bool)] bool bMute, ref Guid pguidEventContext);
+        [PreserveSig] int GetMute([MarshalAs(UnmanagedType.Bool)] out bool pbMute);
+        [PreserveSig] int GetVolumeStepInfo(out uint pnStep, out uint pnStepCount);
+        [PreserveSig] int VolumeStepUp(ref Guid pguidEventContext);
+        [PreserveSig] int VolumeStepDown(ref Guid pguidEventContext);
+        [PreserveSig] int QueryHardwareSupport(out uint pdwHardwareSupport);
+    }
+
+    [Guid("C02216F6-8C67-4B5B-9786-D5C4DF585117"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IAudioMeterInformation {
+        [PreserveSig] int GetPeakValue(out float pfPeak);
+    }
+
+    [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IMMDevice {
+        [PreserveSig] int Activate(ref Guid id, uint clsCtx, IntPtr activationParams, out IntPtr ppInterface);
+    }
+
+    [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IMMDeviceEnumerator {
+        [PreserveSig] int EnumAudioEndpoints(int dataFlow, uint stateMask, out IntPtr ppDevices);
+        [PreserveSig] int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice endpoint);
+    }
+
+    [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
+    internal class MMDeviceEnumeratorComObject { }
+
     public class Program {
         [DllImport("user32.dll")]
+        private static extern bool SetProcessDPIAware();
+
+        [DllImport("user32.dll")]
         private static extern void mouse_event(uint dwFlags, int dx, int dy, uint dwData, UIntPtr dwExtraInfo);
+
+        [DllImport("user32.dll")]
+        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+        [DllImport("user32.dll")]
+        private static extern uint MapVirtualKey(uint uCode, uint uMapType);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetCursorPos(out POINT lpPoint);
+
+        [DllImport("user32.dll")]
+        private static extern bool SetCursorPos(int X, int Y);
+
+        [DllImport("user32.dll")]
+        private static extern int GetSystemMetrics(int nIndex);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct CURSORINFO {
+            public int cbSize;
+            public int flags;
+            public IntPtr hCursor;
+            public POINT ptScreenPos;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool GetCursorInfo(out CURSORINFO pci);
+
+        [DllImport("user32.dll")]
+        private static extern bool DrawIcon(IntPtr hDC, int X, int Y, IntPtr hIcon);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr OpenWindowStation(string lpszWinSta, bool fInherit, uint dwDesiredAccess);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool SetProcessWindowStation(IntPtr hWinSta);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr OpenDesktop(string lpszDesktop, uint dwFlags, bool fInherit, uint dwDesiredAccess);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool SetThreadDesktop(IntPtr hDesktop);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr GetDC(IntPtr hWnd);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+        [DllImport("gdi32.dll")]
+        private static extern IntPtr CreateDC(string lpszDriver, string lpszDevice, string lpszOutput, IntPtr lpInitData);
+
+        [DllImport("gdi32.dll")]
+        private static extern bool DeleteDC(IntPtr hdc);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        private static extern bool BitBlt(IntPtr hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, IntPtr hdcSrc, int nXSrc, int nYSrc, uint dwRop);
+
+        private const uint SRCCOPY = 0x00CC0020;
+        private const uint CAPTUREBLT = 0x40000000;
+
+        private const int CURSOR_SHOWING = 0x00000001;
 
         private const uint MOUSEEVENTF_MOVE = 0x0001;
         private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
@@ -68,23 +175,11 @@ namespace InputHelper {
         [DllImport("user32.dll", SetLastError = true)]
         private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
-        [DllImport("user32.dll")]
-        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
-
-        [DllImport("user32.dll")]
-        private static extern uint MapVirtualKey(uint uCode, uint uMapType);
-
         [StructLayout(LayoutKind.Sequential)]
         private struct POINT {
             public int X;
             public int Y;
         }
-
-        [DllImport("user32.dll")]
-        private static extern bool GetCursorPos(out POINT lpPoint);
-
-        [DllImport("user32.dll")]
-        private static extern bool SetCursorPos(int X, int Y);
 
         private static System.Threading.Timer watchdogTimer = null;
         private static readonly object watchdogLock = new object();
@@ -104,7 +199,8 @@ namespace InputHelper {
         private static bool IsExtendedKey(byte vk) {
             return vk == 0x5B || vk == 0x5C || vk == 0xA3 || vk == 0xA5 ||
                    vk == 0x2D || vk == 0x2E || vk == 0x24 || vk == 0x23 ||
-                   vk == 0x21 || vk == 0x22 || (vk >= 0x25 && vk <= 0x28);
+                   vk == 0x21 || vk == 0x22 || (vk >= 0x25 && vk <= 0x28) ||
+                   (vk >= 0xAD && vk <= 0xB3);
         }
 
         private static void SendKeyDown(byte vk) {
@@ -134,6 +230,7 @@ namespace InputHelper {
         }
 
         public static void Main(string[] args) {
+            try { SetProcessDPIAware(); } catch { }
             Console.OutputEncoding = Encoding.UTF8;
             Console.InputEncoding = Encoding.UTF8;
 
@@ -142,12 +239,33 @@ namespace InputHelper {
                 return;
             }
 
+            if (args.Length > 0 && args[0] == "--stream") {
+                int fps = 2;
+                int quality = 65;
+                int height = 720;
+                if (args.Length > 1) int.TryParse(args[1], out fps);
+                if (args.Length > 2) int.TryParse(args[2], out quality);
+                if (args.Length > 3) int.TryParse(args[3], out height);
+                RunStreamLoop(fps, quality, height);
+                return;
+            }
+
+            if (args.Length > 0 && args[0] == "--capture") {
+                int quality = 65;
+                int height = 720;
+                if (args.Length > 1) int.TryParse(args[1], out quality);
+                if (args.Length > 2) int.TryParse(args[2], out height);
+                byte[] jpeg = CaptureScreenJpeg(quality, height);
+                Console.WriteLine("FRAME:" + Convert.ToBase64String(jpeg));
+                return;
+            }
+
             if (args.Length > 0) {
                 ExecuteCommand(string.Join(" ", args));
                 return;
             }
 
-            Console.WriteLine("Usage: InputHelper.exe --pipe | <command> [args]");
+            Console.WriteLine("Usage: InputHelper.exe --pipe | --stream [fps] [quality] [height] | --capture | <command>");
         }
 
         private static void RunPipeLoop() {
@@ -166,9 +284,48 @@ namespace InputHelper {
 
                 try {
                     ExecuteCommand(line);
-                    Console.WriteLine("OK");
                 } catch (Exception ex) {
                     Console.WriteLine("ERR " + ex.Message);
+                }
+            }
+        }
+
+        private static void RunStreamLoop(int fps, int quality, int targetHeight) {
+            if (fps <= 0) fps = 2;
+            int intervalMs = 1000 / fps;
+            Console.WriteLine("STREAM_READY");
+
+            bool running = true;
+            Thread inputThread = new Thread(() => {
+                try {
+                    string line;
+                    while ((line = Console.ReadLine()) != null) {
+                        line = line.Trim();
+                        if (line.Equals("stop", StringComparison.OrdinalIgnoreCase) ||
+                            line.Equals("exit", StringComparison.OrdinalIgnoreCase) ||
+                            line.Equals("quit", StringComparison.OrdinalIgnoreCase)) {
+                            running = false;
+                            break;
+                        }
+                    }
+                } catch { }
+                running = false;
+            });
+            inputThread.IsBackground = true;
+            inputThread.Start();
+
+            while (running) {
+                long start = Environment.TickCount;
+                try {
+                    byte[] jpeg = CaptureScreenJpeg(quality, targetHeight);
+                    Console.WriteLine("FRAME:" + Convert.ToBase64String(jpeg));
+                } catch (Exception ex) {
+                    Console.WriteLine("ERR " + ex.Message);
+                }
+                long elapsed = Environment.TickCount - start;
+                int sleepMs = (int)(intervalMs - elapsed);
+                if (sleepMs > 0) {
+                    Thread.Sleep(sleepMs);
                 }
             }
         }
@@ -183,36 +340,44 @@ namespace InputHelper {
                 case "m":
                 case "move":
                     MouseMove(rest);
+                    Console.WriteLine("OK");
                     break;
                 case "c":
                 case "click":
                     MouseClick(rest);
+                    Console.WriteLine("OK");
                     break;
                 case "dc":
                 case "doubleclick":
                 case "double-click":
                     MouseDoubleClick(rest);
+                    Console.WriteLine("OK");
                     break;
                 case "d":
                 case "down":
                     MouseDown(rest);
+                    Console.WriteLine("OK");
                     break;
                 case "u":
                 case "up":
                     MouseUp(rest);
+                    Console.WriteLine("OK");
                     break;
                 case "s":
                 case "scroll":
                     MouseScroll(rest);
+                    Console.WriteLine("OK");
                     break;
                 case "t":
                 case "type":
                 case "text":
                     TypeText(rest);
+                    Console.WriteLine("OK");
                     break;
                 case "k":
                 case "key":
                     PressKey(rest);
+                    Console.WriteLine("OK");
                     break;
                 case "p":
                 case "paste":
@@ -224,11 +389,13 @@ namespace InputHelper {
                         pasteText = rest;
                     }
                     SetClipboardAndPaste(pasteText);
+                    Console.WriteLine("OK");
                     break;
                 case "delline":
                 case "line_delete":
                 case "deleteline":
                     DeleteLine();
+                    Console.WriteLine("OK");
                     break;
                 case "r":
                 case "reset":
@@ -237,10 +404,92 @@ namespace InputHelper {
                     mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
                     mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, UIntPtr.Zero);
                     mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, UIntPtr.Zero);
+                    Console.WriteLine("OK");
+                    break;
+                case "shot":
+                case "capture":
+                    int q = 65;
+                    int h = 720;
+                    if (!string.IsNullOrEmpty(rest)) {
+                        string[] p = rest.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (p.Length > 0) int.TryParse(p[0], out q);
+                        if (p.Length > 1) int.TryParse(p[1], out h);
+                    }
+                    byte[] frame = CaptureScreenJpeg(q, h);
+                    Console.WriteLine("FRAME:" + Convert.ToBase64String(frame));
+                    break;
+                case "vol":
+                case "volume":
+                    if (string.IsNullOrEmpty(rest)) {
+                        Console.WriteLine("AUDIO:" + GetAudioStatusJson());
+                    } else {
+                        float v;
+                        if (float.TryParse(rest, out v)) {
+                            SetAudioVolume(v);
+                            Console.WriteLine("OK");
+                        } else {
+                            Console.WriteLine("ERR Invalid volume number");
+                        }
+                    }
+                    break;
+                case "mute":
+                    if (string.IsNullOrEmpty(rest)) {
+                        ToggleAudioMute();
+                    } else {
+                        bool m;
+                        if (bool.TryParse(rest, out m)) {
+                            SetAudioMute(m);
+                        } else {
+                            ToggleAudioMute();
+                        }
+                    }
+                    Console.WriteLine("OK");
+                    break;
+                case "clip":
+                case "getclip":
+                    string clipVal = GetClipboardText();
+                    Console.WriteLine("CLIP:" + Convert.ToBase64String(Encoding.UTF8.GetBytes(clipVal ?? "")));
+                    break;
+                case "setclip":
+                    string textToSet = "";
+                    try {
+                        byte[] bytes = Convert.FromBase64String(rest);
+                        textToSet = Encoding.UTF8.GetString(bytes);
+                    } catch {
+                        textToSet = rest;
+                    }
+                    SetClipboardText(textToSet);
+                    Console.WriteLine("OK");
                     break;
                 default:
                     throw new ArgumentException("Unknown action: " + action);
             }
+        }
+
+        public static string GetClipboardText() {
+            string result = "";
+            Thread staThread = new Thread(() => {
+                try {
+                    if (Clipboard.ContainsText()) {
+                        result = Clipboard.GetText();
+                    }
+                } catch { }
+            });
+            staThread.SetApartmentState(ApartmentState.STA);
+            staThread.Start();
+            staThread.Join(600);
+            return result ?? "";
+        }
+
+        public static void SetClipboardText(string text) {
+            Thread staThread = new Thread(() => {
+                try {
+                    Clipboard.SetText(text ?? "");
+                } catch { }
+            });
+            staThread.SetApartmentState(ApartmentState.STA);
+            staThread.Start();
+            staThread.Join(600);
         }
 
         private static void DeleteLine() {
@@ -255,15 +504,7 @@ namespace InputHelper {
 
         private static void SetClipboardAndPaste(string text) {
             if (string.IsNullOrEmpty(text)) return;
-            Thread staThread = new Thread(() => {
-                try {
-                    System.Windows.Forms.Clipboard.SetText(text);
-                } catch { }
-            });
-            staThread.SetApartmentState(ApartmentState.STA);
-            staThread.Start();
-            staThread.Join(1000);
-
+            SetClipboardText(text);
             Thread.Sleep(30);
             PressKey("ctrl+v");
         }
@@ -398,7 +639,15 @@ namespace InputHelper {
             { "pause", 0x13 },
             { "f1", 0x70 }, { "f2", 0x71 }, { "f3", 0x72 }, { "f4", 0x73 },
             { "f5", 0x74 }, { "f6", 0x75 }, { "f7", 0x76 }, { "f8", 0x77 },
-            { "f9", 0x78 }, { "f10", 0x79 }, { "f11", 0x7A }, { "f12", 0x7B }
+            { "f9", 0x78 }, { "f10", 0x79 }, { "f11", 0x7A }, { "f12", 0x7B },
+            // Volume & Media keys
+            { "volume_mute", 0xAD }, { "volmute", 0xAD }, { "mute_key", 0xAD },
+            { "volume_down", 0xAE }, { "voldown", 0xAE },
+            { "volume_up", 0xAF }, { "volup", 0xAF },
+            { "media_next", 0xB0 }, { "nexttrack", 0xB0 },
+            { "media_prev", 0xB1 }, { "prevtrack", 0xB1 },
+            { "media_stop", 0xB2 },
+            { "media_play_pause", 0xB3 }, { "playpause", 0xB3 }, { "play_pause", 0xB3 }
         };
 
         private static void PressKey(string keyExpr) {
@@ -413,7 +662,6 @@ namespace InputHelper {
             List<byte> modifiersToRelease = new List<byte>();
             List<byte> mainKeys = new List<byte>();
 
-            // Arm safety watchdog to auto-release any modifier keys after 450ms
             ArmWatchdog(450);
 
             try {
@@ -455,17 +703,221 @@ namespace InputHelper {
                     }
                     Thread.Sleep(15);
                 } else if (modifiersToRelease.Count > 0) {
-                    // If only modifier(s) were pressed (e.g. Win key or Alt key alone)
                     Thread.Sleep(40);
                 }
             } finally {
-                // ALWAYS release specific modifiers in reverse order
                 for (int i = modifiersToRelease.Count - 1; i >= 0; i--) {
                     SendKeyUp(modifiersToRelease[i]);
                 }
-                // Complete safety sweep: ensure all modifier variants (L/R) are released
                 ReleaseAllModifiers();
             }
+        }
+
+        private static void EnsureDesktopAccess() {
+            try {
+                IntPtr hwinsta = OpenWindowStation("winsta0", false, 0x000F037F);
+                if (hwinsta != IntPtr.Zero) SetProcessWindowStation(hwinsta);
+                IntPtr hdesk = OpenDesktop("default", 0, false, 0x000F01FF);
+                if (hdesk != IntPtr.Zero) SetThreadDesktop(hdesk);
+            } catch { }
+        }
+
+        // ==========================================
+        // SCREEN CAPTURE (GDI+ with cursor overlay & fallback)
+        // ==========================================
+        public static byte[] CaptureScreenJpeg(int quality = 65, int targetHeight = 720) {
+            EnsureDesktopAccess();
+
+            int srcW = GetSystemMetrics(0);
+            int srcH = GetSystemMetrics(1);
+            if (srcW <= 0 || srcH <= 0) {
+                srcW = Screen.PrimaryScreen.Bounds.Width;
+                srcH = Screen.PrimaryScreen.Bounds.Height;
+            }
+            if (srcW <= 0) srcW = 1920;
+            if (srcH <= 0) srcH = 1080;
+
+            int destH = targetHeight > 0 ? targetHeight : 720;
+            if (destH > srcH) destH = srcH;
+            int destW = (int)Math.Round((double)srcW * destH / srcH);
+            if (destW % 2 != 0) destW++;
+
+            try {
+                IntPtr hSrcDC = GetDC(IntPtr.Zero);
+                bool isCreatedDC = false;
+                if (hSrcDC == IntPtr.Zero) {
+                    hSrcDC = CreateDC("DISPLAY", null, null, IntPtr.Zero);
+                    isCreatedDC = true;
+                }
+
+                if (hSrcDC == IntPtr.Zero) {
+                    throw new Exception("Unable to acquire display device context.");
+                }
+
+                try {
+                    using (Bitmap srcBmp = new Bitmap(srcW, srcH, PixelFormat.Format24bppRgb)) {
+                        using (Graphics gSrc = Graphics.FromImage(srcBmp)) {
+                            IntPtr hDestDC = gSrc.GetHdc();
+                            try {
+                                BitBlt(hDestDC, 0, 0, srcW, srcH, hSrcDC, 0, 0, SRCCOPY | CAPTUREBLT);
+                            } finally {
+                                gSrc.ReleaseHdc(hDestDC);
+                            }
+
+                            try {
+                                CURSORINFO ci = new CURSORINFO();
+                                ci.cbSize = Marshal.SizeOf(typeof(CURSORINFO));
+                                if (GetCursorInfo(out ci) && ci.flags == CURSOR_SHOWING) {
+                                    IntPtr hdcCursor = gSrc.GetHdc();
+                                    try {
+                                        DrawIcon(hdcCursor, ci.ptScreenPos.X, ci.ptScreenPos.Y, ci.hCursor);
+                                    } finally {
+                                        gSrc.ReleaseHdc(hdcCursor);
+                                    }
+                                }
+                            } catch { }
+                        }
+
+                        using (Bitmap destBmp = new Bitmap(destW, destH, PixelFormat.Format24bppRgb)) {
+                            using (Graphics gDest = Graphics.FromImage(destBmp)) {
+                                gDest.InterpolationMode = InterpolationMode.Bilinear;
+                                gDest.PixelOffsetMode = PixelOffsetMode.Half;
+                                gDest.DrawImage(srcBmp, 0, 0, destW, destH);
+                            }
+
+                            ImageCodecInfo jpgEncoder = GetEncoder(ImageFormat.Jpeg);
+                            EncoderParameters encParams = new EncoderParameters(1);
+                            encParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)Math.Max(10, Math.Min(100, quality)));
+                            using (MemoryStream ms = new MemoryStream()) {
+                                destBmp.Save(ms, jpgEncoder, encParams);
+                                return ms.ToArray();
+                            }
+                        }
+                    }
+                } finally {
+                    if (isCreatedDC) {
+                        DeleteDC(hSrcDC);
+                    } else {
+                        ReleaseDC(IntPtr.Zero, hSrcDC);
+                    }
+                }
+            } catch (Exception) {
+                // Return a clean fallback frame indicating screen unavailable / locked
+                using (Bitmap fallbackBmp = new Bitmap(destW, destH, PixelFormat.Format24bppRgb)) {
+                    using (Graphics g = Graphics.FromImage(fallbackBmp)) {
+                        g.Clear(Color.FromArgb(11, 15, 25)); // #0B0F19 dark background
+                        using (Font fontTitle = new Font(FontFamily.GenericSansSerif, 18, FontStyle.Bold))
+                        using (Font fontSub = new Font(FontFamily.GenericSansSerif, 12, FontStyle.Regular))
+                        using (Brush brushTitle = new SolidBrush(Color.FromArgb(99, 102, 241))) // Indigo #6366F1
+                        using (Brush brushSub = new SolidBrush(Color.FromArgb(160, 174, 192)))
+                        using (StringFormat sf = new StringFormat() { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }) {
+                            g.DrawString("Remote Pocket", fontTitle, brushTitle, new RectangleF(0, destH / 2f - 40, destW, 30), sf);
+                            g.DrawString("Desktop screen is locked or in standby", fontSub, brushSub, new RectangleF(0, destH / 2f + 5, destW, 30), sf);
+                        }
+                    }
+                    ImageCodecInfo jpgEncoder = GetEncoder(ImageFormat.Jpeg);
+                    EncoderParameters encParams = new EncoderParameters(1);
+                    encParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)Math.Max(10, Math.Min(100, quality)));
+                    using (MemoryStream ms = new MemoryStream()) {
+                        fallbackBmp.Save(ms, jpgEncoder, encParams);
+                        return ms.ToArray();
+                    }
+                }
+            }
+        }
+
+        private static ImageCodecInfo GetEncoder(ImageFormat format) {
+            ImageCodecInfo[] codecs = ImageCodecInfo.GetImageDecoders();
+            foreach (ImageCodecInfo codec in codecs) {
+                if (codec.FormatID == format.Guid) {
+                    return codec;
+                }
+            }
+            return null;
+        }
+
+        // ==========================================
+        // AUDIO HELPER (CoreAudioApi COM)
+        // ==========================================
+        private static IAudioEndpointVolume GetMasterVolumeEndpoint() {
+            var enumerator = new MMDeviceEnumeratorComObject() as IMMDeviceEnumerator;
+            IMMDevice dev;
+            int hr = enumerator.GetDefaultAudioEndpoint(0, 1, out dev);
+            if (hr < 0 || dev == null) return null;
+
+            IntPtr volInterfacePtr;
+            var volId = new Guid("5CDF2C82-841E-4546-9722-0CF74078229A");
+            hr = dev.Activate(ref volId, 23, IntPtr.Zero, out volInterfacePtr);
+            if (hr < 0 || volInterfacePtr == IntPtr.Zero) return null;
+
+            return Marshal.GetObjectForIUnknown(volInterfacePtr) as IAudioEndpointVolume;
+        }
+
+        public static string GetAudioStatusJson() {
+            try {
+                var volumeEndpoint = GetMasterVolumeEndpoint();
+                if (volumeEndpoint == null) {
+                    return "{\"volume\":null,\"muted\":null,\"playing\":null,\"error\":\"Endpoint unavailable\"}";
+                }
+
+                float volLevel = 0;
+                volumeEndpoint.GetMasterVolumeLevelScalar(out volLevel);
+                bool isMuted = false;
+                volumeEndpoint.GetMute(out isMuted);
+
+                bool isPlaying = false;
+                try {
+                    var enumerator = new MMDeviceEnumeratorComObject() as IMMDeviceEnumerator;
+                    IMMDevice dev;
+                    if (enumerator.GetDefaultAudioEndpoint(0, 1, out dev) >= 0 && dev != null) {
+                        IntPtr meterInterfacePtr;
+                        var meterId = new Guid("C02216F6-8C67-4B5B-9786-D5C4DF585117");
+                        if (dev.Activate(ref meterId, 23, IntPtr.Zero, out meterInterfacePtr) >= 0 && meterInterfacePtr != IntPtr.Zero) {
+                            var meter = Marshal.GetObjectForIUnknown(meterInterfacePtr) as IAudioMeterInformation;
+                            float peakValue = 0;
+                            meter.GetPeakValue(out peakValue);
+                            isPlaying = peakValue > 0.005f;
+                        }
+                    }
+                } catch { }
+
+                return string.Format("{{\"volume\":{0},\"muted\":{1},\"playing\":{2}}}",
+                    Math.Round(volLevel * 100),
+                    isMuted.ToString().ToLower(),
+                    isPlaying.ToString().ToLower());
+            } catch (Exception ex) {
+                return string.Format("{{\"volume\":null,\"muted\":null,\"playing\":null,\"error\":\"{0}\"}}", ex.Message.Replace("\"", "\\\""));
+            }
+        }
+
+        public static void SetAudioVolume(float levelPercent) {
+            try {
+                var endpoint = GetMasterVolumeEndpoint();
+                if (endpoint == null) return;
+                float scalar = Math.Max(0f, Math.Min(100f, levelPercent)) / 100.0f;
+                Guid ctx = Guid.Empty;
+                endpoint.SetMasterVolumeLevelScalar(scalar, ref ctx);
+            } catch { }
+        }
+
+        public static void SetAudioMute(bool mute) {
+            try {
+                var endpoint = GetMasterVolumeEndpoint();
+                if (endpoint == null) return;
+                Guid ctx = Guid.Empty;
+                endpoint.SetMute(mute, ref ctx);
+            } catch { }
+        }
+
+        public static void ToggleAudioMute() {
+            try {
+                var endpoint = GetMasterVolumeEndpoint();
+                if (endpoint == null) return;
+                bool isMuted;
+                endpoint.GetMute(out isMuted);
+                Guid ctx = Guid.Empty;
+                endpoint.SetMute(!isMuted, ref ctx);
+            } catch { }
         }
     }
 }

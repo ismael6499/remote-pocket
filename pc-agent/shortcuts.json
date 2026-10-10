@@ -1,0 +1,37 @@
+[
+  {
+    "id": "calc",
+    "name": "Calculator",
+    "description": "Open Windows Calculator",
+    "icon": "calculate",
+    "command": "calc.exe"
+  },
+  {
+    "id": "notepad",
+    "name": "Notepad",
+    "description": "Open Windows Notepad",
+    "icon": "edit_note",
+    "command": "notepad.exe"
+  },
+  {
+    "id": "taskmgr",
+    "name": "Task Manager",
+    "description": "Open Windows Task Manager",
+    "icon": "monitor_heart",
+    "command": "taskmgr.exe"
+  },
+  {
+    "id": "explorer",
+    "name": "File Explorer",
+    "description": "Open File Explorer in Downloads",
+    "icon": "folder",
+    "command": "explorer.exe shell:Downloads"
+  },
+  {
+    "id": "ogc",
+    "name": "OGC Runner",
+    "description": "Run OGC batch automation",
+    "icon": "terminal",
+    "command": "cmd.exe /c echo OGC Task Triggered"
+  }
+]
