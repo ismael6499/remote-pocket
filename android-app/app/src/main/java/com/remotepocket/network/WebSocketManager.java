@@ -68,20 +68,21 @@ public class WebSocketManager {
         Log.d(TAG, "Connecting to WebSocket: " + wsUrl);
         com.remotepocket.util.AppLogger.i(TAG, "Connecting to WebSocket: " + wsUrl + " (" + device.getDeviceName() + ")");
 
-        Request request = new Request.Builder()
-                .url(wsUrl)
-                .build();
+        try {
+            Request request = new Request.Builder()
+                    .url(wsUrl)
+                    .build();
 
-        webSocket = client.newWebSocket(request, new WebSocketListener() {
-            @Override
-            public void onOpen(WebSocket ws, Response response) {
-                isConnecting = false;
-                Log.d(TAG, "WebSocket connected successfully");
-                com.remotepocket.util.AppLogger.i(TAG, "WebSocket connected successfully: " + wsUrl);
-                if (listener != null) {
-                    mainHandler.post(listener::onConnected);
+            webSocket = client.newWebSocket(request, new WebSocketListener() {
+                @Override
+                public void onOpen(WebSocket ws, Response response) {
+                    isConnecting = false;
+                    Log.d(TAG, "WebSocket connected successfully");
+                    com.remotepocket.util.AppLogger.i(TAG, "WebSocket connected successfully: " + wsUrl);
+                    if (listener != null) {
+                        mainHandler.post(listener::onConnected);
+                    }
                 }
-            }
 
             @Override
             public void onMessage(WebSocket ws, String text) {
@@ -125,6 +126,14 @@ public class WebSocketManager {
                 }
             }
         });
+        } catch (Throwable t) {
+            isConnecting = false;
+            Log.e(TAG, "Failed to create WebSocket: " + t.getMessage(), t);
+            com.remotepocket.util.AppLogger.e(TAG, "Failed to connect to " + wsUrl, t);
+            if (listener != null) {
+                mainHandler.post(() -> listener.onError("Connection error: " + t.getMessage()));
+            }
+        }
     }
 
     public void disconnect() {

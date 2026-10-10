@@ -199,18 +199,39 @@ public class DeviceManagerDialog extends Dialog {
                 .setTitle(R.string.dialog_add_device_title)
                 .setView(layout)
                 .setPositiveButton(R.string.action_save, (dialog, which) -> {
-                    String name = editName.getText().toString().trim();
-                    String host = editHost.getText().toString().trim();
-                    String portStr = editPort.getText().toString().trim();
-                    int port = 5050;
-                    try { port = Integer.parseInt(portStr); } catch (Exception ignored) {}
+                    try {
+                        String name = editName.getText().toString().trim();
+                        String host = editHost.getText().toString().trim();
+                        String portStr = editPort.getText().toString().trim();
+                        int port = 5050;
+                        try { port = Integer.parseInt(portStr); } catch (Exception ignored) {}
 
-                    if (!host.isEmpty()) {
-                        Device dev = new Device(name.isEmpty() ? host : name, host, port, true, false);
-                        if (listener != null) {
-                            listener.onAddCustomDevice(dev);
+                        if (host.startsWith("http://")) host = host.substring(7);
+                        else if (host.startsWith("https://")) host = host.substring(8);
+                        else if (host.startsWith("ws://")) host = host.substring(5);
+                        else if (host.startsWith("wss://")) host = host.substring(6);
+
+                        while (host.endsWith("/")) host = host.substring(0, host.length() - 1).trim();
+
+                        if (host.contains(":")) {
+                            int colon = host.lastIndexOf(':');
+                            String p = host.substring(colon + 1).trim();
+                            host = host.substring(0, colon).trim();
+                            try {
+                                int parsedP = Integer.parseInt(p);
+                                if (parsedP > 0 && parsedP <= 65535) port = parsedP;
+                            } catch (Exception ignored) {}
                         }
-                        dismiss();
+
+                        if (!host.isEmpty()) {
+                            Device dev = new Device(name.isEmpty() ? host : name, host, port, true, false);
+                            if (listener != null) {
+                                listener.onAddCustomDevice(dev);
+                            }
+                            dismiss();
+                        }
+                    } catch (Exception e) {
+                        com.remotepocket.util.AppLogger.e("DeviceManagerDialog", "Failed to add device", e);
                     }
                 })
                 .setNegativeButton(R.string.action_cancel, null)

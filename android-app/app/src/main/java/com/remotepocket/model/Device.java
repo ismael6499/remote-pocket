@@ -75,11 +75,41 @@ public class Device implements Serializable {
         this.lastSeen = lastSeen;
     }
 
-    public String getBaseHttpUrl() {
-        if (host.startsWith("http://") || host.startsWith("https://")) {
-            return host;
+    private void sanitizeHostAndPort() {
+        if (this.host == null || this.host.trim().isEmpty()) {
+            this.host = "127.0.0.1";
         }
-        return "http://" + host + ":" + getPort();
+        String h = this.host.trim();
+        if (h.startsWith("http://")) h = h.substring(7);
+        else if (h.startsWith("https://")) h = h.substring(8);
+        else if (h.startsWith("ws://")) h = h.substring(5);
+        else if (h.startsWith("wss://")) h = h.substring(6);
+
+        while (h.endsWith("/")) {
+            h = h.substring(0, h.length() - 1).trim();
+        }
+
+        int colonIdx = h.indexOf(':');
+        if (colonIdx != -1) {
+            String pStr = h.substring(colonIdx + 1).trim();
+            h = h.substring(0, colonIdx).trim();
+            try {
+                int parsedPort = Integer.parseInt(pStr);
+                if (parsedPort > 0 && parsedPort <= 65535) {
+                    this.port = parsedPort;
+                }
+            } catch (Exception ignored) {}
+        }
+
+        this.host = h;
+        if (this.port <= 0 || this.port > 65535) {
+            this.port = 5050;
+        }
+    }
+
+    public String getBaseHttpUrl() {
+        sanitizeHostAndPort();
+        return "http://" + getHost() + ":" + getPort();
     }
 
     public String getHttpUrl() {
@@ -87,16 +117,8 @@ public class Device implements Serializable {
     }
 
     public String getWebSocketUrl() {
-        if (host.startsWith("http://")) {
-            return host.replace("http://", "ws://");
-        }
-        if (host.startsWith("https://")) {
-            return host.replace("https://", "wss://");
-        }
-        if (host.startsWith("ws://") || host.startsWith("wss://")) {
-            return host;
-        }
-        return "ws://" + host + ":" + getPort();
+        sanitizeHostAndPort();
+        return "ws://" + getHost() + ":" + getPort();
     }
 
     @Override
