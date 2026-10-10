@@ -18,6 +18,10 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
 
+import android.os.Handler;
+import android.os.Looper;
+import android.view.MotionEvent;
+
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 
@@ -32,6 +36,10 @@ public class PcKeyboardDialog extends Dialog {
     private final WebSocketManager webSocketManager;
     private Vibrator vibrator;
     private Runnable onSwitchToNormalKeyboard;
+
+    private final Handler repeatHandler = new Handler(Looper.getMainLooper());
+    private static final int INITIAL_REPEAT_DELAY_MS = 380;
+    private static final int REPEAT_INTERVAL_MS = 65;
 
     private boolean isCtrlActive = false;
     private boolean isAltActive = false;
@@ -168,6 +176,7 @@ public class PcKeyboardDialog extends Dialog {
         setupLetterKey(R.id.key_j, "j");
         setupLetterKey(R.id.key_k, "k");
         setupLetterKey(R.id.key_l, "l");
+        setupLetterKey(R.id.key_nn, "ñ");
         setupKey(R.id.key_semicolon, ";");
         setupKey(R.id.key_quote, "'");
         setupKey(R.id.key_enter, "enter");
@@ -201,6 +210,18 @@ public class PcKeyboardDialog extends Dialog {
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             window.setGravity(Gravity.BOTTOM);
         }
+    }
+
+    @Override
+    public void dismiss() {
+        repeatHandler.removeCallbacksAndMessages(null);
+        super.dismiss();
+    }
+
+    @Override
+    protected void onStop() {
+        repeatHandler.removeCallbacksAndMessages(null);
+        super.onStop();
     }
 
     private void triggerHaptic(View v) {
@@ -262,34 +283,13 @@ public class PcKeyboardDialog extends Dialog {
         });
 
         // Extended Nav Keys
-        findViewById(R.id.btnIns).setOnClickListener(v -> {
-            triggerHaptic(v);
-            sendKeyWithModifiers("ins");
-        });
-        findViewById(R.id.btnDel).setOnClickListener(v -> {
-            triggerHaptic(v);
-            sendKeyWithModifiers("delete");
-        });
-        findViewById(R.id.btnHome).setOnClickListener(v -> {
-            triggerHaptic(v);
-            sendKeyWithModifiers("home");
-        });
-        findViewById(R.id.btnEnd).setOnClickListener(v -> {
-            triggerHaptic(v);
-            sendKeyWithModifiers("end");
-        });
-        findViewById(R.id.btnPgUp).setOnClickListener(v -> {
-            triggerHaptic(v);
-            sendKeyWithModifiers("pageup");
-        });
-        findViewById(R.id.btnPgDn).setOnClickListener(v -> {
-            triggerHaptic(v);
-            sendKeyWithModifiers("pagedown");
-        });
-        findViewById(R.id.btnPrtScn).setOnClickListener(v -> {
-            triggerHaptic(v);
-            sendKeyWithModifiers("prtscn");
-        });
+        setupKey(R.id.btnIns, "ins");
+        setupKey(R.id.btnDel, "delete");
+        setupKey(R.id.btnHome, "home");
+        setupKey(R.id.btnEnd, "end");
+        setupKey(R.id.btnPgUp, "pageup");
+        setupKey(R.id.btnPgDn, "pagedown");
+        setupKey(R.id.btnPrtScn, "prtscn");
 
         // F1 - F12 Keys
         LinearLayout layoutFKeys = findViewById(R.id.layoutFKeys);
@@ -305,21 +305,60 @@ public class PcKeyboardDialog extends Dialog {
             lp.setMargins(0, 0, dpToPx(4), 0);
             btnF.setLayoutParams(lp);
 
-            btnF.setOnClickListener(v -> {
-                triggerHaptic(v);
-                sendKeyWithModifiers(fKey);
-            });
+            attachRepeatListener(btnF, () -> sendKeyWithModifiers(fKey));
             layoutFKeys.addView(btnF);
+        }
+    }
+
+    private void attachRepeatListener(View view, Runnable action) {
+        if (view == null || action == null) return;
+
+        Runnable repeatRunnable = new Runnable() {
+            @Override
+            public void run() {
+                triggerRepeatHaptic(view);
+                action.run();
+                repeatHandler.postDelayed(this, REPEAT_INTERVAL_MS);
+            }
+        };
+
+        view.setOnTouchListener((v, event) -> {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    triggerHaptic(v);
+                    action.run();
+                    repeatHandler.removeCallbacks(repeatRunnable);
+                    repeatHandler.postDelayed(repeatRunnable, INITIAL_REPEAT_DELAY_MS);
+                    v.setPressed(true);
+                    return true;
+                case MotionEvent.ACTION_MOVE:
+                    float x = event.getX();
+                    float y = event.getY();
+                    if (x < 0 || x > v.getWidth() || y < 0 || y > v.getHeight()) {
+                        repeatHandler.removeCallbacks(repeatRunnable);
+                        v.setPressed(false);
+                    }
+                    return true;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    repeatHandler.removeCallbacks(repeatRunnable);
+                    v.setPressed(false);
+                    return true;
+            }
+            return false;
+        });
+    }
+
+    private void triggerRepeatHaptic(View v) {
+        if (v != null) {
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
         }
     }
 
     private void setupKey(int resId, String keyName) {
         View view = findViewById(resId);
         if (view != null) {
-            view.setOnClickListener(v -> {
-                triggerHaptic(v);
-                sendKeyWithModifiers(keyName);
-            });
+            attachRepeatListener(view, () -> sendKeyWithModifiers(keyName));
         }
     }
 
@@ -327,10 +366,7 @@ public class PcKeyboardDialog extends Dialog {
         MaterialButton btn = findViewById(resId);
         if (btn != null) {
             letterButtons.add(btn);
-            btn.setOnClickListener(v -> {
-                triggerHaptic(v);
-                sendKeyWithModifiers(letter);
-            });
+            attachRepeatListener(btn, () -> sendKeyWithModifiers(letter));
         }
     }
 

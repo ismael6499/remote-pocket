@@ -76,6 +76,11 @@ public class TouchpadView extends View {
 
     private ScaleGestureDetector scaleGestureDetector;
 
+    // Clean Windows cursor arrow graphics (no halo / no golden decorations)
+    private Paint paintCursorFill;
+    private Paint paintCursorStroke;
+    private android.graphics.Path cursorPath;
+
     public TouchpadView(Context context) {
         super(context);
         init();
@@ -96,6 +101,28 @@ public class TouchpadView extends View {
         setFocusable(true);
         setWillNotDraw(false);
         vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
+
+        // Classic crisp Windows cursor arrow
+        paintCursorFill = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paintCursorFill.setStyle(Paint.Style.FILL);
+        paintCursorFill.setColor(Color.WHITE);
+
+        paintCursorStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paintCursorStroke.setStyle(Paint.Style.STROKE);
+        paintCursorStroke.setColor(Color.BLACK);
+        paintCursorStroke.setStrokeWidth(2.0f);
+        paintCursorStroke.setStrokeJoin(Paint.Join.ROUND);
+
+        cursorPath = new android.graphics.Path();
+        float s = getResources().getDisplayMetrics().density * 1.15f;
+        cursorPath.moveTo(0 * s, 0 * s);
+        cursorPath.lineTo(0 * s, 17 * s);
+        cursorPath.lineTo(4.5f * s, 13 * s);
+        cursorPath.lineTo(8 * s, 21 * s);
+        cursorPath.lineTo(11 * s, 19.5f * s);
+        cursorPath.lineTo(7.5f * s, 12 * s);
+        cursorPath.lineTo(13 * s, 12 * s);
+        cursorPath.close();
 
         // Pinch-to-zoom updates scale and keeps cursor centered
         scaleGestureDetector = new ScaleGestureDetector(getContext(), new ScaleGestureDetector.SimpleOnScaleGestureListener() {
@@ -545,8 +572,48 @@ public class TouchpadView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        // The real Windows cursor is rendered directly inside the desktop frame by InputHelper (DrawIconEx).
-        // No synthetic cursor or overlay is drawn here to ensure 100% visual fidelity and zero latency.
+
+        if (!isScreenMode || scrW <= 0 || scrH <= 0) {
+            return;
+        }
+
+        int viewW = getWidth();
+        int viewH = getHeight();
+        if (viewW <= 0 || viewH <= 0) return;
+
+        float pointerX;
+        float pointerY;
+
+        if (currentScale > 1.05f && followCursor) {
+            // In centered follow mode: mouse cursor is locked at the exact center of mobile screen
+            pointerX = viewW / 2f;
+            pointerY = viewH / 2f;
+        } else {
+            float scaleFit = Math.min((float) viewW / scrW, (float) viewH / scrH);
+            float renderW = scrW * scaleFit;
+            float renderH = scrH * scaleFit;
+            float offsetX = (viewW - renderW) / 2f;
+            float offsetY = (viewH - renderH) / 2f;
+
+            float normCurX = curX >= 0 ? curX : scrW / 2f;
+            float normCurY = curY >= 0 ? curY : scrH / 2f;
+
+            float cursorViewX = offsetX + (normCurX / (float) scrW) * renderW;
+            float cursorViewY = offsetY + (normCurY / (float) scrH) * renderH;
+
+            pointerX = viewW / 2f + (cursorViewX - viewW / 2f) * currentScale + currentTransX;
+            pointerY = viewH / 2f + (cursorViewY - viewH / 2f) * currentScale + currentTransY;
+        }
+
+        // Draw crisp iconic Windows mouse arrow (tip at pointerX, pointerY)
+        if (pointerX >= -30 && pointerX <= viewW + 30 && pointerY >= -30 && pointerY <= viewH + 30) {
+            canvas.save();
+            canvas.translate(pointerX, pointerY);
+            paintCursorFill.setColor(isTapAndDrag ? Color.parseColor("#FBBF24") : Color.WHITE);
+            canvas.drawPath(cursorPath, paintCursorFill);
+            canvas.drawPath(cursorPath, paintCursorStroke);
+            canvas.restore();
+        }
     }
 
     @Override

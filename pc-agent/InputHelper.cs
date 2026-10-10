@@ -72,6 +72,9 @@ namespace InputHelper {
         [DllImport("user32.dll")]
         private static extern int GetSystemMetrics(int nIndex);
 
+        [DllImport("user32.dll")]
+        private static extern short GetKeyState(int nVirtKey);
+
         [StructLayout(LayoutKind.Sequential)]
         private struct CURSORINFO {
             public int cbSize;
@@ -791,6 +794,7 @@ namespace InputHelper {
             { ".", 0xBE }, { "period", 0xBE }, { "dot", 0xBE },
             { "/", 0xBF }, { "slash", 0xBF },
             { "`", 0xC0 }, { "backquote", 0xC0 }, { "tilde", 0xC0 }, { "grave", 0xC0 },
+            { "ñ", 0xD1 }, { "nn", 0xD1 },
             // Volume & Media keys
             { "volume_mute", 0xAD }, { "volmute", 0xAD }, { "mute_key", 0xAD },
             { "volume_down", 0xAE }, { "voldown", 0xAE },
@@ -803,6 +807,16 @@ namespace InputHelper {
 
         private static void PressKey(string keyExpr) {
             if (string.IsNullOrEmpty(keyExpr)) return;
+            if (keyExpr.Equals("ñ", StringComparison.OrdinalIgnoreCase) ||
+                keyExpr.Equals("shift+ñ", StringComparison.OrdinalIgnoreCase) ||
+                keyExpr.Equals("nn", StringComparison.OrdinalIgnoreCase) ||
+                keyExpr.Equals("shift+nn", StringComparison.OrdinalIgnoreCase)) {
+                bool isCapsLock = (GetKeyState(0x14) & 1) != 0;
+                bool hasShift = keyExpr.StartsWith("shift+", StringComparison.OrdinalIgnoreCase) || keyExpr.Equals("Ñ");
+                char c = (hasShift ^ isCapsLock) ? 'Ñ' : 'ñ';
+                TypeText(c.ToString());
+                return;
+            }
             if (keyExpr.Equals("delline", StringComparison.OrdinalIgnoreCase) ||
                 keyExpr.Equals("delete_line", StringComparison.OrdinalIgnoreCase) ||
                 keyExpr.Equals("deleteline", StringComparison.OrdinalIgnoreCase)) {

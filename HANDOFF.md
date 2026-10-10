@@ -64,17 +64,25 @@ Remote Pocket is a monorepo containing:
 - [x] Dual Keyboards:
   - Standard Android Keyboard (Gboard): soft input with direct text transmission and voice-to-text.
   - Full Extended PC Keyboard (`PcKeyboardDialog`):
-    - Complete physical QWERTY layout: Numbers (1-0, -, =, Bksp), Letters (QWERTY, ASDF, ZXCV), Punctuation ([, ], ;, ', \, ,, ., /), Space, Enter, Tab.
+    - Complete physical QWERTY layout: Numbers (1-0, -, =, Bksp), Letters (QWERTY, ASDF, ZXCV), Spanish letter **`Ñ`**, Punctuation ([, ], ;, ', \, ,, ., /), Space, Enter, Tab.
     - Directional arrows: Up, Down, Left, Right.
     - Sticky modifiers: `Ctrl`, `Alt`, `Shift`, `Win` with visual state feedback and auto-release after chord dispatch.
-    - Caps Lock: Syncs state with PC (`capslock`), highlights visual indicator, and dynamically toggles uppercase/lowercase on keycap labels.
+    - Caps Lock: Syncs state with PC (`capslock`), highlights visual indicator, and dynamically toggles uppercase/lowercase on keycap labels (including `Ñ` / `ñ`).
+    - **Key Hold & Auto-Repeat**:
+      - Keys can be held down to repeat continuously (Backspace, Letters, Numbers, Space, Navigation arrows, F-keys, etc.).
+      - 380ms initial hold delay before repeating, 65ms repeat interval.
+      - Crisp initial haptic tap on finger down, subtle tick feedback on repeat pulses.
+      - Clean cancellation when finger is released or slid outside button boundary.
+      - Zero callback leaks (`repeatHandler.removeCallbacksAndMessages(null)` on dialog dismiss and stop).
     - Header quick `Esc` button for instantaneous one-touch escape/exit.
     - Collapsible "⚡ Special Actions & F-Keys ▾" panel with 1-click shortcuts (`Ctrl+Alt+Del`, `Alt+Tab`, `Win+D`, `TaskMgr`, `Win+L`, `Ctrl+C`, `Ctrl+V`), navigation (`Ins`, `Del`, `Home`, `End`, `PgUp`, `PgDn`, `PrtScn`), and `F1` to `F12`.
-    - Crisp tactile haptic feedback on every key, letter, number, modifier, and shortcut press.
+    - Native Win32 Unicode typing for `ñ` and `Ñ` in `InputHelper.cs` via `KEYEVENTF_UNICODE`, checking Shift and Windows OS CapsLock state (`GetKeyState(0x14)`).
 - [x] Live Screen & Direct Touch Precision (`TouchpadView` & `InputHelper`):
-  - **Real PC Mouse Cursor on Live Stream (DrawIconEx)**:
-    - `InputHelper.cs` uses Win32 `GetCursorInfo`, `GetIconInfo`, and `DrawIconEx` on the desktop DC to paint the physical Windows cursor directly into the desktop frame at its exact hotspot.
-    - Completely removed synthetic cursor overlay from Android's `onDraw()`. The user sees the genuine Windows cursor directly in the video stream, eliminating mismatch between PC and phone pointer positions.
+  - **Classic Crisp Windows Mouse Pointer**:
+    - Authentic Windows white arrow with clean 2px black outline, pointing precisely at `pointerX, pointerY`.
+    - Zero visual clutter: removed halos, glowing rings, and golden circles as requested.
+    - Subtle amber fill during active tap-and-drag for visual drag state confirmation.
+    - Smooth sub-pixel positioning in both full-desktop and centered-zoom follow modes.
   - **1080p Full HD Streaming Quality**:
     - Screen streamer upgraded to native 1080p Full HD at 85% JPEG quality (`--stream 2 85 1080`).
     - Added native resolution bypass in `InputHelper.cs`: when `destW == srcW && destH == srcH`, skips downscaling and encodes the GDI bitmap directly to high-quality JPEG.
