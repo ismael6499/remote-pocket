@@ -901,52 +901,6 @@ namespace InputHelper {
                             } finally {
                                 gSrc.ReleaseHdc(hDestDC);
                             }
-
-                            // High-Visibility Cursor Halo & Pointer Rendering
-                            try {
-                                gSrc.SmoothingMode = SmoothingMode.AntiAlias;
-
-                                // 1. Draw glowing beacon ring around mouse hotspot
-                                int r = 26; // 52px halo ring
-                                using (Pen penHalo = new Pen(Color.FromArgb(200, 255, 215, 0), 4f)) // Golden glowing ring
-                                using (Pen penDark = new Pen(Color.FromArgb(220, 15, 23, 42), 2f)) { // Dark contrast border
-                                    gSrc.DrawEllipse(penDark, curX - r - 2, curY - r - 2, (r + 2) * 2, (r + 2) * 2);
-                                    gSrc.DrawEllipse(penHalo, curX - r, curY - r, r * 2, r * 2);
-                                    gSrc.DrawEllipse(penDark, curX - r + 2, curY - r + 2, (r - 2) * 2, (r - 2) * 2);
-                                }
-
-                                // 2. Draw actual cursor or high-contrast enlarged arrow
-                                CURSORINFO ci = new CURSORINFO();
-                                ci.cbSize = Marshal.SizeOf(typeof(CURSORINFO));
-                                bool drewIcon = false;
-                                if (GetCursorInfo(out ci) && ci.flags == CURSOR_SHOWING && ci.hCursor != IntPtr.Zero) {
-                                    IntPtr hdcCursor = gSrc.GetHdc();
-                                    try {
-                                        drewIcon = DrawIconEx(hdcCursor, curX, curY, ci.hCursor, 42, 42, 0, IntPtr.Zero, 3);
-                                        if (!drewIcon) DrawIcon(hdcCursor, curX, curY, ci.hCursor);
-                                    } finally {
-                                        gSrc.ReleaseHdc(hdcCursor);
-                                    }
-                                }
-
-                                if (!drewIcon) {
-                                    // Custom high-contrast arrow pointer (White body with black outline)
-                                    Point[] arrowPoints = new Point[] {
-                                        new Point(curX, curY),
-                                        new Point(curX, curY + 30),
-                                        new Point(curX + 8, curY + 24),
-                                        new Point(curX + 15, curY + 36),
-                                        new Point(curX + 20, curY + 33),
-                                        new Point(curX + 14, curY + 21),
-                                        new Point(curX + 23, curY + 21)
-                                    };
-                                    using (SolidBrush brushWhite = new SolidBrush(Color.White))
-                                    using (Pen penBlack = new Pen(Color.Black, 2.5f)) {
-                                        gSrc.FillPolygon(brushWhite, arrowPoints);
-                                        gSrc.DrawPolygon(penBlack, arrowPoints);
-                                    }
-                                }
-                            } catch { }
                         }
 
                         using (Bitmap destBmp = new Bitmap(destW, destH, PixelFormat.Format24bppRgb)) {

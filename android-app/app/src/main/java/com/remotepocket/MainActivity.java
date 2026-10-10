@@ -101,6 +101,8 @@ public class MainActivity extends AppCompatActivity {
         btnZoomLevel = findViewById(R.id.btnZoomLevel);
     }
 
+    private final java.util.concurrent.ExecutorService frameDecoderExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
+
     private void initManagers() {
         webSocketManager = new WebSocketManager();
         touchpadView.setWebSocketManager(webSocketManager);
@@ -129,25 +131,31 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onScreenFrame(byte[] jpegData) {
                 if (isScreenMode && jpegData != null && jpegData.length > 0) {
-                    try {
-                        int offset = 0;
-                        int curX = -1, curY = -1, scrW = 1920, scrH = 1080;
-                        if (jpegData.length > 12 && jpegData[0] == 'R' && jpegData[1] == 'P' && jpegData[2] == 'K' && jpegData[3] == 'T') {
-                            curX = (jpegData[4] & 0xFF) | ((jpegData[5] & 0xFF) << 8);
-                            curY = (jpegData[6] & 0xFF) | ((jpegData[7] & 0xFF) << 8);
-                            scrW = (jpegData[8] & 0xFF) | ((jpegData[9] & 0xFF) << 8);
-                            scrH = (jpegData[10] & 0xFF) | ((jpegData[11] & 0xFF) << 8);
-                            offset = 12;
-                        }
-
-                        Bitmap bmp = BitmapFactory.decodeByteArray(jpegData, offset, jpegData.length - offset);
-                        if (bmp != null) {
-                            imgScreenPreview.setImageBitmap(bmp);
-                            if (curX >= 0 && curY >= 0) {
-                                touchpadView.updateServerCursorPosition(curX, curY, scrW, scrH);
+                    frameDecoderExecutor.execute(() -> {
+                        try {
+                            int offset = 0;
+                            int curX = -1, curY = -1, scrW = 1920, scrH = 1080;
+                            if (jpegData.length > 12 && jpegData[0] == 'R' && jpegData[1] == 'P' && jpegData[2] == 'K' && jpegData[3] == 'T') {
+                                curX = (jpegData[4] & 0xFF) | ((jpegData[5] & 0xFF) << 8);
+                                curY = (jpegData[6] & 0xFF) | ((jpegData[7] & 0xFF) << 8);
+                                scrW = (jpegData[8] & 0xFF) | ((jpegData[9] & 0xFF) << 8);
+                                scrH = (jpegData[10] & 0xFF) | ((jpegData[11] & 0xFF) << 8);
+                                offset = 12;
                             }
-                        }
-                    } catch (Exception ignored) {}
+
+                            Bitmap bmp = BitmapFactory.decodeByteArray(jpegData, offset, jpegData.length - offset);
+                            if (bmp != null) {
+                                final int finalCurX = curX;
+                                final int finalCurY = curY;
+                                final int finalScrW = scrW;
+                                final int finalScrH = scrH;
+                                runOnUiThread(() -> {
+                                    imgScreenPreview.setImageBitmap(bmp);
+                                    touchpadView.updateServerCursorPosition(finalCurX, finalCurY, finalScrW, finalScrH);
+                                });
+                            }
+                        } catch (Exception ignored) {}
+                    });
                 }
             }
 
@@ -437,9 +445,9 @@ public class MainActivity extends AppCompatActivity {
         txtDeviceName.setText(device.getDeviceName());
         AppLogger.i("MainActivity", "Selected device: " + device.getDeviceName() + " (" + device.getHost() + ":" + device.getPort() + ")");
 
-        // Save last connected host
+        // Save last connected host and port
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-                .putString(KEY_LAST_DEVICE_HOST, device.getHost())
+                .putString(KEY_LAST_DEVICE_HOST, device.getHost() + ":" + device.getPort())
                 .apply();
 
         // Connect WebSocket
@@ -534,7 +542,13 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onAddCustomDevice(Device device) {
-                knownDevices.add(device);
+                for (int i = knownDevices.size() - 1; i >= 0; i--) {
+                    Device d = knownDevices.get(i);
+                    if (d.getHost().equals(device.getHost()) && d.getPort() == device.getPort()) {
+                        knownDevices.remove(i);
+                    }
+                }
+                knownDevices.add(0, device);
                 saveKnownDevices();
                 AppLogger.i("MainActivity", "Added custom device: " + device.getHost() + ":" + device.getPort());
                 selectDevice(device);
@@ -575,7 +589,8 @@ public class MainActivity extends AppCompatActivity {
         String lastHost = prefs.getString(KEY_LAST_DEVICE_HOST, null);
         if (lastHost != null) {
             for (Device d : knownDevices) {
-                if (d.getHost().equals(lastHost)) {
+                String key = d.getHost() + ":" + d.getPort();
+                if (key.equals(lastHost) || d.getHost().equals(lastHost)) {
                     selectDevice(d);
                     break;
                 }
@@ -602,7 +617,8 @@ public class MainActivity extends AppCompatActivity {
             String lastHost = prefs.getString(KEY_LAST_DEVICE_HOST, null);
             if (lastHost != null) {
                 for (Device d : knownDevices) {
-                    if (d.getHost().equals(lastHost)) {
+                    String key = d.getHost() + ":" + d.getPort();
+                    if (key.equals(lastHost) || d.getHost().equals(lastHost)) {
                         selectDevice(d);
                         break;
                     }
@@ -627,5 +643,8 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         udpDiscovery.stop();
         webSocketManager.disconnect();
+        try {
+            frameDecoderExecutor.shutdown();
+        } catch (Exception ignored) {}
     }
 }

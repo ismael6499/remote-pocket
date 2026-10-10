@@ -71,19 +71,22 @@ Remote Pocket is a monorepo containing:
     - Collapsible "⚡ Special Actions & F-Keys ▾" panel with 1-click shortcuts (`Ctrl+Alt+Del`, `Alt+Tab`, `Win+D`, `TaskMgr`, `Win+L`, `Ctrl+C`, `Ctrl+V`), navigation (`Ins`, `Del`, `Home`, `End`, `PgUp`, `PgDn`, `PrtScn`), and `F1` to `F12`.
     - Crisp tactile haptic feedback on every key, letter, number, modifier, and shortcut press.
 - [x] Live Screen & Direct Touch Interactions (`TouchpadView`):
-  - **Live Screen Viewport Camera Follow**:
-    - The camera/viewport automatically tracks and centers on the mouse cursor in real-time whenever zoomed in (`currentScale > 1.0f`).
-    - 0ms latency predictive tracking: when dragging the finger on the phone screen to steer the mouse, the estimated cursor position updates instantly and pans the camera translation synchronously without waiting for network frames.
-    - Synchronized with authoritative cursor coordinates received from PC Agent frames.
-    - Double-tap gesture: instantly toggles between 1.0x (full desktop overview) and 2.2x (close-up centered directly on the mouse cursor) with smooth deceleration interpolation.
-  - **High-Visibility Cursor Beacon & Reticle**:
-    - PC Agent (`InputHelper.cs`): renders a 52px diameter golden glowing beacon halo ring (`#FFD700`) with dark contrast borders and an enlarged 42x42 high-contrast cursor arrow directly onto the GDI+ bitmap frame.
-    - Android Client (`TouchpadView.java`): draws a 60 FPS vector beacon reticle with crosshair ticks and bright center dot on top of the live stream canvas, guaranteeing the mouse pointer is always 100% visible against any wallpaper or UI.
-  - **Live Screen Zoom & Follow Pill Overlay**:
-    - Top-right glassmorphism pill displaying live follow state (`🎯 Follow: ON/OFF`) and zoom level (`🔍 2.0x`).
-    - Tap follow button to toggle tracking on/off.
-    - Tap zoom button to cycle zoom presets (1.0x -> 2.0x -> 3.0x -> 1.0x).
-  - Pinch-to-zoom (1.0x to 4.0x) on live screen stream using `ScaleGestureDetector`.
+  - **Centered Mouse Follow & Camera Tracking (AnyDesk / Google Remote Desktop Style)**:
+    - The mouse cursor stays centered on the phone display whenever zoomed in (`currentScale > 1.05f`).
+    - 0ms latency direct hardware translation: dragging your finger on the phone moves the desktop smoothly underneath the centered cursor at 60/120 FPS without waiting for server network frames.
+    - Viewport is decoupled from PC-side mouse movement: moving the physical mouse on the PC does NOT jerk or pan the phone's camera.
+    - Double-tap gesture: sends double click directly to the PC (opening files/folders), with dedicated zoom cycling button (`2.0x`) in the overlay.
+  - **Crisp Windows Arrow Cursor Overlay**:
+    - Removed golden halo beacon rings, circles, and crosshairs for a clean, professional aesthetic.
+    - PC Agent captures clean desktop frames without burning in lagged cursors.
+    - Android Client renders an iconic, crisp Windows mouse arrow (white fill, sleek black contrast stroke) centered on the screen.
+  - **Offloaded Frame Decoding & UI Smoothness**:
+    - Binary JPEG frame decoding executed on a dedicated background `ExecutorService` rather than the main thread, keeping the UI silky smooth at all times.
+  - **Manual Device Addition & URL Sanitization**:
+    - Fixed crash when manually adding server with custom ports or formatted hostnames (`192.168.1.33:5051`, `http://`, etc.).
+    - Robust `sanitizeHostAndPort()` splits combined `host:port` strings and strips protocol prefixes.
+    - Comprehensive `try-catch` guards around OkHttp `newWebSocket` creation and dialog dismissal prevent crashes.
+    - Improved deduplication and `host:port` persistence in `SharedPreferences`.
   - Direct touch mouse movement across live screen preview with sub-pixel motion accumulation.
   - Multi-touch gestures directly on the screen:
     - 1-finger tap: Left click.
@@ -101,10 +104,21 @@ Remote Pocket is a monorepo containing:
   - Audio volume slider (0-100%), mute toggle, media controls (Prev, Play/Pause, Next).
   - Power action buttons (Sleep, Lock, Restart, Shutdown) with modal confirmations.
   - Dynamic shortcut buttons loaded from the connected PC's `shortcuts.json`.
+- [x] Diagnostics & Live Logging Subsystem:
+  - `AppLogger.java`: in-memory ring buffer capturing discovery bursts, packet receipt, WebSocket URLs, HTTP codes, and stack traces.
+  - `LogViewerDialog.java`: dark terminal modal viewer with real-time log stream.
+    - One-click "📋 Copy Logs" to clipboard.
+    - One-click "☁️ Send to PC" to `POST /api/logs` on the PC agent.
+    - Accessible via long-press on header status area or "📋 Logs" in `DeviceManagerDialog`.
+  - PC Agent (`server.js`): `/api/logs` endpoints (POST saves client report to `pc-agent/logs/mobile_client.log`, GET serves log text for browser inspection).
 - [x] Network & Multi-PC Management:
-  - `UdpDiscovery`: LAN broadcast discovery on port 5051 with `WifiManager.MulticastLock`.
+  - `UdpDiscovery`: multi-interface LAN broadcast discovery on port 5051 across all network interfaces + subnet broadcasts (`192.168.1.255` + `255.255.255.255`) with double burst dispatch.
   - `WebSocketManager`: Low-latency WebSocket connection for mouse, keyboard, and binary JPEG frames.
-  - `DeviceManagerDialog`: Lists discovered LAN PCs and allows adding remote PCs (Ngrok or custom IP).
+  - `DeviceManagerDialog`:
+    - Shows live badges: `🟢 Live Discovered (UDP 5051)` vs `💾 Saved Device`.
+    - Delete button (`✕`) for each device to purge stale/default cached entries.
+    - "🔄 Force Scan" button: clears stale LAN cache and triggers a fresh network discovery.
+    - "📋 Logs" button: opens the diagnostic log viewer directly.
   - `SharedPreferences` persistence for known devices and last connected PC.
 - [x] OTA Auto-Updates (`UpdateManager`):
   - Checks `/api/version` on connected PC.

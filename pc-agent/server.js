@@ -90,6 +90,9 @@ function startInputProcess() {
 }
 
 function sendInputCommand(cmd) {
+  if (!inputProcess || !inputProcess.stdin || inputProcess.stdin.destroyed) {
+    startInputProcess();
+  }
   if (inputProcess && inputProcess.stdin && !inputProcess.stdin.destroyed) {
     try {
       inputProcess.stdin.write(cmd + '\n');

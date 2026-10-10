@@ -65,11 +65,10 @@ public class TouchpadView extends View {
     private ScaleGestureDetector scaleGestureDetector;
     private GestureDetector gestureDetector;
 
-    // High-visibility beacon paints
-    private Paint paintHalo;
-    private Paint paintHaloStroke;
-    private Paint paintCenterDot;
-    private Paint paintCrosshair;
+    // Clean Windows cursor arrow graphics
+    private Paint paintCursorFill;
+    private Paint paintCursorStroke;
+    private android.graphics.Path cursorPath;
 
     public TouchpadView(Context context) {
         super(context);
@@ -92,41 +91,33 @@ public class TouchpadView extends View {
         setWillNotDraw(false);
         vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
 
-        // Configure cursor beacon graphics
-        paintHalo = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paintHalo.setStyle(Paint.Style.STROKE);
-        paintHalo.setColor(Color.parseColor("#FFD700")); // Gold
-        paintHalo.setStrokeWidth(6f);
-        paintHalo.setAlpha(230);
+        // Classic crisp Windows cursor arrow
+        paintCursorFill = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paintCursorFill.setStyle(Paint.Style.FILL);
+        paintCursorFill.setColor(Color.WHITE);
 
-        paintHaloStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paintHaloStroke.setStyle(Paint.Style.STROKE);
-        paintHaloStroke.setColor(Color.parseColor("#0F172A")); // Dark slate contrast
-        paintHaloStroke.setStrokeWidth(2.5f);
-        paintHaloStroke.setAlpha(200);
+        paintCursorStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paintCursorStroke.setStyle(Paint.Style.STROKE);
+        paintCursorStroke.setColor(Color.BLACK);
+        paintCursorStroke.setStrokeWidth(2.0f);
+        paintCursorStroke.setStrokeJoin(Paint.Join.ROUND);
 
-        paintCenterDot = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paintCenterDot.setStyle(Paint.Style.FILL);
-        paintCenterDot.setColor(Color.WHITE);
+        cursorPath = new android.graphics.Path();
+        float s = getResources().getDisplayMetrics().density * 1.15f;
+        cursorPath.moveTo(0 * s, 0 * s);
+        cursorPath.lineTo(0 * s, 17 * s);
+        cursorPath.lineTo(4.5f * s, 13 * s);
+        cursorPath.lineTo(8 * s, 21 * s);
+        cursorPath.lineTo(11 * s, 19.5f * s);
+        cursorPath.lineTo(7.5f * s, 12 * s);
+        cursorPath.lineTo(13 * s, 12 * s);
+        cursorPath.close();
 
-        paintCrosshair = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paintCrosshair.setStyle(Paint.Style.STROKE);
-        paintCrosshair.setColor(Color.parseColor("#FFD700"));
-        paintCrosshair.setStrokeWidth(4f);
-
-        // Gesture detector for Double-Tap (Zoom toggle in Screen mode, Double-click in Trackpad mode)
+        // Double-Tap sends double-click directly to PC
         gestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onDoubleTap(MotionEvent e) {
-                if (isScreenMode) {
-                    triggerHaptic(35);
-                    if (currentScale > 1.2f) {
-                        setZoomLevelAnimated(1.0f);
-                    } else {
-                        setZoomLevelAnimated(2.2f);
-                    }
-                    return true;
-                } else if (webSocketManager != null && webSocketManager.isConnected()) {
+                if (webSocketManager != null && webSocketManager.isConnected()) {
                     triggerHaptic(30);
                     webSocketManager.sendMouseDoubleClick("left");
                     return true;
@@ -135,7 +126,7 @@ public class TouchpadView extends View {
             }
         });
 
-        // Scale gesture detector for Pinch-to-Zoom
+        // Pinch-to-zoom updates scale and keeps cursor centered
         scaleGestureDetector = new ScaleGestureDetector(getContext(), new ScaleGestureDetector.SimpleOnScaleGestureListener() {
             @Override
             public boolean onScaleBegin(ScaleGestureDetector detector) {
@@ -149,7 +140,7 @@ public class TouchpadView extends View {
                 currentScale = Math.max(1.0f, Math.min(currentScale, 4.0f));
 
                 if (followCursor && currentScale > 1.0f) {
-                    updateViewportTranslation(false);
+                    applyCenterTranslationDirect();
                 } else if (zoomTargetView != null) {
                     zoomTargetView.setScaleX(currentScale);
                     zoomTargetView.setScaleY(currentScale);
@@ -166,9 +157,10 @@ public class TouchpadView extends View {
                 if (currentScale <= 1.05f) {
                     resetZoom();
                 } else if (followCursor) {
-                    updateViewportTranslation(false);
+                    applyCenterTranslationDirect();
                 }
                 notifyZoomChanged();
+                invalidate();
             }
         });
     }
@@ -190,16 +182,20 @@ public class TouchpadView extends View {
         if (!screenMode) {
             resetZoom();
         } else if (currentScale < 1.5f) {
-            // Default to comfortable 2.0x zoomed follow mode when opening Live Screen
-            setZoomLevelAnimated(2.0f);
+            currentScale = 2.0f;
+            post(() -> {
+                applyCenterTranslationDirect();
+                invalidate();
+            });
         }
+        notifyZoomChanged();
         invalidate();
     }
 
     public void setFollowCursor(boolean follow) {
         this.followCursor = follow;
         if (follow && currentScale > 1.0f) {
-            updateViewportTranslation(true);
+            applyCenterTranslationDirect();
         }
         notifyZoomChanged();
         invalidate();
@@ -219,12 +215,15 @@ public class TouchpadView extends View {
 
     public void cycleZoomLevel() {
         if (currentScale < 1.5f) {
-            setZoomLevelAnimated(2.0f);
+            currentScale = 2.0f;
         } else if (currentScale < 2.5f) {
-            setZoomLevelAnimated(3.0f);
+            currentScale = 3.0f;
         } else {
-            setZoomLevelAnimated(1.0f);
+            currentScale = 1.0f;
         }
+        applyCenterTranslationDirect();
+        notifyZoomChanged();
+        invalidate();
     }
 
     public void resetZoom() {
@@ -241,55 +240,6 @@ public class TouchpadView extends View {
         invalidate();
     }
 
-    public void setZoomLevelAnimated(float targetScale) {
-        currentScale = Math.max(1.0f, Math.min(4.0f, targetScale));
-        if (zoomTargetView != null) {
-            int viewW = getWidth();
-            int viewH = getHeight();
-            if (viewW > 0 && viewH > 0) {
-                float targetTx = 0f;
-                float targetTy = 0f;
-
-                if (currentScale > 1.01f && scrW > 0 && scrH > 0) {
-                    float scaleFit = Math.min((float) viewW / scrW, (float) viewH / scrH);
-                    float renderW = scrW * scaleFit;
-                    float renderH = scrH * scaleFit;
-                    float offsetX = (viewW - renderW) / 2f;
-                    float offsetY = (viewH - renderH) / 2f;
-                    float normCurX = curX >= 0 ? curX : scrW / 2f;
-                    float normCurY = curY >= 0 ? curY : scrH / 2f;
-                    float cursorViewX = offsetX + (normCurX / (float) scrW) * renderW;
-                    float cursorViewY = offsetY + (normCurY / (float) scrH) * renderH;
-
-                    float scaledW = renderW * currentScale;
-                    float scaledH = renderH * currentScale;
-                    float maxTx = Math.max(0f, (scaledW - viewW) / 2f);
-                    float maxTy = Math.max(0f, (scaledH - viewH) / 2f);
-
-                    targetTx = Math.max(-maxTx, Math.min(maxTx, -(cursorViewX - viewW / 2f) * currentScale));
-                    targetTy = Math.max(-maxTy, Math.min(maxTy, -(cursorViewY - viewH / 2f) * currentScale));
-                }
-
-                currentTransX = targetTx;
-                currentTransY = targetTy;
-
-                zoomTargetView.setPivotX(viewW / 2f);
-                zoomTargetView.setPivotY(viewH / 2f);
-                zoomTargetView.animate()
-                        .scaleX(currentScale)
-                        .scaleY(currentScale)
-                        .translationX(targetTx)
-                        .translationY(targetTy)
-                        .setDuration(220)
-                        .setInterpolator(new DecelerateInterpolator())
-                        .withEndAction(this::invalidate)
-                        .start();
-            }
-        }
-        notifyZoomChanged();
-        invalidate();
-    }
-
     private void notifyZoomChanged() {
         if (zoomChangeListener != null) {
             zoomChangeListener.onZoomChanged(currentScale, followCursor);
@@ -297,24 +247,31 @@ public class TouchpadView extends View {
     }
 
     /**
-     * Receives latest authoritative mouse & desktop dimensions from PC Agent frame header.
+     * Receives authoritative desktop dimensions and cursor position from PC.
+     * NOTE: Does NOT pan or jerk the camera if the mouse was moved on the PC!
      */
     public void updateServerCursorPosition(int x, int y, int w, int h) {
-        this.curX = x;
-        this.curY = y;
         this.scrW = w > 0 ? w : this.scrW;
         this.scrH = h > 0 ? h : this.scrH;
 
-        if (followCursor && currentScale > 1.0f && !isScaling) {
-            updateViewportTranslation(true);
+        if (this.curX < 0 || this.curY < 0) {
+            this.curX = x >= 0 ? x : scrW / 2;
+            this.curY = y >= 0 ? y : scrH / 2;
+            if (followCursor && currentScale > 1.0f) {
+                applyCenterTranslationDirect();
+            }
+        } else if (!hasMoved && !isDragging) {
+            // Keep coordinates up to date, but NEVER pan viewport on PC mouse movement
+            this.curX = x;
+            this.curY = y;
         }
         invalidate();
     }
 
     /**
-     * Calculates and applies viewport translation so the camera stays centered on the mouse.
+     * Instantly locks viewport translation so mouse cursor is centered on phone screen (0ms latency).
      */
-    public void updateViewportTranslation(boolean smooth) {
+    public void applyCenterTranslationDirect() {
         if (zoomTargetView == null || scrW <= 0 || scrH <= 0) return;
         int viewW = getWidth();
         int viewH = getHeight();
@@ -327,8 +284,6 @@ public class TouchpadView extends View {
             zoomTargetView.setTranslationY(0f);
             zoomTargetView.setScaleX(1.0f);
             zoomTargetView.setScaleY(1.0f);
-            zoomTargetView.setPivotX(viewW / 2f);
-            zoomTargetView.setPivotY(viewH / 2f);
             return;
         }
 
@@ -344,30 +299,21 @@ public class TouchpadView extends View {
         float cursorViewX = offsetX + (normCurX / (float) scrW) * renderW;
         float cursorViewY = offsetY + (normCurY / (float) scrH) * renderH;
 
+        float targetTx = - (cursorViewX - viewW / 2f) * currentScale;
+        float targetTy = - (cursorViewY - viewH / 2f) * currentScale;
+
+        float scaledW = renderW * currentScale;
+        float scaledH = renderH * currentScale;
+        float limitTx = (scaledW / 2f) + (viewW * 0.45f);
+        float limitTy = (scaledH / 2f) + (viewH * 0.45f);
+
+        currentTransX = Math.max(-limitTx, Math.min(limitTx, targetTx));
+        currentTransY = Math.max(-limitTy, Math.min(limitTy, targetTy));
+
         zoomTargetView.setPivotX(viewW / 2f);
         zoomTargetView.setPivotY(viewH / 2f);
         zoomTargetView.setScaleX(currentScale);
         zoomTargetView.setScaleY(currentScale);
-
-        float scaledW = renderW * currentScale;
-        float scaledH = renderH * currentScale;
-        float maxTx = Math.max(0f, (scaledW - viewW) / 2f);
-        float maxTy = Math.max(0f, (scaledH - viewH) / 2f);
-
-        float targetTx = - (cursorViewX - viewW / 2f) * currentScale;
-        float targetTy = - (cursorViewY - viewH / 2f) * currentScale;
-
-        targetTx = Math.max(-maxTx, Math.min(maxTx, targetTx));
-        targetTy = Math.max(-maxTy, Math.min(maxTy, targetTy));
-
-        if (smooth) {
-            currentTransX += (targetTx - currentTransX) * 0.45f;
-            currentTransY += (targetTy - currentTransY) * 0.45f;
-        } else {
-            currentTransX = targetTx;
-            currentTransY = targetTy;
-        }
-
         zoomTargetView.setTranslationX(currentTransX);
         zoomTargetView.setTranslationY(currentTransY);
     }
@@ -460,8 +406,8 @@ public class TouchpadView extends View {
                         if (curX >= 0 && curY >= 0) {
                             curX = Math.max(0, Math.min(scrW, curX + moveX));
                             curY = Math.max(0, Math.min(scrH, curY + moveY));
-                            if (followCursor && currentScale > 1.0f) {
-                                updateViewportTranslation(false);
+                            if (isScreenMode && followCursor && currentScale > 1.05f) {
+                                applyCenterTranslationDirect();
                             }
                             invalidate();
                         }
@@ -536,7 +482,7 @@ public class TouchpadView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        if (!isScreenMode || curX < 0 || curY < 0 || scrW <= 0 || scrH <= 0) {
+        if (!isScreenMode || scrW <= 0 || scrH <= 0) {
             return;
         }
 
@@ -544,34 +490,37 @@ public class TouchpadView extends View {
         int viewH = getHeight();
         if (viewW <= 0 || viewH <= 0) return;
 
-        float scaleFit = Math.min((float) viewW / scrW, (float) viewH / scrH);
-        float renderW = scrW * scaleFit;
-        float renderH = scrH * scaleFit;
-        float offsetX = (viewW - renderW) / 2f;
-        float offsetY = (viewH - renderH) / 2f;
+        float pointerX;
+        float pointerY;
 
-        float cursorViewX = offsetX + (curX / (float) scrW) * renderW;
-        float cursorViewY = offsetY + (curY / (float) scrH) * renderH;
+        if (currentScale > 1.05f && followCursor) {
+            // In centered follow mode: mouse cursor is locked at the exact center of mobile screen
+            pointerX = viewW / 2f;
+            pointerY = viewH / 2f;
+        } else {
+            float scaleFit = Math.min((float) viewW / scrW, (float) viewH / scrH);
+            float renderW = scrW * scaleFit;
+            float renderH = scrH * scaleFit;
+            float offsetX = (viewW - renderW) / 2f;
+            float offsetY = (viewH - renderH) / 2f;
 
-        float screenX = viewW / 2f + (cursorViewX - viewW / 2f) * currentScale + currentTransX;
-        float screenY = viewH / 2f + (cursorViewY - viewH / 2f) * currentScale + currentTransY;
+            float normCurX = curX >= 0 ? curX : scrW / 2f;
+            float normCurY = curY >= 0 ? curY : scrH / 2f;
 
-        // Draw glowing beacon target reticle if on/near screen
-        if (screenX >= -40 && screenX <= viewW + 40 && screenY >= -40 && screenY <= viewH + 40) {
-            float r = 22f;
-            // Contrast shadow outlines
-            canvas.drawCircle(screenX, screenY, r + 2.5f, paintHaloStroke);
-            canvas.drawCircle(screenX, screenY, r, paintHalo);
-            canvas.drawCircle(screenX, screenY, r - 2.5f, paintHaloStroke);
+            float cursorViewX = offsetX + (normCurX / (float) scrW) * renderW;
+            float cursorViewY = offsetY + (normCurY / (float) scrH) * renderH;
 
-            // Crosshair tick marks
-            canvas.drawLine(screenX - r - 7f, screenY, screenX - r + 2f, screenY, paintCrosshair);
-            canvas.drawLine(screenX + r - 2f, screenY, screenX + r + 7f, screenY, paintCrosshair);
-            canvas.drawLine(screenX, screenY - r - 7f, screenX, screenY - r + 2f, paintCrosshair);
-            canvas.drawLine(screenX, screenY + r - 2f, screenX, screenY + r + 7f, paintCrosshair);
+            pointerX = viewW / 2f + (cursorViewX - viewW / 2f) * currentScale + currentTransX;
+            pointerY = viewH / 2f + (cursorViewY - viewH / 2f) * currentScale + currentTransY;
+        }
 
-            // Center beacon point
-            canvas.drawCircle(screenX, screenY, 4.5f, paintCenterDot);
+        // Draw crisp iconic Windows mouse arrow (tip at pointerX, pointerY)
+        if (pointerX >= -30 && pointerX <= viewW + 30 && pointerY >= -30 && pointerY <= viewH + 30) {
+            canvas.save();
+            canvas.translate(pointerX, pointerY);
+            canvas.drawPath(cursorPath, paintCursorFill);
+            canvas.drawPath(cursorPath, paintCursorStroke);
+            canvas.restore();
         }
     }
 
