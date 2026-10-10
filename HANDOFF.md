@@ -127,12 +127,22 @@ Remote Pocket is a monorepo containing:
   - Centralized strings in English by default (`res/values/strings.xml`).
   - Spanish translations in `res/values-es/strings.xml`.
   - Zero hardcoded UI strings.
+- [x] UI & Interaction Improvements:
+  - **Expanded Device Selector Hitbox**: Tapping anywhere on the device card, device name, connection status, status dot, or dropdown arrow immediately opens `DeviceManagerDialog`. Long-pressing opens diagnostic logs.
+  - **Bottom-Docked PC Keyboard Layout**:
+    - Fixed empty space issue where an overflowing header `TextView` was vertically wrapping into ~20 lines, pushing keys down.
+    - Compact, proportional action bar with `[Standard]`, `[⚡ Shortcuts ▾]`, `[ESC]`, and `[✕]`.
+    - Pinned to bottom of screen with rounded top corners (`bg_keyboard_dialog.xml`) and window gravity in `onStart()`.
+  - **Connection Status & Discovery Flow**:
+    - UDP scan no longer overwrites "Connected" status with "Searching PCs on LAN..." if already connected.
+    - Selecting a device immediately updates UI to "Connecting..." (amber), forces clean reconnect, and updates to "Connected" (emerald green).
+    - Entire device item card in `DeviceManagerDialog` is clickable to select and connect.
 - [x] Build Verification:
   - Successfully built `app-debug.apk` (`BUILD SUCCESSFUL`).
   - Staged APK in `pc-agent/updates/app-release.apk` for immediate OTA serving.
   - Auto-copied to `C:\Users\agust\Documents\Mobile Drop\RemotePocket.apk` (and `RemotePocket-v1.0.0.apk`).
 - [x] PC Agent Live State:
-  - Port 5050 (fallback search if busy), UDP discovery on 5051. Tested and responding 200 OK via `/api/status`.
+  - Active PID on port 5050 (TCP HTTP/WS) and 5051 (UDP discovery). Tested and verified `/api/status`, `/api/logs` (POST & GET), and WebSocket screen frame streaming (87KB payload).
 
 ## How to Test & Run
 
