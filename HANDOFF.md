@@ -86,10 +86,12 @@ Remote Pocket is a monorepo containing:
 # Or run install.bat to register as Windows startup task
 ```
 
-### 2. Run Android App
-- Deploy `android-app/app/build/outputs/apk/debug/app-debug.apk` to phone or emulator.
-- Using ADB:
+### 2. Run / Install Android App
+- **Download via Express Gateway (Mobile Drop)**:
+  - The APK is automatically dropped into `C:\Users\agust\Documents\Mobile Drop\RemotePocket.apk` (and `RemotePocket-v1.0.0.apk`) on every Gradle build!
+  - You can immediately download and install it to your phone using your Express Gateway server.
+- **Direct ADB Install**:
   ```powershell
-  adb install -r "android-app/app/build/outputs/apk/debug/app-debug.apk"
+  adb install -r "C:\Users\agust\Documents\Mobile Drop\RemotePocket.apk"
   ```
-- The app will automatically discover the running PC agent on the LAN, connect, and allow mouse, keyboard, screen streaming, and system controls!
+- The app will automatically discover the running PC agent on the LAN via UDP, connect, and allow mouse, keyboard, screen streaming, and system controls!

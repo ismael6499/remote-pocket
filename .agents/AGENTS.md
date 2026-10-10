@@ -42,3 +42,7 @@
      - Funcionalidades implementadas y verificadas.
      - Tareas pendientes inmediatas y próximos pasos.
      - Instrucciones necesarias para que cualquier nuevo agente o sesión continúe fluidamente sin perder contexto.
+
+7. **Distribución Automática de APKs a Mobile Drop**:
+   - Cada vez que se compile o genere el APK de Android (`app-debug.apk` o release), DEBE copiarse automáticamente tanto a `pc-agent/updates/app-release.apk` (para actualizaciones OTA) como a la carpeta de descargas de Express Gateway: `C:\Users\agust\Documents\Mobile Drop\RemotePocket-v<version>.apk` y `RemotePocket.apk`.
+   - Está automatizado en Gradle (`copyToMobileDrop` en `android-app/app/build.gradle`) para que ocurra en cada `assemble`.
