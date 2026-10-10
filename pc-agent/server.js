@@ -128,13 +128,34 @@ function startScreenStreamer() {
       for (let line of lines) {
         line = line.trim();
         if (line.startsWith('FRAME:')) {
-          const b64 = line.substring(6);
+          const rest = line.substring(6);
+          const colonIdx = rest.indexOf(':');
+          let metaHeader = null;
+          let b64 = rest;
+          if (colonIdx !== -1) {
+            const coordsStr = rest.substring(0, colonIdx);
+            b64 = rest.substring(colonIdx + 1);
+            const coords = coordsStr.split(',');
+            if (coords.length === 4) {
+              const cx = parseInt(coords[0], 10) || 0;
+              const cy = parseInt(coords[1], 10) || 0;
+              const sw = parseInt(coords[2], 10) || 0;
+              const sh = parseInt(coords[3], 10) || 0;
+              metaHeader = Buffer.alloc(12);
+              metaHeader.write('RPKT', 0, 4, 'ascii');
+              metaHeader.writeUInt16LE(Math.max(0, Math.min(65535, cx)), 4);
+              metaHeader.writeUInt16LE(Math.max(0, Math.min(65535, cy)), 6);
+              metaHeader.writeUInt16LE(Math.max(0, Math.min(65535, sw)), 8);
+              metaHeader.writeUInt16LE(Math.max(0, Math.min(65535, sh)), 10);
+            }
+          }
           try {
             const jpegBuffer = Buffer.from(b64, 'base64');
-            // Broadcast binary JPEG to all subscribed WebSocket clients
+            const payload = metaHeader ? Buffer.concat([metaHeader, jpegBuffer]) : jpegBuffer;
+            // Broadcast binary payload to all subscribed WebSocket clients
             for (const client of screenSubscribers) {
               if (client.readyState === WebSocket.OPEN) {
-                client.send(jpegBuffer, { binary: true });
+                client.send(payload, { binary: true });
               }
             }
           } catch (e) {
@@ -316,7 +337,20 @@ app.get('/api/screen/frame', verifyPin, (req, res) => {
     if (err) return res.status(500).json({ error: 'Failed to capture frame' });
     const match = stdout.match(/FRAME:(.+)/);
     if (!match) return res.status(500).json({ error: 'Invalid frame output' });
-    const buffer = Buffer.from(match[1].trim(), 'base64');
+    const raw = match[1].trim();
+    const colonIdx = raw.indexOf(':');
+    let b64 = raw;
+    if (colonIdx !== -1) {
+      const coords = raw.substring(0, colonIdx).split(',');
+      if (coords.length === 4) {
+        res.setHeader('X-Cursor-X', coords[0]);
+        res.setHeader('X-Cursor-Y', coords[1]);
+        res.setHeader('X-Screen-W', coords[2]);
+        res.setHeader('X-Screen-H', coords[3]);
+      }
+      b64 = raw.substring(colonIdx + 1);
+    }
+    const buffer = Buffer.from(b64, 'base64');
     res.contentType('image/jpeg');
     res.send(buffer);
   });

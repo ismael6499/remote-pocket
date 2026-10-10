@@ -87,6 +87,9 @@ namespace InputHelper {
         private static extern bool DrawIcon(IntPtr hDC, int X, int Y, IntPtr hIcon);
 
         [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool DrawIconEx(IntPtr hdc, int xLeft, int yTop, IntPtr hIcon, int cxWidth, int cyWidth, uint istepIfAniCur, IntPtr hbrFlickerFreeDraw, uint diFlags);
+
+        [DllImport("user32.dll", SetLastError = true)]
         private static extern IntPtr OpenWindowStation(string lpszWinSta, bool fInherit, uint dwDesiredAccess);
 
         [DllImport("user32.dll", SetLastError = true)]
@@ -290,8 +293,9 @@ namespace InputHelper {
                 int height = 720;
                 if (args.Length > 1) int.TryParse(args[1], out quality);
                 if (args.Length > 2) int.TryParse(args[2], out height);
-                byte[] jpeg = CaptureScreenJpeg(quality, height);
-                Console.WriteLine("FRAME:" + Convert.ToBase64String(jpeg));
+                int cx, cy, sw, sh;
+                byte[] jpeg = CaptureScreenJpeg(quality, height, out cx, out cy, out sw, out sh);
+                Console.WriteLine("FRAME:" + cx + "," + cy + "," + sw + "," + sh + ":" + Convert.ToBase64String(jpeg));
                 return;
             }
 
@@ -353,8 +357,9 @@ namespace InputHelper {
             while (running) {
                 long start = Environment.TickCount;
                 try {
-                    byte[] jpeg = CaptureScreenJpeg(quality, targetHeight);
-                    Console.WriteLine("FRAME:" + Convert.ToBase64String(jpeg));
+                    int cx, cy, sw, sh;
+                    byte[] jpeg = CaptureScreenJpeg(quality, targetHeight, out cx, out cy, out sw, out sh);
+                    Console.WriteLine("FRAME:" + cx + "," + cy + "," + sw + "," + sh + ":" + Convert.ToBase64String(jpeg));
                 } catch (Exception ex) {
                     Console.WriteLine("ERR " + ex.Message);
                 }
@@ -451,8 +456,9 @@ namespace InputHelper {
                         if (p.Length > 0) int.TryParse(p[0], out q);
                         if (p.Length > 1) int.TryParse(p[1], out h);
                     }
-                    byte[] frame = CaptureScreenJpeg(q, h);
-                    Console.WriteLine("FRAME:" + Convert.ToBase64String(frame));
+                    int cx, cy, sw, sh;
+                    byte[] frame = CaptureScreenJpeg(q, h, out cx, out cy, out sw, out sh);
+                    Console.WriteLine("FRAME:" + cx + "," + cy + "," + sw + "," + sh + ":" + Convert.ToBase64String(frame));
                     break;
                 case "vol":
                 case "volume":
@@ -845,7 +851,7 @@ namespace InputHelper {
         // ==========================================
         // SCREEN CAPTURE (GDI+ with cursor overlay & fallback)
         // ==========================================
-        public static byte[] CaptureScreenJpeg(int quality = 65, int targetHeight = 720) {
+        public static byte[] CaptureScreenJpeg(int quality, int targetHeight, out int curX, out int curY, out int scrW, out int scrH) {
             EnsureDesktopAccess();
 
             int srcW = GetSystemMetrics(0);
@@ -856,6 +862,18 @@ namespace InputHelper {
             }
             if (srcW <= 0) srcW = 1920;
             if (srcH <= 0) srcH = 1080;
+            scrW = srcW;
+            scrH = srcH;
+
+            // Retrieve live mouse cursor position
+            POINT pt;
+            if (GetCursorPos(out pt)) {
+                curX = pt.X;
+                curY = pt.Y;
+            } else {
+                curX = srcW / 2;
+                curY = srcH / 2;
+            }
 
             int destH = targetHeight > 0 ? targetHeight : 720;
             if (destH > srcH) destH = srcH;
@@ -884,15 +902,48 @@ namespace InputHelper {
                                 gSrc.ReleaseHdc(hDestDC);
                             }
 
+                            // High-Visibility Cursor Halo & Pointer Rendering
                             try {
+                                gSrc.SmoothingMode = SmoothingMode.AntiAlias;
+
+                                // 1. Draw glowing beacon ring around mouse hotspot
+                                int r = 26; // 52px halo ring
+                                using (Pen penHalo = new Pen(Color.FromArgb(200, 255, 215, 0), 4f)) // Golden glowing ring
+                                using (Pen penDark = new Pen(Color.FromArgb(220, 15, 23, 42), 2f)) { // Dark contrast border
+                                    gSrc.DrawEllipse(penDark, curX - r - 2, curY - r - 2, (r + 2) * 2, (r + 2) * 2);
+                                    gSrc.DrawEllipse(penHalo, curX - r, curY - r, r * 2, r * 2);
+                                    gSrc.DrawEllipse(penDark, curX - r + 2, curY - r + 2, (r - 2) * 2, (r - 2) * 2);
+                                }
+
+                                // 2. Draw actual cursor or high-contrast enlarged arrow
                                 CURSORINFO ci = new CURSORINFO();
                                 ci.cbSize = Marshal.SizeOf(typeof(CURSORINFO));
-                                if (GetCursorInfo(out ci) && ci.flags == CURSOR_SHOWING) {
+                                bool drewIcon = false;
+                                if (GetCursorInfo(out ci) && ci.flags == CURSOR_SHOWING && ci.hCursor != IntPtr.Zero) {
                                     IntPtr hdcCursor = gSrc.GetHdc();
                                     try {
-                                        DrawIcon(hdcCursor, ci.ptScreenPos.X, ci.ptScreenPos.Y, ci.hCursor);
+                                        drewIcon = DrawIconEx(hdcCursor, curX, curY, ci.hCursor, 42, 42, 0, IntPtr.Zero, 3);
+                                        if (!drewIcon) DrawIcon(hdcCursor, curX, curY, ci.hCursor);
                                     } finally {
                                         gSrc.ReleaseHdc(hdcCursor);
+                                    }
+                                }
+
+                                if (!drewIcon) {
+                                    // Custom high-contrast arrow pointer (White body with black outline)
+                                    Point[] arrowPoints = new Point[] {
+                                        new Point(curX, curY),
+                                        new Point(curX, curY + 30),
+                                        new Point(curX + 8, curY + 24),
+                                        new Point(curX + 15, curY + 36),
+                                        new Point(curX + 20, curY + 33),
+                                        new Point(curX + 14, curY + 21),
+                                        new Point(curX + 23, curY + 21)
+                                    };
+                                    using (SolidBrush brushWhite = new SolidBrush(Color.White))
+                                    using (Pen penBlack = new Pen(Color.Black, 2.5f)) {
+                                        gSrc.FillPolygon(brushWhite, arrowPoints);
+                                        gSrc.DrawPolygon(penBlack, arrowPoints);
                                     }
                                 }
                             } catch { }
@@ -944,6 +995,11 @@ namespace InputHelper {
                     }
                 }
             }
+        }
+
+        public static byte[] CaptureScreenJpeg(int quality = 65, int targetHeight = 720) {
+            int x, y, w, h;
+            return CaptureScreenJpeg(quality, targetHeight, out x, out y, out w, out h);
         }
 
         private static ImageCodecInfo GetEncoder(ImageFormat format) {
