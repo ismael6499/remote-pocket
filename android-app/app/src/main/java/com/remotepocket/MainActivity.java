@@ -31,9 +31,11 @@ import com.remotepocket.network.UdpDiscovery;
 import com.remotepocket.network.UpdateManager;
 import com.remotepocket.network.WebSocketManager;
 import com.remotepocket.ui.DeviceManagerDialog;
+import com.remotepocket.ui.LogViewerDialog;
 import com.remotepocket.ui.PcKeyboardDialog;
 import com.remotepocket.ui.SystemSheet;
 import com.remotepocket.ui.TouchpadView;
+import com.remotepocket.util.AppLogger;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -162,11 +164,21 @@ public class MainActivity extends AppCompatActivity {
         // Device Selector Click
         findViewById(R.id.btnDeviceSelector).setOnClickListener(v -> showDeviceManagerDialog());
 
-        // Refresh Discovery
+        // Refresh Discovery (Single tap = Fresh force scan, Long press = Diagnostics Logs)
         findViewById(R.id.btnRefreshDiscovery).setOnClickListener(v -> {
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-            startUdpDiscovery();
+            startUdpDiscovery(true);
         });
+
+        View.OnLongClickListener openLogsLongClick = v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+            showLogViewerDialog();
+            return true;
+        };
+        txtDeviceStatus.setOnLongClickListener(openLogsLongClick);
+        txtDeviceName.setOnLongClickListener(openLogsLongClick);
+        viewStatusDot.setOnLongClickListener(openLogsLongClick);
+        findViewById(R.id.btnRefreshDiscovery).setOnLongClickListener(openLogsLongClick);
 
         // Open System Controls Sheet
         findViewById(R.id.btnOpenSystemSheet).setOnClickListener(v -> {
@@ -423,6 +435,7 @@ public class MainActivity extends AppCompatActivity {
         if (device == null) return;
         this.currentDevice = device;
         txtDeviceName.setText(device.getDeviceName());
+        AppLogger.i("MainActivity", "Selected device: " + device.getDeviceName() + " (" + device.getHost() + ":" + device.getPort() + ")");
 
         // Save last connected host
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
@@ -433,11 +446,26 @@ public class MainActivity extends AppCompatActivity {
         webSocketManager.connect(device);
     }
 
-    private void startUdpDiscovery() {
+    private void startUdpDiscovery(boolean forceFresh) {
         txtDeviceStatus.setText(R.string.status_searching);
         txtDeviceStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_amber));
+        AppLogger.i("MainActivity", "Triggering discovery scan (forceFresh: " + forceFresh + ")");
 
-        udpDiscovery.startDiscovery(3000, new UdpDiscovery.DiscoveryCallback() {
+        if (forceFresh) {
+            // Keep user-added remote devices, but refresh LAN discovered ones
+            List<Device> preserved = new ArrayList<>();
+            for (Device d : knownDevices) {
+                if (d.isRemote()) preserved.add(d);
+            }
+            knownDevices.clear();
+            knownDevices.addAll(preserved);
+            if (deviceDialog != null && deviceDialog.isShowing()) {
+                deviceDialog.updateDevices(knownDevices);
+                deviceDialog.setStatusText("Scanning LAN via UDP 5051...");
+            }
+        }
+
+        udpDiscovery.startDiscovery(3500, new UdpDiscovery.DiscoveryCallback() {
             @Override
             public void onDeviceFound(Device device) {
                 boolean exists = false;
@@ -466,13 +494,22 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDiscoveryFinished() {
                 if (deviceDialog != null && deviceDialog.isShowing()) {
-                    deviceDialog.setStatusText("Discovery completed (" + knownDevices.size() + " devices found)");
+                    deviceDialog.setStatusText("Scan finished (" + knownDevices.size() + " devices found)");
                 }
-                if (!webSocketManager.isConnected() && !webSocketManager.isConnecting() && currentDevice == null && !knownDevices.isEmpty()) {
-                    selectDevice(knownDevices.get(0));
+                if (!webSocketManager.isConnected() && !webSocketManager.isConnecting()) {
+                    if (currentDevice == null && !knownDevices.isEmpty()) {
+                        selectDevice(knownDevices.get(0));
+                    } else if (knownDevices.isEmpty()) {
+                        txtDeviceStatus.setText(R.string.status_disconnected);
+                        txtDeviceStatus.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.accent_coral));
+                    }
                 }
             }
         });
+    }
+
+    private void startUdpDiscovery() {
+        startUdpDiscovery(false);
     }
 
     private void showDeviceManagerDialog() {
@@ -483,13 +520,43 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
+            public void onDeviceDeleted(Device device) {
+                knownDevices.remove(device);
+                saveKnownDevices();
+                AppLogger.i("MainActivity", "Deleted device: " + device.getHost() + ":" + device.getPort());
+                if (currentDevice != null && currentDevice.getHost().equals(device.getHost())) {
+                    webSocketManager.disconnect();
+                    currentDevice = null;
+                    txtDeviceName.setText(R.string.no_device_selected);
+                    updateConnectionUi(false);
+                }
+            }
+
+            @Override
             public void onAddCustomDevice(Device device) {
                 knownDevices.add(device);
                 saveKnownDevices();
+                AppLogger.i("MainActivity", "Added custom device: " + device.getHost() + ":" + device.getPort());
                 selectDevice(device);
+            }
+
+            @Override
+            public void onForceRescan() {
+                startUdpDiscovery(true);
+            }
+
+            @Override
+            public void onOpenLogs() {
+                showLogViewerDialog();
             }
         });
         deviceDialog.show();
+    }
+
+    private void showLogViewerDialog() {
+        String serverUrl = currentDevice != null ? currentDevice.getHttpUrl() : "http://192.168.1.33:5050";
+        LogViewerDialog dialog = new LogViewerDialog(this, serverUrl);
+        dialog.show();
     }
 
     private void loadSavedDevices() {

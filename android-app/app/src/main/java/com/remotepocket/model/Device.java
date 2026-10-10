@@ -82,6 +82,10 @@ public class Device implements Serializable {
         return "http://" + host + ":" + getPort();
     }
 
+    public String getHttpUrl() {
+        return getBaseHttpUrl();
+    }
+
     public String getWebSocketUrl() {
         if (host.startsWith("http://")) {
             return host.replace("http://", "ws://");

@@ -66,6 +66,7 @@ public class WebSocketManager {
         isConnecting = true;
         String wsUrl = device.getWebSocketUrl();
         Log.d(TAG, "Connecting to WebSocket: " + wsUrl);
+        com.remotepocket.util.AppLogger.i(TAG, "Connecting to WebSocket: " + wsUrl + " (" + device.getDeviceName() + ")");
 
         Request request = new Request.Builder()
                 .url(wsUrl)
@@ -76,6 +77,7 @@ public class WebSocketManager {
             public void onOpen(WebSocket ws, Response response) {
                 isConnecting = false;
                 Log.d(TAG, "WebSocket connected successfully");
+                com.remotepocket.util.AppLogger.i(TAG, "WebSocket connected successfully: " + wsUrl);
                 if (listener != null) {
                     mainHandler.post(listener::onConnected);
                 }
@@ -98,6 +100,7 @@ public class WebSocketManager {
 
             @Override
             public void onClosing(WebSocket ws, int code, String reason) {
+                com.remotepocket.util.AppLogger.w(TAG, "WebSocket closing (code " + code + "): " + reason);
                 ws.close(1000, null);
             }
 
@@ -105,6 +108,7 @@ public class WebSocketManager {
             public void onClosed(WebSocket ws, int code, String reason) {
                 isConnecting = false;
                 Log.d(TAG, "WebSocket closed: " + reason);
+                com.remotepocket.util.AppLogger.i(TAG, "WebSocket closed: " + reason);
                 if (listener != null) {
                     mainHandler.post(listener::onDisconnected);
                 }
@@ -113,7 +117,9 @@ public class WebSocketManager {
             @Override
             public void onFailure(WebSocket ws, Throwable t, Response response) {
                 isConnecting = false;
-                Log.e(TAG, "WebSocket failure: " + t.getMessage());
+                String responseInfo = response != null ? " [HTTP " + response.code() + " " + response.message() + "]" : "";
+                Log.e(TAG, "WebSocket failure: " + t.getMessage() + responseInfo);
+                com.remotepocket.util.AppLogger.e(TAG, "WebSocket failure: " + wsUrl + responseInfo, t);
                 if (listener != null) {
                     mainHandler.post(() -> listener.onError(t.getMessage()));
                 }

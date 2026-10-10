@@ -109,4 +109,14 @@
     <string name="screen_follow_off">🎯 Follow: OFF</string>
     <string name="screen_zoom_format">🔍 %.1fx</string>
     <string name="screen_reset_zoom">Fit 1.0x</string>
+    <string name="dialog_logs_title">Diagnostics &amp; Logs</string>
+    <string name="dialog_logs_subtitle">Live network events, connection logs &amp; errors</string>
+    <string name="btn_copy_logs">📋 Copy Logs</string>
+    <string name="btn_send_logs">☁️ Send to PC</string>
+    <string name="btn_clear_logs">Clear</string>
+    <string name="btn_logs_label">📋 Logs</string>
+    <string name="btn_force_scan">🔄 Force Scan</string>
+    <string name="toast_logs_copied">Logs copied to clipboard</string>
+    <string name="badge_discovered_udp">🟢 Live Discovered (UDP 5051)</string>
+    <string name="badge_saved_device">💾 Saved Device</string>
 </resources>

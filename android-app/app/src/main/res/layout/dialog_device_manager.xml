@@ -7,40 +7,84 @@
     android:orientation="vertical"
     android:padding="20dp">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <!-- Header Row with Title & Force Scan -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingBottom="12dp"
-        android:text="@string/manage_devices"
-        android:textColor="@color/text_primary"
-        android:textSize="18sp"
-        android:textStyle="bold" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/manage_devices"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnForceRescan"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="@string/btn_force_scan"
+            android:textColor="@color/accent_cyan"
+            android:textSize="12sp" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/txtDiscoveryStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingBottom="8dp"
+        android:paddingBottom="10dp"
         android:text="@string/status_searching"
         android:textColor="@color/text_secondary"
         android:textSize="12sp" />
 
     <!-- Discovered Devices List Container -->
-    <LinearLayout
-        android:id="@+id/layoutDeviceList"
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingBottom="12dp" />
+        android:maxHeight="260dp">
 
-    <!-- Button to Add Remote PC -->
-    <Button
-        android:id="@+id/btnAddRemoteDevice"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        <LinearLayout
+            android:id="@+id/layoutDeviceList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="8dp" />
+    </ScrollView>
+
+    <!-- Bottom Actions Row -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="46dp"
-        android:text="@string/add_remote_device"
-        android:textColor="@color/accent_indigo"
-        app:strokeColor="@color/accent_indigo" />
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnAddRemoteDevice"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:text="@string/add_remote_device"
+            android:textColor="@color/accent_indigo"
+            android:textSize="12sp"
+            app:strokeColor="@color/accent_indigo" />
+
+        <Button
+            android:id="@+id/btnViewLogs"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:text="@string/btn_logs_label"
+            android:textColor="@color/accent_cyan"
+            android:textSize="12sp"
+            app:strokeColor="@color/accent_cyan" />
+    </LinearLayout>
 
 </LinearLayout>

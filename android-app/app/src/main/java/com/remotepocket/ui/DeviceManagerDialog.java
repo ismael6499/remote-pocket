@@ -6,11 +6,13 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.view.HapticFeedbackConstants;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -25,7 +27,10 @@ import java.util.List;
 public class DeviceManagerDialog extends Dialog {
     public interface OnDeviceSelectedListener {
         void onDeviceSelected(Device device);
+        void onDeviceDeleted(Device device);
         void onAddCustomDevice(Device device);
+        void onForceRescan();
+        void onOpenLogs();
     }
 
     private final List<Device> devices = new ArrayList<>();
@@ -56,7 +61,24 @@ public class DeviceManagerDialog extends Dialog {
         layoutDeviceList = findViewById(R.id.layoutDeviceList);
         txtDiscoveryStatus = findViewById(R.id.txtDiscoveryStatus);
 
-        findViewById(R.id.btnAddRemoteDevice).setOnClickListener(v -> showAddDeviceDialog());
+        findViewById(R.id.btnForceRescan).setOnClickListener(v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            if (listener != null) {
+                listener.onForceRescan();
+            }
+        });
+
+        findViewById(R.id.btnAddRemoteDevice).setOnClickListener(v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            showAddDeviceDialog();
+        });
+
+        findViewById(R.id.btnViewLogs).setOnClickListener(v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            if (listener != null) {
+                listener.onOpenLogs();
+            }
+        });
 
         renderDevices();
     }
@@ -83,39 +105,69 @@ public class DeviceManagerDialog extends Dialog {
             TextView emptyView = new TextView(getContext());
             emptyView.setText(R.string.status_searching);
             emptyView.setTextColor(getContext().getColor(R.color.text_muted));
-            emptyView.setPadding(0, 16, 0, 16);
+            emptyView.setPadding(0, 20, 0, 20);
             layoutDeviceList.addView(emptyView);
             return;
         }
 
         for (Device d : devices) {
-            View itemView = LayoutInflater.from(getContext()).inflate(android.R.layout.simple_list_item_2, layoutDeviceList, false);
-            TextView text1 = itemView.findViewById(android.R.id.text1);
-            TextView text2 = itemView.findViewById(android.R.id.text2);
+            LinearLayout row = new LinearLayout(getContext());
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+            row.setBackgroundResource(R.drawable.bg_btn_rounded);
+            row.setPadding(28, 18, 20, 18);
 
-            text1.setText(d.getDeviceName());
-            text1.setTextColor(getContext().getColor(R.color.text_primary));
-            text1.setTextSize(15f);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.setMargins(0, 0, 0, 14);
+            row.setLayoutParams(lp);
 
-            text2.setText(d.getHost() + ":" + d.getPort() + (d.isRemote() ? " (Remote)" : " (LAN)"));
-            text2.setTextColor(getContext().getColor(R.color.text_secondary));
-            text2.setTextSize(12f);
+            // Left text block (clickable)
+            LinearLayout textBlock = new LinearLayout(getContext());
+            textBlock.setOrientation(LinearLayout.VERTICAL);
+            textBlock.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
 
-            itemView.setBackgroundResource(R.drawable.bg_btn_rounded);
-            itemView.setPadding(32, 20, 32, 20);
+            TextView title = new TextView(getContext());
+            title.setText(d.getDeviceName());
+            title.setTextColor(getContext().getColor(R.color.text_primary));
+            title.setTextSize(15f);
+            title.setTypeface(null, android.graphics.Typeface.BOLD);
+            textBlock.addView(title);
 
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            lp.setMargins(0, 0, 0, 16);
-            itemView.setLayoutParams(lp);
+            TextView sub = new TextView(getContext());
+            boolean isLive = (System.currentTimeMillis() - d.getLastSeen()) < 15000;
+            String badge = isLive ? " • " + getContext().getString(R.string.badge_discovered_udp) : "";
+            sub.setText(d.getHost() + ":" + d.getPort() + badge);
+            sub.setTextColor(getContext().getColor(isLive ? R.color.accent_emerald : R.color.text_secondary));
+            sub.setTextSize(11f);
+            textBlock.addView(sub);
 
-            itemView.setOnClickListener(v -> {
+            textBlock.setOnClickListener(v -> {
                 if (listener != null) {
                     listener.onDeviceSelected(d);
                 }
                 dismiss();
             });
 
-            layoutDeviceList.addView(itemView);
+            row.addView(textBlock);
+
+            // Delete button
+            TextView btnDelete = new TextView(getContext());
+            btnDelete.setText("✕");
+            btnDelete.setTextSize(16f);
+            btnDelete.setTextColor(getContext().getColor(R.color.text_muted));
+            btnDelete.setPadding(24, 16, 16, 16);
+            btnDelete.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                if (listener != null) {
+                    listener.onDeviceDeleted(d);
+                }
+                devices.remove(d);
+                renderDevices();
+            });
+
+            row.addView(btnDelete);
+            layoutDeviceList.addView(row);
         }
     }
 
