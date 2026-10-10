@@ -95,6 +95,7 @@ public class MainActivity extends AppCompatActivity {
     private void initManagers() {
         webSocketManager = new WebSocketManager();
         touchpadView.setWebSocketManager(webSocketManager);
+        touchpadView.setZoomTarget(imgScreenPreview);
         udpDiscovery = new UdpDiscovery(this);
         updateManager = new UpdateManager(this);
 
@@ -134,6 +135,8 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private boolean isManualDragActive = false;
+
     private void setupListeners() {
         // Device Selector Click
         findViewById(R.id.btnDeviceSelector).setOnClickListener(v -> showDeviceManagerDialog());
@@ -164,13 +167,31 @@ public class MainActivity extends AppCompatActivity {
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
             webSocketManager.sendMouseClick("left");
         });
-        findViewById(R.id.btnDoubleClick).setOnClickListener(v -> {
+        findViewById(R.id.btnMiddleClick).setOnClickListener(v -> {
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-            webSocketManager.sendMouseDoubleClick("left");
+            webSocketManager.sendMouseClick("middle");
         });
         findViewById(R.id.btnRightClick).setOnClickListener(v -> {
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
             webSocketManager.sendMouseClick("right");
+        });
+        Button btnDragHold = findViewById(R.id.btnDragHold);
+        btnDragHold.setOnClickListener(v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            isManualDragActive = !isManualDragActive;
+            if (isManualDragActive) {
+                btnDragHold.setText(R.string.btn_drag_held);
+                btnDragHold.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.accent_indigo)));
+                webSocketManager.sendMouseDown("left");
+            } else {
+                btnDragHold.setText(R.string.btn_drag_hold);
+                btnDragHold.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.btn_surface)));
+                webSocketManager.sendMouseUp("left");
+            }
+        });
+        findViewById(R.id.btnDoubleClick).setOnClickListener(v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            webSocketManager.sendMouseDoubleClick("left");
         });
         findViewById(R.id.btnScrollUp).setOnClickListener(v -> {
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
@@ -287,6 +308,7 @@ public class MainActivity extends AppCompatActivity {
 
             imgScreenPreview.setVisibility(View.GONE);
             txtTouchpadHint.setVisibility(View.VISIBLE);
+            touchpadView.resetZoom();
             webSocketManager.stopScreenStream();
         }
     }
@@ -344,7 +366,7 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 // If not currently connected, auto-connect to discovered PC
-                if (!webSocketManager.isConnected()) {
+                if (!webSocketManager.isConnected() && !webSocketManager.isConnecting()) {
                     selectDevice(device);
                 }
             }
@@ -354,7 +376,7 @@ public class MainActivity extends AppCompatActivity {
                 if (deviceDialog != null && deviceDialog.isShowing()) {
                     deviceDialog.setStatusText("Discovery completed (" + knownDevices.size() + " devices found)");
                 }
-                if (!webSocketManager.isConnected() && currentDevice == null && !knownDevices.isEmpty()) {
+                if (!webSocketManager.isConnected() && !webSocketManager.isConnecting() && currentDevice == null && !knownDevices.isEmpty()) {
                     selectDevice(knownDevices.get(0));
                 }
             }
@@ -411,8 +433,25 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (currentDevice != null && !webSocketManager.isConnected()) {
-            webSocketManager.connect(currentDevice);
+        if (currentDevice != null) {
+            if (!webSocketManager.isConnected() && !webSocketManager.isConnecting()) {
+                webSocketManager.connect(currentDevice);
+            }
+        } else {
+            // Restore from SharedPreferences
+            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+            String lastHost = prefs.getString(KEY_LAST_DEVICE_HOST, null);
+            if (lastHost != null) {
+                for (Device d : knownDevices) {
+                    if (d.getHost().equals(lastHost)) {
+                        selectDevice(d);
+                        break;
+                    }
+                }
+            }
+        }
+        if (isScreenMode && webSocketManager.isConnected()) {
+            webSocketManager.startScreenStream();
         }
     }
 

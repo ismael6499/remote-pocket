@@ -54,6 +54,7 @@ Remote Pocket is a monorepo containing:
   - Bottom mouse action buttons (Left, Right, Double Click, Scroll Up, Scroll Down).
   - Floating Action Button (FAB) draggable anywhere on screen to choose between Gboard or Extended PC Keyboard.
 - [x] Dual Keyboards:
+- [x] Dual Keyboards:
   - Standard Android Keyboard (Gboard): soft input with direct text transmission and voice-to-text.
   - Full Extended PC Keyboard (`PcKeyboardDialog`):
     - Complete physical QWERTY layout: Numbers (1-0, -, =, Bksp), Letters (QWERTY, ASDF, ZXCV), Punctuation ([, ], ;, ', \, ,, ., /), Space, Enter, Tab.
@@ -62,6 +63,24 @@ Remote Pocket is a monorepo containing:
     - Caps Lock: Syncs state with PC (`capslock`), highlights visual indicator, and dynamically toggles uppercase/lowercase on keycap labels.
     - Header quick `Esc` button for instantaneous one-touch escape/exit.
     - Collapsible "⚡ Special Actions & F-Keys ▾" panel with 1-click shortcuts (`Ctrl+Alt+Del`, `Alt+Tab`, `Win+D`, `TaskMgr`, `Win+L`, `Ctrl+C`, `Ctrl+V`), navigation (`Ins`, `Del`, `Home`, `End`, `PgUp`, `PgDn`, `PrtScn`), and `F1` to `F12`.
+    - Crisp tactile haptic feedback on every key, letter, number, modifier, and shortcut press.
+- [x] Live Screen & Direct Touch Interactions (`TouchpadView`):
+  - Pinch-to-zoom (1.0x to 4.0x) on live screen stream using `ScaleGestureDetector`.
+  - Direct touch mouse movement across live screen preview with sub-pixel motion accumulation.
+  - Multi-touch gestures directly on the screen:
+    - 1-finger tap: Left click.
+    - 2-finger tap: Right click.
+    - 3-finger tap: Middle click.
+    - 2-finger vertical drag: Smooth mouse wheel scrolling.
+    - Long-press hold (>380ms): Engages left-click drag & drop with haptic pulse, automatically releasing on touch up.
+  - Persistent bottom mouse buttons: `L` (Left click), `Mid` (Middle click), `R` (Right click), `Hold` (Toggle drag lock), `2x` (Double click), and `▲`/`▼` (Mouse scroll).
+- [x] Auto-Reconnect & Connection Stability:
+  - Automatic reconnection on `onResume()` restoring last active PC from `SharedPreferences`.
+  - Guarded `WebSocketManager.connect()` with `isConnecting()` to prevent UDP discovery reconnect storms.
+- [x] PC Agent Input Injection Architecture (`InputHelper.cs`):
+  - High-performance Win32 `SendInput` (`MOUSEINPUT` / `KEYBDINPUT`) with automatic fallback to legacy APIs.
+  - Desktop station attachment via `EnsureDesktopAccess()` (`winsta0\default`).
+  - Interactive Windows session requirement noted for simulated input rights.
 - [x] System & Shortcuts Sheet (`SystemSheet`):
   - Real-time display brightness slider (0-100%).
   - Audio volume slider (0-100%), mute toggle, media controls (Prev, Play/Pause, Next).
@@ -80,11 +99,11 @@ Remote Pocket is a monorepo containing:
   - Spanish translations in `res/values-es/strings.xml`.
   - Zero hardcoded UI strings.
 - [x] Build Verification:
-  - Successfully built `app-debug.apk` (`BUILD SUCCESSFUL in 27s`).
+  - Successfully built `app-debug.apk` (`BUILD SUCCESSFUL`).
   - Staged APK in `pc-agent/updates/app-release.apk` for immediate OTA serving.
   - Auto-copied to `C:\Users\agust\Documents\Mobile Drop\RemotePocket.apk` (and `RemotePocket-v1.0.0.apk`).
 - [x] PC Agent Live State:
-  - Running on port 5050 (UDP discovery on port 5051). Tested and responding 200 OK via `/api/status`.
+  - Port 5050 (fallback search if busy), UDP discovery on 5051. Tested and responding 200 OK via `/api/status`.
 
 ## How to Test & Run
 

@@ -48,8 +48,18 @@ public class WebSocketManager {
         this.listener = listener;
     }
 
+    public boolean isConnecting() {
+        return isConnecting;
+    }
+
     public void connect(Device device) {
         if (device == null) return;
+        if (currentDevice != null && currentDevice.getHost().equals(device.getHost()) && currentDevice.getPort() == device.getPort()) {
+            if (isConnected() || isConnecting) {
+                Log.d(TAG, "Already connected or connecting to: " + device.getHost());
+                return;
+            }
+        }
         this.currentDevice = device;
         disconnect();
 

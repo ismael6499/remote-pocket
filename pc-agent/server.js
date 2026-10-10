@@ -462,6 +462,9 @@ wss.on('connection', (ws, req) => {
     if (isBinary) return; // ignore incoming binary frames
     try {
       const data = JSON.parse(message.toString());
+      if (data.type !== 'mouse_move') {
+        console.log(`[WS Input] Action: ${data.type} ${JSON.stringify(data)}`);
+      }
       handleWebSocketMessage(ws, data);
     } catch (err) {
       console.error('[WebSocket] Bad message JSON:', err.message);

@@ -21,7 +21,10 @@
     <!-- Touchpad & Mouse -->
     <string name="touchpad_hint">Toca para clic • Desliza para mover • Dos dedos para scroll</string>
     <string name="btn_left_click">I</string>
+    <string name="btn_middle_click">Medio</string>
     <string name="btn_right_click">D</string>
+    <string name="btn_drag_hold">Arrastre</string>
+    <string name="btn_drag_held">Arrastrando...</string>
     <string name="btn_double_click">2x</string>
     <string name="btn_scroll_up">▲</string>
     <string name="btn_scroll_down">▼</string>

@@ -5,11 +5,15 @@ import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.HapticFeedbackConstants;
 import android.widget.Button;
 import android.widget.LinearLayout;
 
@@ -25,6 +29,7 @@ import java.util.List;
 
 public class PcKeyboardDialog extends Dialog {
     private final WebSocketManager webSocketManager;
+    private Vibrator vibrator;
 
     private boolean isCtrlActive = false;
     private boolean isAltActive = false;
@@ -49,6 +54,8 @@ public class PcKeyboardDialog extends Dialog {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.dialog_pc_keyboard);
 
+        vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
+
         Window window = getWindow();
         if (window != null) {
             window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
@@ -58,12 +65,18 @@ public class PcKeyboardDialog extends Dialog {
 
         // Header controls
         findViewById(R.id.btnCloseKeyboard).setOnClickListener(v -> dismiss());
-        findViewById(R.id.btnEscHeader).setOnClickListener(v -> sendKeyWithModifiers("esc"));
+        findViewById(R.id.btnEscHeader).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKeyWithModifiers("esc");
+        });
 
         // Special section toggle
         btnToggleSpecial = findViewById(R.id.btnToggleSpecial);
         layoutSpecialFunctions = findViewById(R.id.layoutSpecialFunctions);
-        btnToggleSpecial.setOnClickListener(v -> toggleSpecialSection());
+        btnToggleSpecial.setOnClickListener(v -> {
+            triggerHaptic(v);
+            toggleSpecialSection();
+        });
 
         // Setup special panel actions
         setupSpecialPanel();
@@ -75,11 +88,26 @@ public class PcKeyboardDialog extends Dialog {
         btnModShift = findViewById(R.id.key_shift);
         btnModCaps = findViewById(R.id.key_caps);
 
-        btnModCtrl.setOnClickListener(v -> toggleModifier("ctrl"));
-        btnModWin.setOnClickListener(v -> toggleModifier("win"));
-        btnModAlt.setOnClickListener(v -> toggleModifier("alt"));
-        btnModShift.setOnClickListener(v -> toggleModifier("shift"));
-        btnModCaps.setOnClickListener(v -> toggleCapsLock());
+        btnModCtrl.setOnClickListener(v -> {
+            triggerHaptic(v);
+            toggleModifier("ctrl");
+        });
+        btnModWin.setOnClickListener(v -> {
+            triggerHaptic(v);
+            toggleModifier("win");
+        });
+        btnModAlt.setOnClickListener(v -> {
+            triggerHaptic(v);
+            toggleModifier("alt");
+        });
+        btnModShift.setOnClickListener(v -> {
+            triggerHaptic(v);
+            toggleModifier("shift");
+        });
+        btnModCaps.setOnClickListener(v -> {
+            triggerHaptic(v);
+            toggleCapsLock();
+        });
 
         // Row 1: Numbers & Symbols & Backspace
         setupKey(R.id.key_1, "1");
@@ -146,6 +174,19 @@ public class PcKeyboardDialog extends Dialog {
         setupKey(R.id.key_arrow_right, "right");
     }
 
+    private void triggerHaptic(View v) {
+        if (v != null) {
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+        }
+        if (vibrator != null && vibrator.hasVibrator()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createOneShot(22, VibrationEffect.DEFAULT_AMPLITUDE));
+            } else {
+                vibrator.vibrate(22);
+            }
+        }
+    }
+
     private void toggleSpecialSection() {
         if (layoutSpecialFunctions.getVisibility() == View.VISIBLE) {
             layoutSpecialFunctions.setVisibility(View.GONE);
@@ -162,22 +203,64 @@ public class PcKeyboardDialog extends Dialog {
 
     private void setupSpecialPanel() {
         // Direct Action Shortcuts
-        findViewById(R.id.btnShortcutCtrlAltDel).setOnClickListener(v -> sendKey("ctrl+alt+del"));
-        findViewById(R.id.btnShortcutAltTab).setOnClickListener(v -> sendKey("alt+tab"));
-        findViewById(R.id.btnShortcutWinD).setOnClickListener(v -> sendKey("win+d"));
-        findViewById(R.id.btnShortcutTaskMgr).setOnClickListener(v -> sendKey("ctrl+shift+esc"));
-        findViewById(R.id.btnShortcutWinL).setOnClickListener(v -> sendKey("win+l"));
-        findViewById(R.id.btnShortcutCopy).setOnClickListener(v -> sendKey("ctrl+c"));
-        findViewById(R.id.btnShortcutPaste).setOnClickListener(v -> sendKey("ctrl+v"));
+        findViewById(R.id.btnShortcutCtrlAltDel).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("ctrl+alt+del");
+        });
+        findViewById(R.id.btnShortcutAltTab).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("alt+tab");
+        });
+        findViewById(R.id.btnShortcutWinD).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("win+d");
+        });
+        findViewById(R.id.btnShortcutTaskMgr).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("ctrl+shift+esc");
+        });
+        findViewById(R.id.btnShortcutWinL).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("win+l");
+        });
+        findViewById(R.id.btnShortcutCopy).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("ctrl+c");
+        });
+        findViewById(R.id.btnShortcutPaste).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("ctrl+v");
+        });
 
         // Extended Nav Keys
-        findViewById(R.id.btnIns).setOnClickListener(v -> sendKeyWithModifiers("ins"));
-        findViewById(R.id.btnDel).setOnClickListener(v -> sendKeyWithModifiers("delete"));
-        findViewById(R.id.btnHome).setOnClickListener(v -> sendKeyWithModifiers("home"));
-        findViewById(R.id.btnEnd).setOnClickListener(v -> sendKeyWithModifiers("end"));
-        findViewById(R.id.btnPgUp).setOnClickListener(v -> sendKeyWithModifiers("pageup"));
-        findViewById(R.id.btnPgDn).setOnClickListener(v -> sendKeyWithModifiers("pagedown"));
-        findViewById(R.id.btnPrtScn).setOnClickListener(v -> sendKeyWithModifiers("prtscn"));
+        findViewById(R.id.btnIns).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKeyWithModifiers("ins");
+        });
+        findViewById(R.id.btnDel).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKeyWithModifiers("delete");
+        });
+        findViewById(R.id.btnHome).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKeyWithModifiers("home");
+        });
+        findViewById(R.id.btnEnd).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKeyWithModifiers("end");
+        });
+        findViewById(R.id.btnPgUp).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKeyWithModifiers("pageup");
+        });
+        findViewById(R.id.btnPgDn).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKeyWithModifiers("pagedown");
+        });
+        findViewById(R.id.btnPrtScn).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKeyWithModifiers("prtscn");
+        });
 
         // F1 - F12 Keys
         LinearLayout layoutFKeys = findViewById(R.id.layoutFKeys);
@@ -193,7 +276,10 @@ public class PcKeyboardDialog extends Dialog {
             lp.setMargins(0, 0, dpToPx(4), 0);
             btnF.setLayoutParams(lp);
 
-            btnF.setOnClickListener(v -> sendKeyWithModifiers(fKey));
+            btnF.setOnClickListener(v -> {
+                triggerHaptic(v);
+                sendKeyWithModifiers(fKey);
+            });
             layoutFKeys.addView(btnF);
         }
     }
@@ -201,7 +287,10 @@ public class PcKeyboardDialog extends Dialog {
     private void setupKey(int resId, String keyName) {
         View view = findViewById(resId);
         if (view != null) {
-            view.setOnClickListener(v -> sendKeyWithModifiers(keyName));
+            view.setOnClickListener(v -> {
+                triggerHaptic(v);
+                sendKeyWithModifiers(keyName);
+            });
         }
     }
 
@@ -209,7 +298,10 @@ public class PcKeyboardDialog extends Dialog {
         MaterialButton btn = findViewById(resId);
         if (btn != null) {
             letterButtons.add(btn);
-            btn.setOnClickListener(v -> sendKeyWithModifiers(letter));
+            btn.setOnClickListener(v -> {
+                triggerHaptic(v);
+                sendKeyWithModifiers(letter);
+            });
         }
     }
 

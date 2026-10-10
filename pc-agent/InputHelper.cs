@@ -207,14 +207,48 @@ namespace InputHelper {
             uint scan = MapVirtualKey((uint)vk, 0);
             uint flags = 0;
             if (IsExtendedKey(vk)) flags |= KEYEVENTF_EXTENDEDKEY;
-            keybd_event(vk, (byte)scan, flags, UIntPtr.Zero);
+
+            INPUT[] inputs = new INPUT[1];
+            inputs[0] = new INPUT {
+                type = INPUT_KEYBOARD,
+                data = new INPUTDATA {
+                    ki = new KEYBDINPUT {
+                        wVk = vk,
+                        wScan = (ushort)scan,
+                        dwFlags = flags,
+                        time = 0,
+                        dwExtraInfo = IntPtr.Zero
+                    }
+                }
+            };
+            uint sent = SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+            if (sent == 0) {
+                keybd_event(vk, (byte)scan, flags, UIntPtr.Zero);
+            }
         }
 
         private static void SendKeyUp(byte vk) {
             uint scan = MapVirtualKey((uint)vk, 0);
             uint flags = KEYEVENTF_KEYUP;
             if (IsExtendedKey(vk)) flags |= KEYEVENTF_EXTENDEDKEY;
-            keybd_event(vk, (byte)scan, flags, UIntPtr.Zero);
+
+            INPUT[] inputs = new INPUT[1];
+            inputs[0] = new INPUT {
+                type = INPUT_KEYBOARD,
+                data = new INPUTDATA {
+                    ki = new KEYBDINPUT {
+                        wVk = vk,
+                        wScan = (ushort)scan,
+                        dwFlags = flags,
+                        time = 0,
+                        dwExtraInfo = IntPtr.Zero
+                    }
+                }
+            };
+            uint sent = SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+            if (sent == 0) {
+                keybd_event(vk, (byte)scan, flags, UIntPtr.Zero);
+            }
         }
 
         public static void ReleaseAllModifiers() {
@@ -231,6 +265,7 @@ namespace InputHelper {
 
         public static void Main(string[] args) {
             try { SetProcessDPIAware(); } catch { }
+            try { EnsureDesktopAccess(); } catch { }
             Console.OutputEncoding = Encoding.UTF8;
             Console.InputEncoding = Encoding.UTF8;
 
@@ -269,6 +304,7 @@ namespace InputHelper {
         }
 
         private static void RunPipeLoop() {
+            try { EnsureDesktopAccess(); } catch { }
             Console.WriteLine("READY");
             string line;
             while ((line = Console.ReadLine()) != null) {
@@ -514,29 +550,31 @@ namespace InputHelper {
             if (coords.Length < 2) return;
             int dx, dy;
             if (int.TryParse(coords[0], out dx) && int.TryParse(coords[1], out dy)) {
-                POINT pt;
-                if (GetCursorPos(out pt)) {
-                    SetCursorPos(pt.X + dx, pt.Y + dy);
+                INPUT[] inputs = new INPUT[1];
+                inputs[0] = new INPUT {
+                    type = INPUT_MOUSE,
+                    data = new INPUTDATA {
+                        mi = new MOUSEINPUT {
+                            dx = dx,
+                            dy = dy,
+                            mouseData = 0,
+                            dwFlags = MOUSEEVENTF_MOVE,
+                            time = 0,
+                            dwExtraInfo = IntPtr.Zero
+                        }
+                    }
+                };
+                uint sent = SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+                if (sent == 0) {
+                    mouse_event(MOUSEEVENTF_MOVE, dx, dy, 0, UIntPtr.Zero);
                 }
-                mouse_event(MOUSEEVENTF_MOVE, dx, dy, 0, UIntPtr.Zero);
             }
         }
 
         private static void MouseClick(string btn) {
-            btn = (btn ?? "").ToLowerInvariant();
-            if (btn == "right" || btn == "r") {
-                mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, UIntPtr.Zero);
-                Thread.Sleep(10);
-                mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, UIntPtr.Zero);
-            } else if (btn == "middle" || btn == "m") {
-                mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, UIntPtr.Zero);
-                Thread.Sleep(10);
-                mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, UIntPtr.Zero);
-            } else {
-                mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
-                Thread.Sleep(10);
-                mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
-            }
+            MouseDown(btn);
+            Thread.Sleep(15);
+            MouseUp(btn);
         }
 
         private static void MouseDoubleClick(string btn) {
@@ -547,30 +585,77 @@ namespace InputHelper {
 
         private static void MouseDown(string btn) {
             btn = (btn ?? "").ToLowerInvariant();
-            if (btn == "right" || btn == "r") {
-                mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, UIntPtr.Zero);
-            } else if (btn == "middle" || btn == "m") {
-                mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, UIntPtr.Zero);
-            } else {
-                mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+            uint flag = MOUSEEVENTF_LEFTDOWN;
+            if (btn == "right" || btn == "r") flag = MOUSEEVENTF_RIGHTDOWN;
+            else if (btn == "middle" || btn == "m") flag = MOUSEEVENTF_MIDDLEDOWN;
+
+            INPUT[] inputs = new INPUT[1];
+            inputs[0] = new INPUT {
+                type = INPUT_MOUSE,
+                data = new INPUTDATA {
+                    mi = new MOUSEINPUT {
+                        dx = 0,
+                        dy = 0,
+                        mouseData = 0,
+                        dwFlags = flag,
+                        time = 0,
+                        dwExtraInfo = IntPtr.Zero
+                    }
+                }
+            };
+            uint sent = SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+            if (sent == 0) {
+                mouse_event(flag, 0, 0, 0, UIntPtr.Zero);
             }
         }
 
         private static void MouseUp(string btn) {
             btn = (btn ?? "").ToLowerInvariant();
-            if (btn == "right" || btn == "r") {
-                mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, UIntPtr.Zero);
-            } else if (btn == "middle" || btn == "m") {
-                mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, UIntPtr.Zero);
-            } else {
-                mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
+            uint flag = MOUSEEVENTF_LEFTUP;
+            if (btn == "right" || btn == "r") flag = MOUSEEVENTF_RIGHTUP;
+            else if (btn == "middle" || btn == "m") flag = MOUSEEVENTF_MIDDLEUP;
+
+            INPUT[] inputs = new INPUT[1];
+            inputs[0] = new INPUT {
+                type = INPUT_MOUSE,
+                data = new INPUTDATA {
+                    mi = new MOUSEINPUT {
+                        dx = 0,
+                        dy = 0,
+                        mouseData = 0,
+                        dwFlags = flag,
+                        time = 0,
+                        dwExtraInfo = IntPtr.Zero
+                    }
+                }
+            };
+            uint sent = SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+            if (sent == 0) {
+                mouse_event(flag, 0, 0, 0, UIntPtr.Zero);
             }
         }
 
         private static void MouseScroll(string delta) {
             int d;
             if (int.TryParse(delta, out d)) {
-                mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)d, UIntPtr.Zero);
+                INPUT[] inputs = new INPUT[1];
+                inputs[0] = new INPUT {
+                    type = INPUT_MOUSE,
+                    data = new INPUTDATA {
+                        mi = new MOUSEINPUT {
+                            dx = 0,
+                            dy = 0,
+                            mouseData = (uint)d,
+                            dwFlags = MOUSEEVENTF_WHEEL,
+                            time = 0,
+                            dwExtraInfo = IntPtr.Zero
+                        }
+                    }
+                };
+                uint sent = SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+                if (sent == 0) {
+                    mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)d, UIntPtr.Zero);
+                }
             }
         }
 
