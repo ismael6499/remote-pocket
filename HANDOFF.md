@@ -7,9 +7,9 @@ Remote Pocket is a monorepo containing:
 
 ## Current Status
 
-### 1. Scaffolding & Configuration
+### 1. Scaffolding & Configuration - COMPLETED
 - [x] Initialized Git repository and local identity (`Agustin` / `acostaagustin6499@gmail.com`).
-- [x] Configured `.gitignore` and `README.md`.
+- [x] Configured `.gitignore` (ignoring `node_modules`, executables, build dirs, and `.apk` binaries).
 - [x] Configured `.agents/AGENTS.md` (identidad, commits secuenciales, no daemons colgados, strings en inglés por defecto, etc.).
 
 ### 2. PC Agent (`pc-agent/`) - COMPLETED & VERIFIED
@@ -40,20 +40,56 @@ Remote Pocket is a monorepo containing:
 - [x] End-to-End Verification:
   - Verified via `test_agent.js`: HTTP status, shortcuts, UDP broadcast response, WebSocket ping/pong, and clean shutdown passed 100%.
 
-## Immediate Next Steps (Paso 3 & 4)
-1. **Initialize `android-app/`**:
-   - Create Android Java structure (`com.remotepocket`).
-   - Configure `build.gradle` (minSdk 26, targetSdk 34, OkHttp, Material Design).
-   - Setup centralized i18n (`res/values/strings.xml` in English, `res/values-es/strings.xml` in Spanish).
-2. **Network Layer**:
-   - `UdpDiscovery.java`: Broadcast listener for automatic LAN PC detection.
-   - `WebSocketManager.java`: Low-latency connection for mouse/keyboard inputs & receiving JPEG screen frames.
-   - `UpdateManager.java`: OTA update checker against `/api/version` and APK download.
-3. **UI & Control Views (Glassmorphism Dark `#0B0F19`)**:
-   - PC selector dropdown/toolbar.
-   - Live Screen view with interactive trackpad overlay.
-   - Floating Action Button (FAB) toggling:
-     - Android standard keyboard (Gboard) + modifier accessory bar.
-     - Extended PC keyboard (F1-F12, Win, Alt+Tab, Taskmgr, arrows).
-   - System control bottom sheet (brightness slider, volume slider, power dialogs with confirmations, custom shortcut buttons).
-4. **Build & Verify APK**.
+### 3. Android App (`android-app/`) - COMPLETED & COMPILED
+- [x] Architecture & Build System:
+  - Native Java (compileSdk 34, minSdk 26, targetSdk 34).
+  - Gradle 8.7 wrapper + Android Gradle Plugin 8.4.0.
+  - Java 17 / 21 compatibility.
+  - Dependencies: AndroidX, Material Design 3, OkHttp 4.12.0, Gson 2.10.1.
+- [x] UI & Design (Glassmorphism Dark `#0B0F19`):
+  - Dark surfaces (`#161F30`), translucent cards, Indigo (`#6366F1`) and Emerald (`#10B981`) accents.
+  - Dynamic PC selector toolbar with live status dot (Green connected, Red disconnected).
+  - Mode Tabs: Trackpad vs Live Screen view.
+  - Live Screen stream viewer with simultaneous trackpad interaction.
+  - Bottom mouse action buttons (Left, Right, Double Click, Scroll Up, Scroll Down).
+  - Floating Action Button (FAB) draggable anywhere on screen to choose between Gboard or Extended PC Keyboard.
+- [x] Dual Keyboards:
+  - Standard Android Keyboard (Gboard): soft input with direct text transmission and voice-to-text.
+  - Extended PC Keyboard (`PcKeyboardDialog`): F1-F12, sticky modifiers (`Ctrl`, `Alt`, `Shift`, `Win`), navigation (`Esc`, `Tab`, `Home`, `End`, `Del`, `PgUp`, `PgDn`), arrows, and 1-click shortcuts (`Alt+Tab`, `Win+D`, `TaskMgr`, `Ctrl+C`, `Ctrl+V`).
+- [x] System & Shortcuts Sheet (`SystemSheet`):
+  - Real-time display brightness slider (0-100%).
+  - Audio volume slider (0-100%), mute toggle, media controls (Prev, Play/Pause, Next).
+  - Power action buttons (Sleep, Lock, Restart, Shutdown) with modal confirmations.
+  - Dynamic shortcut buttons loaded from the connected PC's `shortcuts.json`.
+- [x] Network & Multi-PC Management:
+  - `UdpDiscovery`: LAN broadcast discovery on port 5051 with `WifiManager.MulticastLock`.
+  - `WebSocketManager`: Low-latency WebSocket connection for mouse, keyboard, and binary JPEG frames.
+  - `DeviceManagerDialog`: Lists discovered LAN PCs and allows adding remote PCs (Ngrok or custom IP).
+  - `SharedPreferences` persistence for known devices and last connected PC.
+- [x] OTA Auto-Updates (`UpdateManager`):
+  - Checks `/api/version` on connected PC.
+  - Downloads newer APKs and launches native `FileProvider` installer.
+- [x] Internationalization (i18n):
+  - Centralized strings in English by default (`res/values/strings.xml`).
+  - Spanish translations in `res/values-es/strings.xml`.
+  - Zero hardcoded UI strings.
+- [x] Build Verification:
+  - Successfully built `app-debug.apk` (`BUILD SUCCESSFUL in 1m 22s`).
+  - Staged APK in `pc-agent/updates/app-release.apk` for immediate OTA serving.
+
+## How to Test & Run
+
+### 1. Start PC Agent
+```powershell
+# In pc-agent directory:
+.\start.bat
+# Or run install.bat to register as Windows startup task
+```
+
+### 2. Run Android App
+- Deploy `android-app/app/build/outputs/apk/debug/app-debug.apk` to phone or emulator.
+- Using ADB:
+  ```powershell
+  adb install -r "android-app/app/build/outputs/apk/debug/app-debug.apk"
+  ```
+- The app will automatically discover the running PC agent on the LAN, connect, and allow mouse, keyboard, screen streaming, and system controls!

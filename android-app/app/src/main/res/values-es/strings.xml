@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App & Header -->
+    <string name="app_name">Remote Pocket</string>
+    <string name="status_connected">Conectado</string>
+    <string name="status_connecting">Conectando...</string>
+    <string name="status_disconnected">Desconectado</string>
+    <string name="status_searching">Buscando PCs en la red...</string>
+    <string name="no_device_selected">Ninguna PC seleccionada</string>
+    <string name="select_device">Seleccionar Dispositivo</string>
+    <string name="manage_devices">Administrar Dispositivos</string>
+    <string name="add_remote_device">Agregar PC Remota (Ngrok/IP)</string>
+
+    <!-- Toolbar & Modes -->
+    <string name="tab_trackpad">Trackpad</string>
+    <string name="tab_screen">Pantalla en Vivo</string>
+    <string name="tab_system">Sistema</string>
+    <string name="btn_screen_stream_start">Iniciar Pantalla</string>
+    <string name="btn_screen_stream_stop">Detener Pantalla</string>
+
+    <!-- Touchpad & Mouse -->
+    <string name="touchpad_hint">Toca para clic • Desliza para mover • Dos dedos para scroll</string>
+    <string name="btn_left_click">I</string>
+    <string name="btn_right_click">D</string>
+    <string name="btn_double_click">2x</string>
+    <string name="btn_scroll_up">▲</string>
+    <string name="btn_scroll_down">▼</string>
+
+    <!-- Keyboards -->
+    <string name="choose_keyboard">Elegir Modo de Teclado</string>
+    <string name="keyboard_android">Teclado Estándar (Gboard)</string>
+    <string name="keyboard_extended">Teclado Extendido de PC</string>
+    <string name="type_here_hint">Escribe para enviar a la PC...</string>
+    <string name="btn_send_text">Enviar</string>
+    <string name="btn_esc">Esc</string>
+    <string name="btn_tab">Tab</string>
+    <string name="btn_ctrl">Ctrl</string>
+    <string name="btn_alt">Alt</string>
+    <string name="btn_shift">Shift</string>
+    <string name="btn_win">Win</string>
+    <string name="btn_enter">Enter</string>
+    <string name="btn_bksp">Bksp</string>
+    <string name="btn_del">Supr</string>
+    <string name="btn_ins">Ins</string>
+    <string name="btn_home">Inicio</string>
+    <string name="btn_end">Fin</string>
+    <string name="btn_pgup">RePág</string>
+    <string name="btn_pgdn">AvPág</string>
+    <string name="btn_copy">Ctrl+C</string>
+    <string name="btn_paste">Ctrl+V</string>
+    <string name="btn_alt_tab">Alt+Tab</string>
+    <string name="btn_win_d">Win+D</string>
+    <string name="btn_taskmgr">Admin. Tareas</string>
+
+    <!-- System Controls & Multimedia -->
+    <string name="system_controls_title">Sistema y Atajos</string>
+    <string name="section_display">Brillo de Pantalla</string>
+    <string name="section_audio">Audio y Multimedia</string>
+    <string name="section_power">Acciones de Energía</string>
+    <string name="section_shortcuts">Atajos Rápidos</string>
+    <string name="btn_sleep">Suspender</string>
+    <string name="btn_lock">Bloquear</string>
+    <string name="btn_restart">Reiniciar</string>
+    <string name="btn_shutdown">Apagar</string>
+    <string name="btn_mute">Silenciar</string>
+    <string name="media_prev">Ant</string>
+    <string name="media_play_pause">Play/Pausa</string>
+    <string name="media_next">Sig</string>
+
+    <!-- Dialogs & Prompts -->
+    <string name="confirm_shutdown_title">Confirmar Apagado</string>
+    <string name="confirm_shutdown_msg">¿Estás seguro de que deseas apagar esta computadora?</string>
+    <string name="confirm_restart_title">Confirmar Reinicio</string>
+    <string name="confirm_restart_msg">¿Estás seguro de que deseas reiniciar esta computadora?</string>
+    <string name="action_yes">Sí, Proceder</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="dialog_add_device_title">Agregar PC manualmente</string>
+    <string name="dialog_device_name_hint">Nombre (ej. PC Trabajo)</string>
+    <string name="dialog_device_host_hint">Host o IP / URL Ngrok</string>
+    <string name="dialog_device_port_hint">Puerto (default: 5050)</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_delete">Eliminar</string>
+
+    <!-- OTA Updates -->
+    <string name="update_available_title">Actualización Disponible</string>
+    <string name="update_available_msg">Hay una nueva versión (%s) de Remote Pocket lista. ¿Deseas descargarla e instalarla?</string>
+    <string name="btn_update_now">Actualizar Ahora</string>
+    <string name="btn_update_later">Más Tarde</string>
+    <string name="toast_downloading_update">Descargando actualización APK...</string>
+    <string name="toast_update_downloaded">Actualización descargada. Abriendo instalador...</string>
+    <string name="toast_clipboard_sent">Texto del portapapeles enviado a la PC</string>
+    <string name="toast_failed_command">Error al enviar comando</string>
+</resources>

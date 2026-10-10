@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_card_glass"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingBottom="12dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/keyboard_extended"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnCloseKeyboard"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_refresh"
+            android:tint="@color/text_secondary" />
+    </LinearLayout>
+
+    <!-- Quick 1-Click Shortcuts Row -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="10dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnShortcutAltTab"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginEnd="6dp"
+                android:text="@string/btn_alt_tab"
+                android:textColor="@color/accent_indigo"
+                app:strokeColor="@color/accent_indigo" />
+
+            <Button
+                android:id="@+id/btnShortcutWinD"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginEnd="6dp"
+                android:text="@string/btn_win_d"
+                android:textColor="@color/accent_emerald"
+                app:strokeColor="@color/accent_emerald" />
+
+            <Button
+                android:id="@+id/btnShortcutTaskMgr"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginEnd="6dp"
+                android:text="@string/btn_taskmgr"
+                android:textColor="@color/accent_coral"
+                app:strokeColor="@color/accent_coral" />
+
+            <Button
+                android:id="@+id/btnShortcutCopy"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginEnd="6dp"
+                android:text="@string/btn_copy"
+                android:textColor="@color/text_primary"
+                app:strokeColor="@color/surface_card_border" />
+
+            <Button
+                android:id="@+id/btnShortcutPaste"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="@string/btn_paste"
+                android:textColor="@color/text_primary"
+                app:strokeColor="@color/surface_card_border" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <!-- Modifiers Row (Sticky toggles) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="8dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnModCtrl"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/btn_ctrl"
+            android:textColor="@color/text_primary"
+            app:cornerRadius="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnModAlt"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/btn_alt"
+            android:textColor="@color/text_primary"
+            app:cornerRadius="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnModShift"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/btn_shift"
+            android:textColor="@color/text_primary"
+            app:cornerRadius="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnModWin"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/btn_win"
+            android:textColor="@color/text_primary"
+            app:cornerRadius="8dp" />
+    </LinearLayout>
+
+    <!-- F-Keys Row (F1 - F12 horizontal scroll) -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="8dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/layoutFKeys"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
+
+    <!-- Navigation & Editing Keys -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="6dp">
+
+        <Button
+            android:id="@+id/btnEsc"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/btn_esc"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnTab"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/btn_tab"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnEnter"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1.3"
+            android:backgroundTint="@color/accent_indigo"
+            android:text="@string/btn_enter"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnBksp"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1.2"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/btn_bksp"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Secondary Nav & Arrows -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="4dp">
+
+        <Button
+            android:id="@+id/btnHome"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/btn_home"
+            android:textColor="@color/text_primary"
+            android:textSize="11sp" />
+
+        <Button
+            android:id="@+id/btnEnd"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/btn_end"
+            android:textColor="@color/text_primary"
+            android:textSize="11sp" />
+
+        <Button
+            android:id="@+id/btnDel"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/btn_del"
+            android:textColor="@color/text_primary"
+            android:textSize="11sp" />
+
+        <Button
+            android:id="@+id/btnPgUp"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/btn_pgup"
+            android:textColor="@color/text_primary"
+            android:textSize="11sp" />
+
+        <Button
+            android:id="@+id/btnPgDn"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/btn_pgdn"
+            android:textColor="@color/text_primary"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <!-- Arrow Keys Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingTop="6dp">
+
+        <Button
+            android:id="@+id/btnArrowLeft"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="60dp"
+            android:layout_height="42dp"
+            android:layout_marginEnd="6dp"
+            android:backgroundTint="@color/btn_surface"
+            android:text="◀"
+            android:textColor="@color/text_primary" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/btnArrowUp"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_width="60dp"
+                android:layout_height="36dp"
+                android:layout_marginBottom="4dp"
+                android:backgroundTint="@color/btn_surface"
+                android:text="▲"
+                android:textColor="@color/text_primary" />
+
+            <Button
+                android:id="@+id/btnArrowDown"
+                style="@style/Widget.MaterialComponents.Button"
+                android:layout_width="60dp"
+                android:layout_height="36dp"
+                android:backgroundTint="@color/btn_surface"
+                android:text="▼"
+                android:textColor="@color/text_primary" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnArrowRight"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="60dp"
+            android:layout_height="42dp"
+            android:layout_marginStart="6dp"
+            android:backgroundTint="@color/btn_surface"
+            android:text="▶"
+            android:textColor="@color/text_primary" />
+    </LinearLayout>
+
+</LinearLayout>

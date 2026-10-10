@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_card_glass"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="12dp"
+        android:text="@string/manage_devices"
+        android:textColor="@color/text_primary"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/txtDiscoveryStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingBottom="8dp"
+        android:text="@string/status_searching"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp" />
+
+    <!-- Discovered Devices List Container -->
+    <LinearLayout
+        android:id="@+id/layoutDeviceList"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingBottom="12dp" />
+
+    <!-- Button to Add Remote PC -->
+    <Button
+        android:id="@+id/btnAddRemoteDevice"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:text="@string/add_remote_device"
+        android:textColor="@color/accent_indigo"
+        app:strokeColor="@color/accent_indigo" />
+
+</LinearLayout>

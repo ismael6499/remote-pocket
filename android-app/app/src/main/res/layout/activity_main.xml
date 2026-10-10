@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark">
+
+    <!-- TOP HEADER / TOOLBAR -->
+    <LinearLayout
+        android:id="@+id/headerLayout"
+        android:layout_width="0dp"
+        android:layout_height="64dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <!-- Device Selector Card -->
+        <LinearLayout
+            android:id="@+id/btnDeviceSelector"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_btn_rounded"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <!-- Status Dot Indicator -->
+            <View
+                android:id="@+id/viewStatusDot"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/bg_trackpad"
+                android:backgroundTint="@color/accent_coral" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/txtDeviceName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/no_device_selected"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/txtDeviceStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/status_disconnected"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="▼"
+                android:textColor="@color/text_secondary"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- Refresh / Discovery Button -->
+        <ImageButton
+            android:id="@+id/btnRefreshDiscovery"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_btn_rounded"
+            android:src="@drawable/ic_refresh"
+            android:tint="@color/text_primary" />
+
+        <!-- System Controls Button -->
+        <ImageButton
+            android:id="@+id/btnOpenSystemSheet"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_btn_rounded"
+            android:src="@drawable/ic_refresh"
+            android:tint="@color/accent_indigo" />
+    </LinearLayout>
+
+    <!-- MODE TABS (Trackpad vs Live Screen) -->
+    <LinearLayout
+        android:id="@+id/layoutTabs"
+        android:layout_width="0dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/bg_card_glass"
+        android:orientation="horizontal"
+        android:padding="4dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/headerLayout">
+
+        <Button
+            android:id="@+id/tabTrackpad"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:backgroundTint="@color/accent_indigo"
+            android:text="@string/tab_trackpad"
+            android:textColor="@color/text_primary"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/tabScreen"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/tab_screen"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <!-- MAIN INTERACTIVE CONTAINER -->
+    <FrameLayout
+        android:id="@+id/containerMain"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_margin="16dp"
+        android:background="@drawable/bg_trackpad"
+        app:layout_constraintBottom_toTopOf="@id/layoutMouseButtons"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layoutTabs">
+
+        <!-- Live Screen Image (Behind Touchpad) -->
+        <ImageView
+            android:id="@+id/imgScreenPreview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitCenter"
+            android:visibility="gone" />
+
+        <!-- Hint Text for Trackpad -->
+        <TextView
+            android:id="@+id/txtTouchpadHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:alpha="0.4"
+            android:text="@string/touchpad_hint"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
+
+        <!-- Interactive Touchpad View Overlay -->
+        <com.remotepocket.ui.TouchpadView
+            android:id="@+id/touchpadView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </FrameLayout>
+
+    <!-- MOUSE BUTTONS ROW -->
+    <LinearLayout
+        android:id="@+id/layoutMouseButtons"
+        android:layout_width="0dp"
+        android:layout_height="54dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toTopOf="@id/layoutTypingInput"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <Button
+            android:id="@+id/btnLeftClick"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1.5"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/btn_left_click"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnDoubleClick"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/btn_double_click"
+            android:textColor="@color/text_primary"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btnRightClick"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1.5"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/btn_right_click"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnScrollUp"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="48dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="4dp"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/btn_scroll_up"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnScrollDown"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="48dp"
+            android:layout_height="match_parent"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/btn_scroll_down"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- LIVE TYPING & ACCESSORY ROW (Optional Gboard drawer) -->
+    <LinearLayout
+        android:id="@+id/layoutTypingInput"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_card_glass"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <EditText
+            android:id="@+id/editTypingText"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_trackpad"
+            android:hint="@string/type_here_hint"
+            android:imeOptions="actionSend"
+            android:inputType="text"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_muted"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/btnSendTyping"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_marginStart="8dp"
+            android:backgroundTint="@color/accent_indigo"
+            android:text="@string/btn_send_text"
+            android:textColor="@color/text_primary" />
+    </LinearLayout>
+
+    <!-- FLOATING KEYBOARD BUTTON (FAB) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabKeyboard"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="24dp"
+        android:contentDescription="@string/choose_keyboard"
+        android:src="@drawable/ic_keyboard"
+        app:backgroundTint="@color/accent_indigo"
+        app:layout_constraintBottom_toTopOf="@id/layoutMouseButtons"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:tint="#FFFFFF" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

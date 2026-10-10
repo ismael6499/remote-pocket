@@ -18,5 +18,6 @@ android-app/app/build/
 android-app/.idea/
 android-app/*.iml
 android-app/local.properties
+*.apk
 .DS_Store
 Thumbs.db
