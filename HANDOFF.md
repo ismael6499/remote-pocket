@@ -71,6 +71,18 @@ Remote Pocket is a monorepo containing:
     - Collapsible "⚡ Special Actions & F-Keys ▾" panel with 1-click shortcuts (`Ctrl+Alt+Del`, `Alt+Tab`, `Win+D`, `TaskMgr`, `Win+L`, `Ctrl+C`, `Ctrl+V`), navigation (`Ins`, `Del`, `Home`, `End`, `PgUp`, `PgDn`, `PrtScn`), and `F1` to `F12`.
     - Crisp tactile haptic feedback on every key, letter, number, modifier, and shortcut press.
 - [x] Live Screen & Direct Touch Interactions (`TouchpadView`):
+  - **Live Screen Viewport Camera Follow**:
+    - The camera/viewport automatically tracks and centers on the mouse cursor in real-time whenever zoomed in (`currentScale > 1.0f`).
+    - 0ms latency predictive tracking: when dragging the finger on the phone screen to steer the mouse, the estimated cursor position updates instantly and pans the camera translation synchronously without waiting for network frames.
+    - Synchronized with authoritative cursor coordinates received from PC Agent frames.
+    - Double-tap gesture: instantly toggles between 1.0x (full desktop overview) and 2.2x (close-up centered directly on the mouse cursor) with smooth deceleration interpolation.
+  - **High-Visibility Cursor Beacon & Reticle**:
+    - PC Agent (`InputHelper.cs`): renders a 52px diameter golden glowing beacon halo ring (`#FFD700`) with dark contrast borders and an enlarged 42x42 high-contrast cursor arrow directly onto the GDI+ bitmap frame.
+    - Android Client (`TouchpadView.java`): draws a 60 FPS vector beacon reticle with crosshair ticks and bright center dot on top of the live stream canvas, guaranteeing the mouse pointer is always 100% visible against any wallpaper or UI.
+  - **Live Screen Zoom & Follow Pill Overlay**:
+    - Top-right glassmorphism pill displaying live follow state (`🎯 Follow: ON/OFF`) and zoom level (`🔍 2.0x`).
+    - Tap follow button to toggle tracking on/off.
+    - Tap zoom button to cycle zoom presets (1.0x -> 2.0x -> 3.0x -> 1.0x).
   - Pinch-to-zoom (1.0x to 4.0x) on live screen stream using `ScaleGestureDetector`.
   - Direct touch mouse movement across live screen preview with sub-pixel motion accumulation.
   - Multi-touch gestures directly on the screen:
