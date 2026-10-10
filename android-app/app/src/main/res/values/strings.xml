@@ -118,6 +118,7 @@
     <string name="btn_force_scan">🔄 Force Scan</string>
     <string name="toast_logs_copied">Logs copied to clipboard</string>
     <string name="badge_discovered_udp">🟢 Live Discovered (UDP 5051)</string>
-    <string name="badge_saved_device">💾 Saved Device</string>
     <string name="btn_close">Close</string>
+    <string name="btn_fullscreen">⛶ Full</string>
+    <string name="btn_exit_fullscreen">Exit Fullscreen</string>
 </resources>

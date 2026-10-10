@@ -118,6 +118,7 @@
     <string name="btn_force_scan">🔄 Forzar Escaneo</string>
     <string name="toast_logs_copied">Logs copiados al portapapeles</string>
     <string name="badge_discovered_udp">🟢 Descubierto en vivo (UDP 5051)</string>
-    <string name="badge_saved_device">💾 Dispositivo Guardado</string>
     <string name="btn_close">Cerrar</string>
+    <string name="btn_fullscreen">⛶ Completa</string>
+    <string name="btn_exit_fullscreen">Salir de pantalla completa</string>
 </resources>

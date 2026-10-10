@@ -78,6 +78,16 @@ Remote Pocket is a monorepo containing:
     - Collapsible "⚡ Special Actions & F-Keys ▾" panel with 1-click shortcuts (`Ctrl+Alt+Del`, `Alt+Tab`, `Win+D`, `TaskMgr`, `Win+L`, `Ctrl+C`, `Ctrl+V`), navigation (`Ins`, `Del`, `Home`, `End`, `PgUp`, `PgDn`, `PrtScn`), and `F1` to `F12`.
     - Native Win32 Unicode typing for `ñ` and `Ñ` in `InputHelper.cs` via `KEYEVENTF_UNICODE`, checking Shift and Windows OS CapsLock state (`GetKeyState(0x14)`).
 - [x] Live Screen & Direct Touch Precision (`TouchpadView` & `InputHelper`):
+  - **Fullscreen Landscape Immersive Mode**:
+    - "⛶ Full" option added to the screen controls pill in Live Screen mode.
+    - Rotates phone to landscape (`SCREEN_ORIENTATION_SENSOR_LANDSCAPE`), matching PC 16:9 aspect ratio across the full display.
+    - Activates Android Immersive Sticky full screen (hiding system status bar & navigation bars).
+    - Hides top toolbar/header, mode tabs, and bottom mouse buttons (not needed since mouse actions happen directly on the live screen).
+    - Edge-to-edge desktop container (`0dp` margins, pitch black background).
+    - **Draggable Keyboard FAB**: Floating keyboard action button remains accessible in landscape to quickly open PC / soft keyboards.
+    - **Dual Exit Mechanisms**:
+      1. Discrete glass exit button (`btnExitFullscreen`, `@drawable/ic_fullscreen_exit`) fixed at top-right corner.
+      2. Android hardware/gesture Back button (`OnBackPressedCallback`), gracefully returning to portrait mode and restoring toolbars and system bars.
   - **Classic Crisp Windows Mouse Pointer**:
     - Authentic Windows white arrow with clean 2px black outline, pointing precisely at `pointerX, pointerY`.
     - Zero visual clutter: removed halos, glowing rings, and golden circles as requested.

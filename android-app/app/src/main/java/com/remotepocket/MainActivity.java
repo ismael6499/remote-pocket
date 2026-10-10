@@ -22,8 +22,18 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.content.pm.ActivityInfo;
+import android.graphics.Color;
+import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.widget.FrameLayout;
+
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.gson.Gson;
@@ -66,7 +76,11 @@ public class MainActivity extends AppCompatActivity {
     private FloatingActionButton fabKeyboard;
 
     private LinearLayout layoutScreenControls;
-    private TextView btnToggleFollow, btnZoomLevel, btnFpsSelector;
+    private TextView btnToggleFollow, btnZoomLevel, btnFpsSelector, btnEnterFullscreen;
+    private ImageButton btnExitFullscreen;
+    private LinearLayout headerLayout, layoutTabs, layoutMouseButtons;
+    private FrameLayout containerMain;
+    private boolean isFullscreen = false;
     private int currentFps = 30;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -101,11 +115,33 @@ public class MainActivity extends AppCompatActivity {
         loadSavedDevices();
         setupListeners();
 
+        // Handle Back button to exit fullscreen if active
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (isFullscreen) {
+                    exitFullscreen();
+                } else if (activePcKeyboardDialog != null && activePcKeyboardDialog.isShowing()) {
+                    activePcKeyboardDialog.dismiss();
+                } else if (layoutTypingInput != null && layoutTypingInput.getVisibility() == View.VISIBLE) {
+                    hideNormalKeyboard();
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
+
         // Start initial auto-discovery on launch
         startUdpDiscovery();
     }
 
     private void initViews() {
+        headerLayout = findViewById(R.id.headerLayout);
+        layoutTabs = findViewById(R.id.layoutTabs);
+        layoutMouseButtons = findViewById(R.id.layoutMouseButtons);
+        containerMain = findViewById(R.id.containerMain);
+
         txtDeviceName = findViewById(R.id.txtDeviceName);
         txtDeviceStatus = findViewById(R.id.txtDeviceStatus);
         txtTouchpadHint = findViewById(R.id.txtTouchpadHint);
@@ -122,6 +158,8 @@ public class MainActivity extends AppCompatActivity {
         btnToggleFollow = findViewById(R.id.btnToggleFollow);
         btnZoomLevel = findViewById(R.id.btnZoomLevel);
         btnFpsSelector = findViewById(R.id.btnFpsSelector);
+        btnEnterFullscreen = findViewById(R.id.btnEnterFullscreen);
+        btnExitFullscreen = findViewById(R.id.btnExitFullscreen);
     }
 
     private final java.util.concurrent.ExecutorService frameDecoderExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
@@ -274,6 +312,18 @@ public class MainActivity extends AppCompatActivity {
                     webSocketManager.sendScreenFps(currentFps);
                 }
                 Toast.makeText(this, "Screen FPS: " + currentFps, Toast.LENGTH_SHORT).show();
+            });
+        }
+        if (btnEnterFullscreen != null) {
+            btnEnterFullscreen.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                enterFullscreen();
+            });
+        }
+        if (btnExitFullscreen != null) {
+            btnExitFullscreen.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                exitFullscreen();
             });
         }
 
@@ -438,6 +488,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void switchMode(boolean screenMode) {
+        if (!screenMode && isFullscreen) {
+            exitFullscreen();
+        }
         this.isScreenMode = screenMode;
         touchpadView.setScreenMode(screenMode);
         if (screenMode) {
@@ -448,7 +501,7 @@ public class MainActivity extends AppCompatActivity {
 
             imgScreenPreview.setVisibility(View.VISIBLE);
             txtTouchpadHint.setVisibility(View.GONE);
-            if (layoutScreenControls != null) {
+            if (layoutScreenControls != null && !isFullscreen) {
                 layoutScreenControls.setVisibility(View.VISIBLE);
                 updateScreenControlsUi(touchpadView.getCurrentScale(), touchpadView.isFollowCursor());
             }
@@ -468,6 +521,95 @@ public class MainActivity extends AppCompatActivity {
             touchpadView.resetZoom();
             webSocketManager.stopScreenStream();
         }
+    }
+
+    private void enterFullscreen() {
+        if (isFullscreen) return;
+        isFullscreen = true;
+
+        // Force landscape orientation
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+
+        // Hide Android system bars (status bar, navigation bar) - Immersive Sticky
+        WindowInsetsControllerCompat insetsController = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        if (insetsController != null) {
+            insetsController.hide(WindowInsetsCompat.Type.systemBars());
+            insetsController.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        }
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        // Hide toolbars, tabs, mouse buttons, hints and portrait controls
+        if (headerLayout != null) headerLayout.setVisibility(View.GONE);
+        if (layoutTabs != null) layoutTabs.setVisibility(View.GONE);
+        if (layoutMouseButtons != null) layoutMouseButtons.setVisibility(View.GONE);
+        if (txtTouchpadHint != null) txtTouchpadHint.setVisibility(View.GONE);
+        if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.GONE);
+        if (layoutTypingInput != null && layoutTypingInput.getVisibility() == View.VISIBLE) {
+            hideNormalKeyboard();
+        }
+
+        // Show discrete top-right exit button
+        if (btnExitFullscreen != null) {
+            btnExitFullscreen.setVisibility(View.VISIBLE);
+        }
+
+        // Expand containerMain to 0dp margins edge-to-edge with black background
+        if (containerMain != null) {
+            ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) containerMain.getLayoutParams();
+            lp.setMargins(0, 0, 0, 0);
+            containerMain.setLayoutParams(lp);
+            containerMain.setBackgroundColor(Color.BLACK);
+        }
+
+        // Ensure FAB keyboard button is visible and accessible
+        if (fabKeyboard != null) {
+            fabKeyboard.setVisibility(View.VISIBLE);
+        }
+
+        Toast.makeText(this, R.string.btn_fullscreen, Toast.LENGTH_SHORT).show();
+    }
+
+    private void exitFullscreen() {
+        if (!isFullscreen) return;
+        isFullscreen = false;
+
+        // Restore portrait orientation
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+
+        // Restore Android system bars
+        WindowInsetsControllerCompat insetsController = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        if (insetsController != null) {
+            insetsController.show(WindowInsetsCompat.Type.systemBars());
+        }
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        // Restore toolbars and tabs
+        if (headerLayout != null) headerLayout.setVisibility(View.VISIBLE);
+        if (layoutTabs != null) layoutTabs.setVisibility(View.VISIBLE);
+        if (layoutMouseButtons != null) layoutMouseButtons.setVisibility(View.VISIBLE);
+        if (btnExitFullscreen != null) btnExitFullscreen.setVisibility(View.GONE);
+
+        // Restore containerMain 16dp margins and trackpad background
+        if (containerMain != null) {
+            int margin16 = dpToPx(16);
+            ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) containerMain.getLayoutParams();
+            lp.setMargins(margin16, margin16, margin16, margin16);
+            containerMain.setLayoutParams(lp);
+            containerMain.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_trackpad));
+        }
+
+        // Restore view visibility according to current mode
+        if (isScreenMode) {
+            if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.VISIBLE);
+            if (txtTouchpadHint != null) txtTouchpadHint.setVisibility(View.GONE);
+        } else {
+            if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.GONE);
+            if (txtTouchpadHint != null) txtTouchpadHint.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private int dpToPx(int dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
     }
 
     private void updateFpsUi() {
@@ -700,6 +842,15 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         isAppInForeground = true;
         updateFpsUi();
+
+        if (isFullscreen) {
+            WindowInsetsControllerCompat insetsController = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+            if (insetsController != null) {
+                insetsController.hide(WindowInsetsCompat.Type.systemBars());
+                insetsController.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+        }
+
         if (currentDevice != null) {
             if (!webSocketManager.isConnected()) {
                 selectDevice(currentDevice);

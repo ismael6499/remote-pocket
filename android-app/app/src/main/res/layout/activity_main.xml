@@ -233,7 +233,39 @@
                 android:paddingStart="8dp"
                 android:clickable="true"
                 android:focusable="true" />
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="14dp"
+                android:background="#334155" />
+
+            <TextView
+                android:id="@+id/btnEnterFullscreen"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_fullscreen"
+                android:textColor="@color/accent_cyan"
+                android:textSize="12sp"
+                android:paddingStart="8dp"
+                android:clickable="true"
+                android:focusable="true" />
         </LinearLayout>
+
+        <!-- Discrete Exit Fullscreen Button (Top-Right in Fullscreen mode) -->
+        <ImageButton
+            android:id="@+id/btnExitFullscreen"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="14dp"
+            android:background="@drawable/bg_btn_rounded"
+            android:backgroundTint="#CC0F172A"
+            android:elevation="12dp"
+            android:padding="8dp"
+            android:contentDescription="@string/btn_exit_fullscreen"
+            android:src="@drawable/ic_fullscreen_exit"
+            android:visibility="gone"
+            app:tint="@color/text_primary" />
     </FrameLayout>
 
     <!-- MOUSE BUTTONS ROW -->
