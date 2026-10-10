@@ -431,6 +431,45 @@ app.post('/api/clipboard', verifyPin, (req, res) => {
   res.json({ success: true });
 });
 
+// Mobile Diagnostics & Logs API
+const LOGS_DIR = path.join(__dirname, 'logs');
+if (!fs.existsSync(LOGS_DIR)) {
+  try { fs.mkdirSync(LOGS_DIR, { recursive: true }); } catch (e) {}
+}
+
+app.post('/api/logs', (req, res) => {
+  const { logs, deviceName, clientInfo } = req.body || {};
+  const ip = req.ip || req.connection.remoteAddress;
+  const timestamp = new Date().toISOString();
+  console.log(`[MobileLogs] Received logs from ${deviceName || ip} (${timestamp})`);
+
+  const logEntry = `\n======================================================\n` +
+                   `[LOG ENTRY] Timestamp: ${timestamp} | IP: ${ip} | Device: ${deviceName || 'Unknown'}\n` +
+                   `Client Info: ${JSON.stringify(clientInfo || {})}\n` +
+                   `------------------------------------------------------\n` +
+                   `${logs || 'No log content'}\n` +
+                   `======================================================\n`;
+
+  const logFilePath = path.join(LOGS_DIR, 'mobile_client.log');
+  fs.appendFile(logFilePath, logEntry, 'utf8', (err) => {
+    if (err) {
+      console.error('[MobileLogs] Error saving log file:', err.message);
+      return res.status(500).json({ error: 'Failed to write logs to disk' });
+    }
+    res.json({ success: true, message: 'Logs saved successfully' });
+  });
+});
+
+app.get('/api/logs', verifyPin, (req, res) => {
+  const logFilePath = path.join(LOGS_DIR, 'mobile_client.log');
+  if (fs.existsSync(logFilePath)) {
+    res.contentType('text/plain');
+    res.sendFile(logFilePath);
+  } else {
+    res.status(404).send('No mobile logs recorded yet.');
+  }
+});
+
 // Shortcuts API
 app.get('/api/shortcuts', verifyPin, (req, res) => {
   res.json(loadShortcuts());
