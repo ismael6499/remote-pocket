@@ -78,20 +78,28 @@ Remote Pocket is a monorepo containing:
     - Collapsible "⚡ Special Actions & F-Keys ▾" panel with 1-click shortcuts (`Ctrl+Alt+Del`, `Alt+Tab`, `Win+D`, `TaskMgr`, `Win+L`, `Ctrl+C`, `Ctrl+V`), navigation (`Ins`, `Del`, `Home`, `End`, `PgUp`, `PgDn`, `PrtScn`), and `F1` to `F12`.
     - Native Win32 Unicode typing for `ñ` and `Ñ` in `InputHelper.cs` via `KEYEVENTF_UNICODE`, checking Shift and Windows OS CapsLock state (`GetKeyState(0x14)`).
 - [x] Live Screen & Direct Touch Precision (`TouchpadView` & `InputHelper`):
-  - **Fullscreen Landscape Immersive Mode**:
+  - **Fullscreen Landscape Immersive Mode & Optimizations**:
     - "⛶ Full" option added to the screen controls pill in Live Screen mode.
     - Rotates phone to landscape (`SCREEN_ORIENTATION_SENSOR_LANDSCAPE`), matching PC 16:9 aspect ratio across the full display.
+    - Automatically sets scale to 1.0x Full Desktop Fit (`onEnterFullscreenLandscape()`), fitting the entire PC monitor on the phone screen with zero crop.
+    - Added `onSizeChanged` in `TouchpadView` to gracefully handle dimension updates between portrait and landscape.
     - Activates Android Immersive Sticky full screen (hiding system status bar & navigation bars).
-    - Hides top toolbar/header, mode tabs, and bottom mouse buttons (not needed since mouse actions happen directly on the live screen).
+    - Hides top toolbar/header, mode tabs, and bottom mouse buttons.
     - Edge-to-edge desktop container (`0dp` margins, pitch black background).
+    - Removed intrusive Toast notification when toggling fullscreen.
     - **Draggable Keyboard FAB**: Floating keyboard action button remains accessible in landscape to quickly open PC / soft keyboards.
     - **Dual Exit Mechanisms**:
       1. Discrete glass exit button (`btnExitFullscreen`, `@drawable/ic_fullscreen_exit`) fixed at top-right corner.
       2. Android hardware/gesture Back button (`OnBackPressedCallback`), gracefully returning to portrait mode and restoring toolbars and system bars.
+  - **Mouse Freezing & Movement Lockup Resolution**:
+    - **Cumulative Motion Tracking (`hasMoved`)**: Fixed bug where `hasMoved` compared per-frame delta (frequently < 12px at 120Hz) instead of distance from touch down (`totalDistFromDown > MOVE_SLOP`). Moving the mouse now reliably flags `hasMoved = true` and clears `lastTapTime = 0`.
+    - **Active Touch Guard (`isTouching`)**: While the user is actively touching the screen (`isTouching = true`), incoming 30 FPS video frames do NOT overwrite local `curX` and `curY`. This completely eliminated the race condition where server frames rubberbanded the cursor backwards and froze movement.
+    - **1.0x Scale Motion Invalidation**: Added immediate `invalidate()` calls during finger dragging in 1.0x / fullscreen mode so the cursor arrow renders with zero latency.
+    - **Stale Drag Latch Prevention**: Double-tap-to-drag tolerance narrowed to 60px, requiring a genuine stationary tap first, and automatically releasing any lingering PC mouse-down state on `ACTION_DOWN`, `ACTION_UP`, and `ACTION_CANCEL`.
   - **Classic Crisp Windows Mouse Pointer**:
     - Authentic Windows white arrow with clean 2px black outline, pointing precisely at `pointerX, pointerY`.
-    - Zero visual clutter: removed halos, glowing rings, and golden circles as requested.
-    - Subtle amber fill during active tap-and-drag for visual drag state confirmation.
+    - Zero visual clutter: removed halos, glowing rings, and golden circles.
+    - Fill is permanently crisp white (`Color.WHITE`) with no gold or yellow tint.
     - Smooth sub-pixel positioning in both full-desktop and centered-zoom follow modes.
   - **1080p Full HD Streaming Quality**:
     - Screen streamer upgraded to native 1080p Full HD at 85% JPEG quality (`--stream 2 85 1080`).
@@ -115,11 +123,7 @@ Remote Pocket is a monorepo containing:
     - 2-finger tap: Right click directly at CURRENT mouse position on PC.
     - 3-finger tap: Middle click directly at CURRENT mouse position.
     - 2-finger vertical drag: Smooth mouse wheel scrolling.
-    - Double-Tap & Hold to Drag (Tap-and-Half gesture):
-      - Uses pending tap queue (`postDelayed(175ms)`) so single taps do not send immediate synthetic clicks that trigger Windows `WM_LBUTTONDBLCLK`.
-      - On second tap within double-tap timeout, pending click is cancelled and pure `sendMouseDown("left")` is dispatched.
-      - Hardware `mouse_event(MOUSEEVENTF_MOVE, 0, 0, 0, UIntPtr.Zero)` in `InputHelper.cs` notifies Windows message loops of cursor motion, enabling 100% reliable OLE/Win32 drag-and-drop for windows, files, and text.
-      - Releases cleanly on finger lift (`sendMouseUp("left")`). Normal sliding never engages accidental drag.
+    - Double-Tap & Hold to Drag (Tap-and-Half gesture) cleanly releases on finger lift (`sendMouseUp("left")`). Normal sliding never engages accidental drag.
 - [x] System Controls & Multimedia Sheet (`SystemSheet.java` & `server.js`):
   - **Display Brightness Control**: Physical screen brightness adjustments via PowerShell CIM (`Invoke-CimMethod -Namespace root/wmi -ClassName WmiMonitorBrightnessMethods -MethodName WmiSetBrightness`). Real-time slider tracking via dual WebSocket (`set_brightness`) and REST (`POST /api/brightness`).
   - **System Volume & Mute**: Fixed native CoreAudioApi COM pipe in `InputHelper.cs` (safely handled console encodings to prevent `IOException: Invalid handle` crash). Real-time volume slider and mute button dispatched via dual WebSocket (`audio_volume`, `audio_mute`) and REST (`/api/audio/volume`, `/api/audio/mute`).
