@@ -103,7 +103,7 @@ public class DeviceManagerDialog extends Dialog {
         layoutDeviceList.removeAllViews();
         if (devices.isEmpty()) {
             TextView emptyView = new TextView(getContext());
-            emptyView.setText(R.string.status_searching);
+            emptyView.setText(R.string.no_device_selected);
             emptyView.setTextColor(getContext().getColor(R.color.text_muted));
             emptyView.setPadding(0, 20, 0, 20);
             layoutDeviceList.addView(emptyView);

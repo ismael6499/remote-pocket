@@ -530,10 +530,9 @@ public class MainActivity extends AppCompatActivity {
                         txtDeviceStatus.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.accent_amber));
                         viewStatusDot.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(MainActivity.this, R.color.accent_amber)));
                     } else {
+                        updateConnectionUi(false);
                         if (currentDevice == null && !knownDevices.isEmpty()) {
                             selectDevice(knownDevices.get(0));
-                        } else if (knownDevices.isEmpty() || currentDevice == null) {
-                            updateConnectionUi(false);
                         }
                     }
                 });
