@@ -51,6 +51,12 @@
     <string name="btn_alt_tab">Alt+Tab</string>
     <string name="btn_win_d">Win+D</string>
     <string name="btn_taskmgr">Admin. Tareas</string>
+    <string name="btn_ctrl_alt_del">Ctrl+Alt+Supr</string>
+    <string name="btn_win_l">Bloquear (Win+L)</string>
+    <string name="btn_caps">BloqMayús</string>
+    <string name="btn_space">Espacio</string>
+    <string name="toggle_special_keys">⚡ Acciones Especiales y Teclas F ▾</string>
+    <string name="toggle_special_keys_hide">▲ Ocultar Teclas Especiales</string>
 
     <!-- System Controls & Multimedia -->
     <string name="system_controls_title">Sistema y Atajos</string>

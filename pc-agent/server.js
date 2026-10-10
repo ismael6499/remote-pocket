@@ -578,12 +578,14 @@ udpSocket.on('error', (err) => {
   console.error('[UDP] Discovery socket error:', err.message);
 });
 
+let activePort = config.port || 5050;
+
 udpSocket.on('message', (msg, rinfo) => {
   const text = msg.toString().trim();
   if (text.includes('REMOTE_POCKET_DISCOVER') || text.includes('DISCOVER')) {
     const responsePayload = JSON.stringify({
       deviceName: config.deviceName || 'PC Personal',
-      port: config.port || 5050,
+      port: activePort,
       version: 1,
       hostname: os.hostname(),
       platform: 'win32',
@@ -595,7 +597,7 @@ udpSocket.on('message', (msg, rinfo) => {
       if (err) {
         console.error(`[UDP] Failed to respond to ${rinfo.address}:${rinfo.port}:`, err.message);
       } else {
-        console.log(`[UDP] Responded discovery to ${rinfo.address}:${rinfo.port}`);
+        console.log(`[UDP] Responded discovery to ${rinfo.address}:${rinfo.port} (Port ${activePort})`);
       }
     });
   }
@@ -615,7 +617,7 @@ try {
 // ==========================================
 // NGROK TUNNEL SUPPORT (Optional)
 // ==========================================
-async function initNgrok() {
+async function initNgrok(portToExpose) {
   const token = process.env.NGROK_AUTHTOKEN || config.ngrokAuthToken;
   if (!token) return;
 
@@ -623,7 +625,7 @@ async function initNgrok() {
     const ngrok = require('@ngrok/ngrok');
     const domain = process.env.NGROK_DOMAIN || config.ngrokDomain;
     const opts = {
-      addr: config.port,
+      addr: portToExpose,
       authtoken: token
     };
     if (domain) opts.domain = domain;
@@ -638,14 +640,42 @@ async function initNgrok() {
 }
 
 // ==========================================
-// START SERVER
+// START SERVER (Automatic Port Fallback)
 // ==========================================
-const PORT = config.port || 5050;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log('====================================================');
-  console.log(`  Remote Pocket PC Agent running on port ${PORT}`);
-  console.log(`  Device Name: "${config.deviceName}"`);
-  console.log(`  UDP Discovery: Port ${config.udpPort || 5051}`);
-  console.log('====================================================');
-  initNgrok();
-});
+function startHttpServer(initialPort, maxAttempts = 15) {
+  let candidatePort = initialPort;
+  let attempts = 0;
+
+  function tryListen() {
+    server.removeAllListeners('error');
+
+    server.once('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        attempts++;
+        if (attempts < maxAttempts) {
+          candidatePort++;
+          console.warn(`[Server] Port in use. Trying next available port: ${candidatePort}...`);
+          setTimeout(tryListen, 200);
+        } else {
+          console.error(`[Server] Failed to bind after ${maxAttempts} attempts.`);
+        }
+      } else {
+        console.error('[Server] Fatal error:', err.message);
+      }
+    });
+
+    server.listen(candidatePort, '0.0.0.0', () => {
+      activePort = candidatePort;
+      console.log('====================================================');
+      console.log(`  Remote Pocket PC Agent running on port ${activePort}`);
+      console.log(`  Device Name: "${config.deviceName}"`);
+      console.log(`  UDP Discovery: Port ${config.udpPort || 5051}`);
+      console.log('====================================================');
+      initNgrok(activePort);
+    });
+  }
+
+  tryListen();
+}
+
+startHttpServer(config.port || 5050);

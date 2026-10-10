@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.Button;
@@ -19,6 +20,9 @@ import com.google.android.material.button.MaterialButton;
 import com.remotepocket.R;
 import com.remotepocket.network.WebSocketManager;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class PcKeyboardDialog extends Dialog {
     private final WebSocketManager webSocketManager;
 
@@ -26,8 +30,13 @@ public class PcKeyboardDialog extends Dialog {
     private boolean isAltActive = false;
     private boolean isShiftActive = false;
     private boolean isWinActive = false;
+    private boolean isCapsLockActive = false;
 
-    private MaterialButton btnModCtrl, btnModAlt, btnModShift, btnModWin;
+    private MaterialButton btnModCtrl, btnModAlt, btnModShift, btnModWin, btnModCaps;
+    private MaterialButton btnToggleSpecial;
+    private LinearLayout layoutSpecialFunctions;
+
+    private final List<MaterialButton> letterButtons = new ArrayList<>();
 
     public PcKeyboardDialog(@NonNull Context context, WebSocketManager webSocketManager) {
         super(context);
@@ -47,42 +56,128 @@ public class PcKeyboardDialog extends Dialog {
             window.setGravity(Gravity.BOTTOM);
         }
 
+        // Header controls
         findViewById(R.id.btnCloseKeyboard).setOnClickListener(v -> dismiss());
+        findViewById(R.id.btnEscHeader).setOnClickListener(v -> sendKeyWithModifiers("esc"));
 
-        // Modifiers
-        btnModCtrl = findViewById(R.id.btnModCtrl);
-        btnModAlt = findViewById(R.id.btnModAlt);
-        btnModShift = findViewById(R.id.btnModShift);
-        btnModWin = findViewById(R.id.btnModWin);
+        // Special section toggle
+        btnToggleSpecial = findViewById(R.id.btnToggleSpecial);
+        layoutSpecialFunctions = findViewById(R.id.layoutSpecialFunctions);
+        btnToggleSpecial.setOnClickListener(v -> toggleSpecialSection());
+
+        // Setup special panel actions
+        setupSpecialPanel();
+
+        // Modifiers & Caps
+        btnModCtrl = findViewById(R.id.key_ctrl);
+        btnModWin = findViewById(R.id.key_win);
+        btnModAlt = findViewById(R.id.key_alt);
+        btnModShift = findViewById(R.id.key_shift);
+        btnModCaps = findViewById(R.id.key_caps);
 
         btnModCtrl.setOnClickListener(v -> toggleModifier("ctrl"));
+        btnModWin.setOnClickListener(v -> toggleModifier("win"));
         btnModAlt.setOnClickListener(v -> toggleModifier("alt"));
         btnModShift.setOnClickListener(v -> toggleModifier("shift"));
-        btnModWin.setOnClickListener(v -> toggleModifier("win"));
+        btnModCaps.setOnClickListener(v -> toggleCapsLock());
 
-        // Direct Shortcuts
+        // Row 1: Numbers & Symbols & Backspace
+        setupKey(R.id.key_1, "1");
+        setupKey(R.id.key_2, "2");
+        setupKey(R.id.key_3, "3");
+        setupKey(R.id.key_4, "4");
+        setupKey(R.id.key_5, "5");
+        setupKey(R.id.key_6, "6");
+        setupKey(R.id.key_7, "7");
+        setupKey(R.id.key_8, "8");
+        setupKey(R.id.key_9, "9");
+        setupKey(R.id.key_0, "0");
+        setupKey(R.id.key_minus, "-");
+        setupKey(R.id.key_equal, "=");
+        setupKey(R.id.key_bksp, "backspace");
+
+        // Row 2: Tab, QWERTY, Brackets
+        setupKey(R.id.key_tab, "tab");
+        setupLetterKey(R.id.key_q, "q");
+        setupLetterKey(R.id.key_w, "w");
+        setupLetterKey(R.id.key_e, "e");
+        setupLetterKey(R.id.key_r, "r");
+        setupLetterKey(R.id.key_t, "t");
+        setupLetterKey(R.id.key_y, "y");
+        setupLetterKey(R.id.key_u, "u");
+        setupLetterKey(R.id.key_i, "i");
+        setupLetterKey(R.id.key_o, "o");
+        setupLetterKey(R.id.key_p, "p");
+        setupKey(R.id.key_bracket_left, "[");
+        setupKey(R.id.key_bracket_right, "]");
+
+        // Row 3: ASDF, Semicolon, Quote, Enter
+        setupLetterKey(R.id.key_a, "a");
+        setupLetterKey(R.id.key_s, "s");
+        setupLetterKey(R.id.key_d, "d");
+        setupLetterKey(R.id.key_f, "f");
+        setupLetterKey(R.id.key_g, "g");
+        setupLetterKey(R.id.key_h, "h");
+        setupLetterKey(R.id.key_j, "j");
+        setupLetterKey(R.id.key_k, "k");
+        setupLetterKey(R.id.key_l, "l");
+        setupKey(R.id.key_semicolon, ";");
+        setupKey(R.id.key_quote, "'");
+        setupKey(R.id.key_enter, "enter");
+
+        // Row 4: Backslash, ZXCV, Punctuation, Arrow Up
+        setupKey(R.id.key_backslash, "\\");
+        setupLetterKey(R.id.key_z, "z");
+        setupLetterKey(R.id.key_x, "x");
+        setupLetterKey(R.id.key_c, "c");
+        setupLetterKey(R.id.key_v, "v");
+        setupLetterKey(R.id.key_b, "b");
+        setupLetterKey(R.id.key_n, "n");
+        setupLetterKey(R.id.key_m, "m");
+        setupKey(R.id.key_comma, ",");
+        setupKey(R.id.key_period, ".");
+        setupKey(R.id.key_slash, "/");
+        setupKey(R.id.key_arrow_up, "up");
+
+        // Row 5: Space & Left/Down/Right Arrows
+        setupKey(R.id.key_space, "space");
+        setupKey(R.id.key_arrow_left, "left");
+        setupKey(R.id.key_arrow_down, "down");
+        setupKey(R.id.key_arrow_right, "right");
+    }
+
+    private void toggleSpecialSection() {
+        if (layoutSpecialFunctions.getVisibility() == View.VISIBLE) {
+            layoutSpecialFunctions.setVisibility(View.GONE);
+            btnToggleSpecial.setText(R.string.toggle_special_keys);
+            btnToggleSpecial.setTextColor(ContextCompat.getColor(getContext(), R.color.accent_indigo));
+            btnToggleSpecial.setStrokeColor(ColorStateList.valueOf(ContextCompat.getColor(getContext(), R.color.accent_indigo)));
+        } else {
+            layoutSpecialFunctions.setVisibility(View.VISIBLE);
+            btnToggleSpecial.setText(R.string.toggle_special_keys_hide);
+            btnToggleSpecial.setTextColor(ContextCompat.getColor(getContext(), R.color.accent_emerald));
+            btnToggleSpecial.setStrokeColor(ColorStateList.valueOf(ContextCompat.getColor(getContext(), R.color.accent_emerald)));
+        }
+    }
+
+    private void setupSpecialPanel() {
+        // Direct Action Shortcuts
+        findViewById(R.id.btnShortcutCtrlAltDel).setOnClickListener(v -> sendKey("ctrl+alt+del"));
         findViewById(R.id.btnShortcutAltTab).setOnClickListener(v -> sendKey("alt+tab"));
         findViewById(R.id.btnShortcutWinD).setOnClickListener(v -> sendKey("win+d"));
         findViewById(R.id.btnShortcutTaskMgr).setOnClickListener(v -> sendKey("ctrl+shift+esc"));
+        findViewById(R.id.btnShortcutWinL).setOnClickListener(v -> sendKey("win+l"));
         findViewById(R.id.btnShortcutCopy).setOnClickListener(v -> sendKey("ctrl+c"));
         findViewById(R.id.btnShortcutPaste).setOnClickListener(v -> sendKey("ctrl+v"));
 
-        // Standard Keys
-        findViewById(R.id.btnEsc).setOnClickListener(v -> sendKeyWithModifiers("esc"));
-        findViewById(R.id.btnTab).setOnClickListener(v -> sendKeyWithModifiers("tab"));
-        findViewById(R.id.btnEnter).setOnClickListener(v -> sendKeyWithModifiers("enter"));
-        findViewById(R.id.btnBksp).setOnClickListener(v -> sendKeyWithModifiers("backspace"));
+        // Extended Nav Keys
+        findViewById(R.id.btnIns).setOnClickListener(v -> sendKeyWithModifiers("ins"));
+        findViewById(R.id.btnDel).setOnClickListener(v -> sendKeyWithModifiers("delete"));
         findViewById(R.id.btnHome).setOnClickListener(v -> sendKeyWithModifiers("home"));
         findViewById(R.id.btnEnd).setOnClickListener(v -> sendKeyWithModifiers("end"));
-        findViewById(R.id.btnDel).setOnClickListener(v -> sendKeyWithModifiers("delete"));
         findViewById(R.id.btnPgUp).setOnClickListener(v -> sendKeyWithModifiers("pageup"));
         findViewById(R.id.btnPgDn).setOnClickListener(v -> sendKeyWithModifiers("pagedown"));
-
-        // Arrows
-        findViewById(R.id.btnArrowLeft).setOnClickListener(v -> sendKeyWithModifiers("left"));
-        findViewById(R.id.btnArrowRight).setOnClickListener(v -> sendKeyWithModifiers("right"));
-        findViewById(R.id.btnArrowUp).setOnClickListener(v -> sendKeyWithModifiers("up"));
-        findViewById(R.id.btnArrowDown).setOnClickListener(v -> sendKeyWithModifiers("down"));
+        findViewById(R.id.btnPrtScn).setOnClickListener(v -> sendKeyWithModifiers("prtscn"));
 
         // F1 - F12 Keys
         LinearLayout layoutFKeys = findViewById(R.id.layoutFKeys);
@@ -94,12 +189,27 @@ public class PcKeyboardDialog extends Dialog {
             btnF.setTextColor(ContextCompat.getColor(getContext(), R.color.text_primary));
             btnF.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getContext(), R.color.btn_surface)));
 
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dpToPx(48), dpToPx(38));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dpToPx(46), dpToPx(34));
             lp.setMargins(0, 0, dpToPx(4), 0);
             btnF.setLayoutParams(lp);
 
             btnF.setOnClickListener(v -> sendKeyWithModifiers(fKey));
             layoutFKeys.addView(btnF);
+        }
+    }
+
+    private void setupKey(int resId, String keyName) {
+        View view = findViewById(resId);
+        if (view != null) {
+            view.setOnClickListener(v -> sendKeyWithModifiers(keyName));
+        }
+    }
+
+    private void setupLetterKey(int resId, String letter) {
+        MaterialButton btn = findViewById(resId);
+        if (btn != null) {
+            letterButtons.add(btn);
+            btn.setOnClickListener(v -> sendKeyWithModifiers(letter));
         }
     }
 
@@ -124,7 +234,22 @@ public class PcKeyboardDialog extends Dialog {
         }
     }
 
+    private void toggleCapsLock() {
+        isCapsLockActive = !isCapsLockActive;
+        updateButtonVisual(btnModCaps, isCapsLockActive);
+        sendKey("capslock");
+
+        // Reflect visual uppercase / lowercase across letter keycaps
+        for (MaterialButton btn : letterButtons) {
+            CharSequence text = btn.getText();
+            if (text != null && text.length() == 1) {
+                btn.setText(isCapsLockActive ? text.toString().toUpperCase() : text.toString().toLowerCase());
+            }
+        }
+    }
+
     private void updateButtonVisual(MaterialButton btn, boolean active) {
+        if (btn == null) return;
         int color = ContextCompat.getColor(getContext(), active ? R.color.accent_indigo : R.color.btn_surface);
         btn.setBackgroundTintList(ColorStateList.valueOf(color));
     }
@@ -145,7 +270,7 @@ public class PcKeyboardDialog extends Dialog {
 
         sendKey(sb.toString());
 
-        // Reset modifier latches after dispatch
+        // Reset temporary modifier latches after dispatching
         if (isCtrlActive || isAltActive || isShiftActive || isWinActive) {
             isCtrlActive = false;
             isAltActive = false;

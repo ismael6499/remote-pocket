@@ -640,6 +640,18 @@ namespace InputHelper {
             { "f1", 0x70 }, { "f2", 0x71 }, { "f3", 0x72 }, { "f4", 0x73 },
             { "f5", 0x74 }, { "f6", 0x75 }, { "f7", 0x76 }, { "f8", 0x77 },
             { "f9", 0x78 }, { "f10", 0x79 }, { "f11", 0x7A }, { "f12", 0x7B },
+            // Punctuation and symbols
+            { "-", 0xBD }, { "minus", 0xBD }, { "dash", 0xBD },
+            { "=", 0xBB }, { "plus", 0xBB }, { "equal", 0xBB },
+            { "[", 0xDB }, { "openbracket", 0xDB }, { "bracketleft", 0xDB },
+            { "]", 0xDD }, { "closebracket", 0xDD }, { "bracketright", 0xDD },
+            { "\\", 0xDC }, { "backslash", 0xDC },
+            { ";", 0xBA }, { "semicolon", 0xBA },
+            { "'", 0xDE }, { "quote", 0xDE }, { "singlequote", 0xDE },
+            { ",", 0xBC }, { "comma", 0xBC },
+            { ".", 0xBE }, { "period", 0xBE }, { "dot", 0xBE },
+            { "/", 0xBF }, { "slash", 0xBF },
+            { "`", 0xC0 }, { "backquote", 0xC0 }, { "tilde", 0xC0 }, { "grave", 0xC0 },
             // Volume & Media keys
             { "volume_mute", 0xAD }, { "volmute", 0xAD }, { "mute_key", 0xAD },
             { "volume_down", 0xAE }, { "voldown", 0xAE },
@@ -658,7 +670,30 @@ namespace InputHelper {
                 DeleteLine();
                 return;
             }
-            string[] parts = keyExpr.Split(new char[] { '+', '-', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (keyExpr.Equals("ctrl+alt+del", StringComparison.OrdinalIgnoreCase) ||
+                keyExpr.Equals("ctrl+alt+delete", StringComparison.OrdinalIgnoreCase)) {
+                try {
+                    System.Diagnostics.Process.Start("taskmgr.exe");
+                } catch { }
+                return;
+            }
+            if (keyExpr.Equals("win+l", StringComparison.OrdinalIgnoreCase) ||
+                keyExpr.Equals("lock", StringComparison.OrdinalIgnoreCase)) {
+                try {
+                    System.Diagnostics.Process.Start("rundll32.exe", "user32.dll,LockWorkStation");
+                } catch { }
+                return;
+            }
+            string[] parts;
+            if (keyExpr == "-") {
+                parts = new string[] { "-" };
+            } else if (keyExpr.EndsWith("+-")) {
+                List<string> pList = new List<string>(keyExpr.Substring(0, keyExpr.Length - 2).Split(new char[] { '+' }, StringSplitOptions.RemoveEmptyEntries));
+                pList.Add("-");
+                parts = pList.ToArray();
+            } else {
+                parts = keyExpr.Split(new char[] { '+' }, StringSplitOptions.RemoveEmptyEntries);
+            }
             List<byte> modifiersToRelease = new List<byte>();
             List<byte> mainKeys = new List<byte>();
 

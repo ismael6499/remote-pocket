@@ -21,3 +21,4 @@ android-app/local.properties
 *.apk
 .DS_Store
 Thumbs.db
+.agents/

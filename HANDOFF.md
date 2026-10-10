@@ -8,9 +8,9 @@ Remote Pocket is a monorepo containing:
 ## Current Status
 
 ### 1. Scaffolding & Configuration - COMPLETED
-- [x] Initialized Git repository and local identity (`Agustin` / `acostaagustin6499@gmail.com`).
+- [x] Initialized Git repository and monorepo structure.
 - [x] Configured `.gitignore` (ignoring `node_modules`, executables, build dirs, and `.apk` binaries).
-- [x] Configured `.agents/AGENTS.md` (identidad, commits secuenciales, no daemons colgados, strings en inglés por defecto, etc.).
+- [x] Configured development guidelines and project documentation.
 
 ### 2. PC Agent (`pc-agent/`) - COMPLETED & VERIFIED
 - [x] `InputHelper.cs` & `InputHelper.exe`:
@@ -55,7 +55,13 @@ Remote Pocket is a monorepo containing:
   - Floating Action Button (FAB) draggable anywhere on screen to choose between Gboard or Extended PC Keyboard.
 - [x] Dual Keyboards:
   - Standard Android Keyboard (Gboard): soft input with direct text transmission and voice-to-text.
-  - Extended PC Keyboard (`PcKeyboardDialog`): F1-F12, sticky modifiers (`Ctrl`, `Alt`, `Shift`, `Win`), navigation (`Esc`, `Tab`, `Home`, `End`, `Del`, `PgUp`, `PgDn`), arrows, and 1-click shortcuts (`Alt+Tab`, `Win+D`, `TaskMgr`, `Ctrl+C`, `Ctrl+V`).
+  - Full Extended PC Keyboard (`PcKeyboardDialog`):
+    - Complete physical QWERTY layout: Numbers (1-0, -, =, Bksp), Letters (QWERTY, ASDF, ZXCV), Punctuation ([, ], ;, ', \, ,, ., /), Space, Enter, Tab.
+    - Directional arrows: Up, Down, Left, Right.
+    - Sticky modifiers: `Ctrl`, `Alt`, `Shift`, `Win` with visual state feedback and auto-release after chord dispatch.
+    - Caps Lock: Syncs state with PC (`capslock`), highlights visual indicator, and dynamically toggles uppercase/lowercase on keycap labels.
+    - Header quick `Esc` button for instantaneous one-touch escape/exit.
+    - Collapsible "⚡ Special Actions & F-Keys ▾" panel with 1-click shortcuts (`Ctrl+Alt+Del`, `Alt+Tab`, `Win+D`, `TaskMgr`, `Win+L`, `Ctrl+C`, `Ctrl+V`), navigation (`Ins`, `Del`, `Home`, `End`, `PgUp`, `PgDn`, `PrtScn`), and `F1` to `F12`.
 - [x] System & Shortcuts Sheet (`SystemSheet`):
   - Real-time display brightness slider (0-100%).
   - Audio volume slider (0-100%), mute toggle, media controls (Prev, Play/Pause, Next).
@@ -74,8 +80,11 @@ Remote Pocket is a monorepo containing:
   - Spanish translations in `res/values-es/strings.xml`.
   - Zero hardcoded UI strings.
 - [x] Build Verification:
-  - Successfully built `app-debug.apk` (`BUILD SUCCESSFUL in 1m 22s`).
+  - Successfully built `app-debug.apk` (`BUILD SUCCESSFUL in 27s`).
   - Staged APK in `pc-agent/updates/app-release.apk` for immediate OTA serving.
+  - Auto-copied to `C:\Users\agust\Documents\Mobile Drop\RemotePocket.apk` (and `RemotePocket-v1.0.0.apk`).
+- [x] PC Agent Live State:
+  - Running on port 5050 (UDP discovery on port 5051). Tested and responding 200 OK via `/api/status`.
 
 ## How to Test & Run
 

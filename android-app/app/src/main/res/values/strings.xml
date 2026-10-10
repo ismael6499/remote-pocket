@@ -51,6 +51,12 @@
     <string name="btn_alt_tab">Alt+Tab</string>
     <string name="btn_win_d">Win+D</string>
     <string name="btn_taskmgr">TaskMgr</string>
+    <string name="btn_ctrl_alt_del">Ctrl+Alt+Del</string>
+    <string name="btn_win_l">Win+L</string>
+    <string name="btn_caps">Caps</string>
+    <string name="btn_space">Space</string>
+    <string name="toggle_special_keys">⚡ Special Actions &amp; F-Keys ▾</string>
+    <string name="toggle_special_keys_hide">▲ Hide Special Keys</string>
 
     <!-- System Controls & Multimedia -->
     <string name="system_controls_title">System &amp; Shortcuts</string>
