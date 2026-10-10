@@ -105,4 +105,8 @@
     <string name="confirm_restart_agent_title">Restart PC Agent</string>
     <string name="confirm_restart_agent_msg">Restart the Remote Pocket PC Agent in background? It will reboot and reconnect automatically.</string>
     <string name="toast_restarting_agent">Restarting PC agent in background...</string>
+    <string name="screen_follow_on">🎯 Follow: ON</string>
+    <string name="screen_follow_off">🎯 Follow: OFF</string>
+    <string name="screen_zoom_format">🔍 %.1fx</string>
+    <string name="screen_reset_zoom">Fit 1.0x</string>
 </resources>

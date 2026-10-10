@@ -60,6 +60,9 @@ public class MainActivity extends AppCompatActivity {
     private EditText editTypingText;
     private FloatingActionButton fabKeyboard;
 
+    private LinearLayout layoutScreenControls;
+    private TextView btnToggleFollow, btnZoomLevel;
+
     private boolean isScreenMode = false;
     private DeviceManagerDialog deviceDialog;
     private final Gson gson = new Gson();
@@ -90,12 +93,17 @@ public class MainActivity extends AppCompatActivity {
         layoutTypingInput = findViewById(R.id.layoutTypingInput);
         editTypingText = findViewById(R.id.editTypingText);
         fabKeyboard = findViewById(R.id.fabKeyboard);
+
+        layoutScreenControls = findViewById(R.id.layoutScreenControls);
+        btnToggleFollow = findViewById(R.id.btnToggleFollow);
+        btnZoomLevel = findViewById(R.id.btnZoomLevel);
     }
 
     private void initManagers() {
         webSocketManager = new WebSocketManager();
         touchpadView.setWebSocketManager(webSocketManager);
         touchpadView.setZoomTarget(imgScreenPreview);
+        touchpadView.setOnZoomChangeListener(this::updateScreenControlsUi);
         udpDiscovery = new UdpDiscovery(this);
         updateManager = new UpdateManager(this);
 
@@ -120,9 +128,22 @@ public class MainActivity extends AppCompatActivity {
             public void onScreenFrame(byte[] jpegData) {
                 if (isScreenMode && jpegData != null && jpegData.length > 0) {
                     try {
-                        Bitmap bmp = BitmapFactory.decodeByteArray(jpegData, 0, jpegData.length);
+                        int offset = 0;
+                        int curX = -1, curY = -1, scrW = 1920, scrH = 1080;
+                        if (jpegData.length > 12 && jpegData[0] == 'R' && jpegData[1] == 'P' && jpegData[2] == 'K' && jpegData[3] == 'T') {
+                            curX = (jpegData[4] & 0xFF) | ((jpegData[5] & 0xFF) << 8);
+                            curY = (jpegData[6] & 0xFF) | ((jpegData[7] & 0xFF) << 8);
+                            scrW = (jpegData[8] & 0xFF) | ((jpegData[9] & 0xFF) << 8);
+                            scrH = (jpegData[10] & 0xFF) | ((jpegData[11] & 0xFF) << 8);
+                            offset = 12;
+                        }
+
+                        Bitmap bmp = BitmapFactory.decodeByteArray(jpegData, offset, jpegData.length - offset);
                         if (bmp != null) {
                             imgScreenPreview.setImageBitmap(bmp);
+                            if (curX >= 0 && curY >= 0) {
+                                touchpadView.updateServerCursorPosition(curX, curY, scrW, scrH);
+                            }
                         }
                     } catch (Exception ignored) {}
                 }
@@ -161,6 +182,20 @@ public class MainActivity extends AppCompatActivity {
         // Tabs
         tabTrackpad.setOnClickListener(v -> switchMode(false));
         tabScreen.setOnClickListener(v -> switchMode(true));
+
+        // Screen Zoom & Follow Controls
+        if (btnToggleFollow != null) {
+            btnToggleFollow.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                touchpadView.toggleFollowCursor();
+            });
+        }
+        if (btnZoomLevel != null) {
+            btnZoomLevel.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                touchpadView.cycleZoomLevel();
+            });
+        }
 
         // Mouse Action Buttons
         findViewById(R.id.btnLeftClick).setOnClickListener(v -> {
@@ -324,6 +359,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void switchMode(boolean screenMode) {
         this.isScreenMode = screenMode;
+        touchpadView.setScreenMode(screenMode);
         if (screenMode) {
             tabScreen.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.accent_indigo)));
             tabScreen.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
@@ -332,6 +368,10 @@ public class MainActivity extends AppCompatActivity {
 
             imgScreenPreview.setVisibility(View.VISIBLE);
             txtTouchpadHint.setVisibility(View.GONE);
+            if (layoutScreenControls != null) {
+                layoutScreenControls.setVisibility(View.VISIBLE);
+                updateScreenControlsUi(touchpadView.getCurrentScale(), touchpadView.isFollowCursor());
+            }
             webSocketManager.startScreenStream();
         } else {
             tabTrackpad.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.accent_indigo)));
@@ -340,10 +380,29 @@ public class MainActivity extends AppCompatActivity {
             tabScreen.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
 
             imgScreenPreview.setVisibility(View.GONE);
+            if (layoutScreenControls != null) {
+                layoutScreenControls.setVisibility(View.GONE);
+            }
             txtTouchpadHint.setVisibility(View.VISIBLE);
             touchpadView.resetZoom();
             webSocketManager.stopScreenStream();
         }
+    }
+
+    private void updateScreenControlsUi(float scale, boolean followCursor) {
+        runOnUiThread(() -> {
+            if (btnToggleFollow != null) {
+                btnToggleFollow.setText(followCursor ? R.string.screen_follow_on : R.string.screen_follow_off);
+                btnToggleFollow.setTextColor(ContextCompat.getColor(this, followCursor ? R.color.accent_cyan : R.color.text_secondary));
+            }
+            if (btnZoomLevel != null) {
+                if (scale <= 1.05f) {
+                    btnZoomLevel.setText(R.string.screen_reset_zoom);
+                } else {
+                    btnZoomLevel.setText(getString(R.string.screen_zoom_format, scale));
+                }
+            }
+        });
     }
 
     private void updateConnectionUi(boolean connected) {
