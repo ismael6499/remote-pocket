@@ -635,9 +635,17 @@ app.post('/api/system/restart', verifyPin, (req, res) => {
   }, 1000);
 });
 
-app.post('/api/system/screen_off', verifyPin, (req, res) => {
+function executeScreenOff() {
   console.log('[System] Screen off sequence (Win -> Win -> Alt+X) requested');
   sendInputCommand('screenoff');
+  const psCommand = 'powershell -Command "$sig = \'[DllImport(\\"user32.dll\\")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, uint dwExtraInfo);\'; $win = Add-Type -MemberDefinition $sig -Name \\"WinAPI1\\" -Namespace \\"Win32\\" -PassThru; $win::keybd_event(0x5B, 0, 0, 0); $win::keybd_event(0x5B, 0, 2, 0); Start-Sleep -Milliseconds 350; $win::keybd_event(0x5B, 0, 0, 0); $win::keybd_event(0x5B, 0, 2, 0); Start-Sleep -Milliseconds 250; $win::keybd_event(0x12, 0, 0, 0); $win::keybd_event(0x58, 0, 0, 0); $win::keybd_event(0x58, 2, 0); $win::keybd_event(0x12, 2, 0);"';
+  exec(psCommand, { windowsHide: true }, (error) => {
+    if (error) console.error(`[System] Screen Off PowerShell error: ${error.message}`);
+  });
+}
+
+app.post('/api/system/screen_off', verifyPin, (req, res) => {
+  executeScreenOff();
   res.json({ success: true, action: 'screen_off' });
 });
 
@@ -917,8 +925,7 @@ function handleWebSocketMessage(ws, data) {
       break;
 
     case 'screen_off':
-      console.log('[WebSocket] Screen off sequence (Win -> Win -> Alt+X) requested');
-      sendInputCommand('screenoff');
+      executeScreenOff();
       break;
 
     default:

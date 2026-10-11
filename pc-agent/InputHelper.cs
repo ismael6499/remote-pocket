@@ -623,35 +623,22 @@ namespace InputHelper {
 
                 // 1. First Windows key tap (opens Start menu to grab shell focus)
                 keybd_event(0x5B, 0, 0, UIntPtr.Zero);
-                Thread.Sleep(30);
                 keybd_event(0x5B, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
 
-                // Wait 400ms for Start menu animation to fully complete
-                Thread.Sleep(400);
+                // Wait 350ms for Start menu to open and grab shell focus
+                Thread.Sleep(350);
 
                 // 2. Second Windows key tap (closes Start menu cleanly)
                 keybd_event(0x5B, 0, 0, UIntPtr.Zero);
-                Thread.Sleep(30);
                 keybd_event(0x5B, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
 
-                // Wait 150ms
-                Thread.Sleep(150);
+                // Wait 250ms for Start menu to finish closing before firing Alt+X
+                Thread.Sleep(250);
 
-                // 3. Fallback Escape key to guarantee Start menu is closed under all circumstances
-                keybd_event(0x1B, 0, 0, UIntPtr.Zero);
-                Thread.Sleep(30);
-                keybd_event(0x1B, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-
-                // Wait 200ms for Start menu to finish closing before firing Alt+X
-                Thread.Sleep(200);
-
-                // 4. Send Alt + X (0x12 = VK_MENU, 0x58 = 'X' for PushMonitOff)
+                // 3. Send Alt + X (0x12 = VK_MENU, 0x58 = 'X' for PushMonitOff)
                 keybd_event(0x12, 0, 0, UIntPtr.Zero);
-                Thread.Sleep(30);
                 keybd_event(0x58, 0, 0, UIntPtr.Zero);
-                Thread.Sleep(30);
                 keybd_event(0x58, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                Thread.Sleep(30);
                 keybd_event(0x12, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
             } catch { }
         }
