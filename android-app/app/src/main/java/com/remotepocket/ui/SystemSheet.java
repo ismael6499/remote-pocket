@@ -81,12 +81,16 @@ public class SystemSheet extends Dialog {
         txtVolumeVal = findViewById(R.id.txtVolumeVal);
         layoutShortcutsContainer = findViewById(R.id.layoutShortcutsContainer);
 
-        // Brightness Seek Listener
+        // Brightness Seek Listener (throttled: every PowerShell call is heavy on the PC)
         seekBrightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            private long lastSend = 0;
+
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 txtBrightnessVal.setText(progress + "%");
-                if (fromUser && webSocketManager != null) {
+                long now = System.currentTimeMillis();
+                if (fromUser && webSocketManager != null && now - lastSend >= 400) {
+                    lastSend = now;
                     webSocketManager.sendBrightness(progress);
                 }
             }
@@ -100,12 +104,16 @@ public class SystemSheet extends Dialog {
             }
         });
 
-        // Volume Seek Listener
+        // Volume Seek Listener (throttled)
         seekVolume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            private long lastSend = 0;
+
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 txtVolumeVal.setText(progress + "%");
-                if (fromUser && webSocketManager != null) {
+                long now = System.currentTimeMillis();
+                if (fromUser && webSocketManager != null && now - lastSend >= 80) {
+                    lastSend = now;
                     webSocketManager.sendAudioVolume(progress);
                 }
             }
@@ -225,8 +233,9 @@ public class SystemSheet extends Dialog {
     }
 
     private void postAudioVolume(int volume) {
-        if (webSocketManager != null) {
+        if (webSocketManager != null && webSocketManager.isConnected()) {
             webSocketManager.sendAudioVolume(volume);
+            return;
         }
         if (device == null) return;
         executor.execute(() -> {
@@ -246,8 +255,9 @@ public class SystemSheet extends Dialog {
     }
 
     private void postAudioMute() {
-        if (webSocketManager != null) {
+        if (webSocketManager != null && webSocketManager.isConnected()) {
             webSocketManager.sendAudioMute();
+            return;
         }
         if (device == null) return;
         executor.execute(() -> {
@@ -266,8 +276,9 @@ public class SystemSheet extends Dialog {
     }
 
     private void postMediaAction(String action) {
-        if (webSocketManager != null) {
+        if (webSocketManager != null && webSocketManager.isConnected()) {
             webSocketManager.sendMediaKey(action);
+            return;
         }
         if (device == null) return;
         executor.execute(() -> {
@@ -287,8 +298,9 @@ public class SystemSheet extends Dialog {
     }
 
     private void postBrightness(int level) {
-        if (webSocketManager != null) {
+        if (webSocketManager != null && webSocketManager.isConnected()) {
             webSocketManager.sendBrightness(level);
+            return;
         }
         if (device == null) return;
         executor.execute(() -> {

@@ -290,11 +290,27 @@ function getBrightness() {
   });
 }
 
+let brightnessBusy = false;
+let brightnessPending = null;
+
 function setBrightness(level) {
+  const safeLevel = Math.max(0, Math.min(100, parseInt(level, 10) || 0));
+  if (brightnessBusy) {
+    brightnessPending = safeLevel; // keep only the latest requested value
+    return Promise.resolve(safeLevel);
+  }
+  brightnessBusy = true;
   return new Promise((resolve) => {
-    const safeLevel = Math.max(0, Math.min(100, parseInt(level, 10) || 50));
-    const cmd = `powershell -NoProfile -Command "try { Invoke-CimMethod -InputObject (Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorBrightnessMethods -ErrorAction Stop) -MethodName WmiSetBrightness -Arguments @{ Timeout = 1; Brightness = ${safeLevel} } -ErrorAction Stop } catch { }"`;
-    exec(cmd, { timeout: 3000 }, () => resolve(safeLevel));
+    const cmd = `powershell -NoProfile -NonInteractive -Command "try { Invoke-CimMethod -InputObject (Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorBrightnessMethods -ErrorAction Stop) -MethodName WmiSetBrightness -Arguments @{ Timeout = 1; Brightness = ${safeLevel} } -ErrorAction Stop } catch { }"`;
+    exec(cmd, { timeout: 5000, windowsHide: true }, () => {
+      brightnessBusy = false;
+      resolve(safeLevel);
+      if (brightnessPending !== null) {
+        const next = brightnessPending;
+        brightnessPending = null;
+        setBrightness(next);
+      }
+    });
   });
 }
 
