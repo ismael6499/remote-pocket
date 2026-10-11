@@ -102,6 +102,8 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private final Handler handler = new Handler(Looper.getMainLooper());
+    private int devTapCount = 0;
+    private long lastDevTapTime = 0;
     private boolean isAppInForeground = false;
     private final Runnable reconnectRunnable = new Runnable() {
         @Override
@@ -316,7 +318,25 @@ public class MainActivity extends AppCompatActivity {
             showDeviceManagerDialog();
         };
         findViewById(R.id.btnDeviceSelector).setOnClickListener(openDeviceSelectorClick);
-        txtDeviceName.setOnClickListener(openDeviceSelectorClick);
+        txtDeviceName.setOnClickListener(v -> {
+            long now = System.currentTimeMillis();
+            if (now - lastDevTapTime > 2500) {
+                devTapCount = 0;
+            }
+            lastDevTapTime = now;
+            devTapCount++;
+
+            if (devTapCount >= 4 && devTapCount < 7) {
+                int remaining = 7 - devTapCount;
+                Toast.makeText(this, getString(R.string.dev_settings_steps_remaining, remaining), Toast.LENGTH_SHORT).show();
+            } else if (devTapCount == 7) {
+                devTapCount = 0;
+                Toast.makeText(this, R.string.dev_settings_unlocked, Toast.LENGTH_SHORT).show();
+                new com.remotepocket.ui.DeveloperSettingsDialog(this, null).show();
+            } else {
+                openDeviceSelectorClick.onClick(v);
+            }
+        });
         txtDeviceStatus.setOnClickListener(openDeviceSelectorClick);
         viewStatusDot.setOnClickListener(openDeviceSelectorClick);
         View arrowView = findViewById(R.id.btnDeviceSelectorArrow);

@@ -56,6 +56,17 @@ try {
   console.warn('[Config] Failed to load config.json, using defaults:', err.message);
 }
 
+if (config.screenOffApp === undefined) {
+  const pushMonitorOffExists = fs.existsSync('C:\\Program Files\\PushMonitorOff\\PushMonitOff.exe');
+  config.screenOffApp = pushMonitorOffExists;
+  try {
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+    console.log(`[Config] One-time detected screenOffApp: ${config.screenOffApp} and saved to config.json`);
+  } catch (err) {
+    console.warn('[Config] Failed to persist detected screenOffApp:', err.message);
+  }
+}
+
 if (!fs.existsSync(UPDATES_DIR)) {
   fs.mkdirSync(UPDATES_DIR, { recursive: true });
 }
@@ -409,7 +420,8 @@ app.get('/api/status', verifyPin, async (req, res) => {
     freeMemory: Math.round(os.freemem() / 1024 / 1024),
     audio,
     brightness,
-    version: '1.0.2'
+    screenOffApp: Boolean(config.screenOffApp),
+    version: '1.0.3'
   });
 });
 
@@ -621,6 +633,12 @@ app.post('/api/system/restart', verifyPin, (req, res) => {
   setTimeout(() => {
     exec('shutdown /r /t 0');
   }, 1000);
+});
+
+app.post('/api/system/screen_off', verifyPin, (req, res) => {
+  console.log('[System] Screen off (Alt+X) requested');
+  sendInputCommand('k alt+x');
+  res.json({ success: true, action: 'screen_off' });
 });
 
 // Multi-Monitor API
@@ -896,6 +914,11 @@ function handleWebSocketMessage(ws, data) {
         cleanup();
         process.exit(0);
       }, 1000);
+      break;
+
+    case 'screen_off':
+      console.log('[WebSocket] Screen off (Alt+X) requested');
+      sendInputCommand('k alt+x');
       break;
 
     default:

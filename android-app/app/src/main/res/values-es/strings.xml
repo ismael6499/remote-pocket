@@ -134,4 +134,13 @@
     <string name="hint_device_name">Nombre de la PC</string>
     <string name="btn_save">Guardar</string>
     <string name="toast_device_renamed">PC renombrada a %s</string>
+
+    <!-- Screen Off & Developer Settings -->
+    <string name="btn_screen_off">🌙 Apagar Pantalla</string>
+    <string name="dev_settings_title">Opciones de Desarrollador</string>
+    <string name="dev_settings_force_screen_off">Forzar botón de Apagar Pantalla (Alt+X)</string>
+    <string name="dev_settings_force_screen_off_desc">Muestra el botón de apagar pantalla aunque no se detecte PushMonitOff.</string>
+    <string name="dev_settings_unlocked">¡Opciones de desarrollador activadas!</string>
+    <string name="dev_settings_steps_remaining">Estás a %1$d toques de las opciones de desarrollador</string>
+    <string name="toast_screen_off_sent">Comando de apagar pantalla enviado</string>
 </resources>

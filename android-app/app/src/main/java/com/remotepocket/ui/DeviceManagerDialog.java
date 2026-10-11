@@ -41,6 +41,8 @@ public class DeviceManagerDialog extends Dialog {
     private final OnDeviceSelectedListener listener;
     private LinearLayout layoutDeviceList;
     private TextView txtDiscoveryStatus;
+    private int devTapCount = 0;
+    private long lastDevTapTime = 0;
 
     public DeviceManagerDialog(@NonNull Context context, List<Device> initialDevices, OnDeviceSelectedListener listener) {
         super(context);
@@ -65,6 +67,11 @@ public class DeviceManagerDialog extends Dialog {
         layoutDeviceList = findViewById(R.id.layoutDeviceList);
         txtDiscoveryStatus = findViewById(R.id.txtDiscoveryStatus);
 
+        View txtTitle = findViewById(R.id.txtManageDevicesTitle);
+        if (txtTitle != null) {
+            txtTitle.setOnClickListener(v -> handleDevTitleTap());
+        }
+
         findViewById(R.id.btnForceRescan).setOnClickListener(v -> {
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
             if (listener != null) {
@@ -85,6 +92,24 @@ public class DeviceManagerDialog extends Dialog {
         });
 
         renderDevices();
+    }
+
+    private void handleDevTitleTap() {
+        long now = System.currentTimeMillis();
+        if (now - lastDevTapTime > 2500) {
+            devTapCount = 0;
+        }
+        lastDevTapTime = now;
+        devTapCount++;
+
+        if (devTapCount >= 4 && devTapCount < 7) {
+            int remaining = 7 - devTapCount;
+            android.widget.Toast.makeText(getContext(), getContext().getString(R.string.dev_settings_steps_remaining, remaining), android.widget.Toast.LENGTH_SHORT).show();
+        } else if (devTapCount == 7) {
+            devTapCount = 0;
+            android.widget.Toast.makeText(getContext(), R.string.dev_settings_unlocked, android.widget.Toast.LENGTH_SHORT).show();
+            new DeveloperSettingsDialog(getContext(), null).show();
+        }
     }
 
     public void updateDevices(List<Device> newDevices) {

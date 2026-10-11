@@ -2,5 +2,6 @@
   "deviceName": "PC Personal",
   "port": 5050,
   "udpPort": 5051,
-  "pin": ""
+  "pin": "",
+  "screenOffApp": true
 }

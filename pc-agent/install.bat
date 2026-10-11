@@ -76,6 +76,15 @@ if not "!USER_NAME!"=="" (
 node -e "const fs = require('fs'); const p = 'config.json'; let c = fs.existsSync(p) ? JSON.parse(fs.readFileSync(p)) : { port: 5050, udpPort: 5051 }; c.deviceName = process.argv[1]; fs.writeFileSync(p, JSON.stringify(c, null, 2));" "!CURRENT_NAME!"
 echo [OK] Device name set to: "!CURRENT_NAME!"
 
+:: Detect PushMonitorOff utility once
+set HAS_SCREEN_OFF=false
+if exist "C:\Program Files\PushMonitorOff\PushMonitOff.exe" set HAS_SCREEN_OFF=true
+if exist "C:\Program Files (x86)\PushMonitorOff\PushMonitOff.exe" set HAS_SCREEN_OFF=true
+node -e "const fs = require('fs'); const p = 'config.json'; let c = fs.existsSync(p) ? JSON.parse(fs.readFileSync(p)) : {}; c.screenOffApp = (process.argv[1] === 'true'); fs.writeFileSync(p, JSON.stringify(c, null, 2));" "!HAS_SCREEN_OFF!"
+if "!HAS_SCREEN_OFF!"=="true" (
+    echo [OK] PushMonitOff detected. Screen Off feature enabled.
+)
+
 :: 5. Create run_silent.vbs and Startup Shortcut
 echo.
 echo [5/5] Configuring background auto-start at Windows logon...

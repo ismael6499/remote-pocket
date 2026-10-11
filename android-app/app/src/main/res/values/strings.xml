@@ -134,4 +134,13 @@
     <string name="hint_device_name">Computer Name</string>
     <string name="btn_save">Save</string>
     <string name="toast_device_renamed">PC renamed to %s</string>
+
+    <!-- Screen Off & Developer Settings -->
+    <string name="btn_screen_off">🌙 Screen Off</string>
+    <string name="dev_settings_title">Developer Settings</string>
+    <string name="dev_settings_force_screen_off">Force Show Screen Off Button (Alt+X)</string>
+    <string name="dev_settings_force_screen_off_desc">Show the screen off button even if PushMonitOff was not auto-detected.</string>
+    <string name="dev_settings_unlocked">Developer options unlocked!</string>
+    <string name="dev_settings_steps_remaining">You are %1$d steps away from developer options</string>
+    <string name="toast_screen_off_sent">Screen off command sent</string>
 </resources>

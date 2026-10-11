@@ -53,6 +53,10 @@ public class SystemSheet extends Dialog {
     private SeekBar seekBrightness, seekVolume;
     private TextView txtBrightnessVal, txtVolumeVal;
     private LinearLayout layoutShortcutsContainer;
+    private View btnScreenOff;
+    private boolean serverDetectedScreenOff = false;
+    private int devTapCount = 0;
+    private long lastDevTapTime = 0;
 
     public SystemSheet(@NonNull Context context, Device device, WebSocketManager webSocketManager) {
         super(context);
@@ -80,6 +84,17 @@ public class SystemSheet extends Dialog {
         seekVolume = findViewById(R.id.seekVolume);
         txtVolumeVal = findViewById(R.id.txtVolumeVal);
         layoutShortcutsContainer = findViewById(R.id.layoutShortcutsContainer);
+        btnScreenOff = findViewById(R.id.btnScreenOff);
+
+        if (btnScreenOff != null) {
+            btnScreenOff.setOnClickListener(v -> triggerScreenOff());
+        }
+        updateScreenOffVisibility();
+
+        View txtTitle = findViewById(R.id.txtSystemSheetTitle);
+        if (txtTitle != null) {
+            txtTitle.setOnClickListener(v -> handleDevTitleTap());
+        }
 
         // Brightness Seek Listener (throttled: every PowerShell call is heavy on the PC)
         seekBrightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -185,6 +200,10 @@ public class SystemSheet extends Dialog {
                                 txtVolumeVal.setText(v + "%");
                             });
                         }
+                    }
+                    if (obj.has("screenOffApp") && !obj.get("screenOffApp").isJsonNull()) {
+                        serverDetectedScreenOff = obj.get("screenOffApp").getAsBoolean();
+                        mainHandler.post(this::updateScreenOffVisibility);
                     }
                 }
             } catch (Exception e) {
@@ -383,5 +402,40 @@ public class SystemSheet extends Dialog {
     private int dpToPx(int dp) {
         float density = getContext().getResources().getDisplayMetrics().density;
         return Math.round(dp * density);
+    }
+
+    private void handleDevTitleTap() {
+        long now = System.currentTimeMillis();
+        if (now - lastDevTapTime > 2500) {
+            devTapCount = 0;
+        }
+        lastDevTapTime = now;
+        devTapCount++;
+
+        if (devTapCount >= 4 && devTapCount < 7) {
+            int remaining = 7 - devTapCount;
+            Toast.makeText(getContext(), getContext().getString(R.string.dev_settings_steps_remaining, remaining), Toast.LENGTH_SHORT).show();
+        } else if (devTapCount == 7) {
+            devTapCount = 0;
+            Toast.makeText(getContext(), R.string.dev_settings_unlocked, Toast.LENGTH_SHORT).show();
+            new DeveloperSettingsDialog(getContext(), this::updateScreenOffVisibility).show();
+        }
+    }
+
+    private void updateScreenOffVisibility() {
+        if (btnScreenOff == null) return;
+        android.content.SharedPreferences prefs = getContext().getSharedPreferences("remote_pocket_prefs", Context.MODE_PRIVATE);
+        boolean forceScreenOff = prefs.getBoolean(DeveloperSettingsDialog.PREF_FORCE_SCREEN_OFF, false);
+        boolean show = serverDetectedScreenOff || forceScreenOff;
+        btnScreenOff.setVisibility(show ? View.VISIBLE : View.GONE);
+    }
+
+    private void triggerScreenOff() {
+        Toast.makeText(getContext(), R.string.toast_screen_off_sent, Toast.LENGTH_SHORT).show();
+        if (webSocketManager != null && webSocketManager.isConnected()) {
+            webSocketManager.sendScreenOff();
+        } else {
+            postSystemAction("screen_off");
+        }
     }
 }

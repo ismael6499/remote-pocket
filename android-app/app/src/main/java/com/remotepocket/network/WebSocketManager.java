@@ -349,4 +349,10 @@ public class WebSocketManager {
         obj.addProperty("level", level);
         sendJson(obj);
     }
+
+    public void sendScreenOff() {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("type", "screen_off");
+        sendJson(obj);
+    }
 }
