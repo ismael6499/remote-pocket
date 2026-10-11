@@ -128,4 +128,5 @@
     <string name="dialog_select_monitor_title">Select PC Display</string>
     <string name="btn_collapse_controls">Hide Controls</string>
     <string name="btn_expand_controls">Show Controls</string>
+    <string name="btn_close_keyboard">Close Keyboard</string>
 </resources>

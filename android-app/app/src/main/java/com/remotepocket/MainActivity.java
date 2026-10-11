@@ -485,6 +485,13 @@ public class MainActivity extends AppCompatActivity {
                 showPcKeyboard();
             });
         }
+        View btnHideTypingKeyboard = findViewById(R.id.btnHideTypingKeyboard);
+        if (btnHideTypingKeyboard != null) {
+            btnHideTypingKeyboard.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                hideNormalKeyboard();
+            });
+        }
         editTypingText.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEND) {
                 sendEnteredText();
@@ -542,10 +549,8 @@ public class MainActivity extends AppCompatActivity {
         if (activePcKeyboardDialog != null && activePcKeyboardDialog.isShowing()) {
             activePcKeyboardDialog.dismiss();
             activePcKeyboardDialog = null;
-            showNormalKeyboard();
         } else if (layoutTypingInput.getVisibility() == View.VISIBLE) {
             hideNormalKeyboard();
-            showPcKeyboard();
         } else {
             showNormalKeyboard();
         }

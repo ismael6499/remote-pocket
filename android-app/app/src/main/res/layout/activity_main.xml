@@ -513,6 +513,21 @@
             android:textSize="14sp" />
 
         <Button
+            android:id="@+id/btnHideTypingKeyboard"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="6dp"
+            android:minWidth="0dp"
+            android:padding="0dp"
+            android:text="✕"
+            android:textColor="@color/text_secondary"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:contentDescription="@string/btn_close_keyboard"
+            app:strokeColor="@color/surface_card_border" />
+
+        <Button
             android:id="@+id/btnSendTyping"
             style="@style/Widget.MaterialComponents.Button"
             android:layout_width="wrap_content"

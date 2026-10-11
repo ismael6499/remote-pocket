@@ -57,9 +57,9 @@ Remote Pocket is a monorepo containing:
   - Bottom mouse action buttons (Left, Middle, Right, Hold drag lock, Double Click, Scroll Up, Scroll Down).
   - Floating Action Button (FAB) draggable anywhere on screen:
     - Default first tap: Opens normal soft keyboard (Gboard) input bar with auto-focus.
-    - Subsequent tap: Toggles directly to Extended PC Keyboard (`PcKeyboardDialog`).
-    - Next tap: Toggles back to normal keyboard.
-    - Dedicated switch button ("💻") on the typing input bar to jump to PC keyboard directly.
+    - Tapping FAB while keyboard or PC keyboard dialog is active: Dismisses it cleanly without cycling.
+    - Dedicated switch button ("💻") on typing input bar to jump to PC keyboard directly.
+    - Dedicated close button ("✕") on typing input bar immediately to the left of "Send" to dismiss keyboard directly and return cleanly to fullscreen/normal mode.
     - Dedicated switch button ("⌨️ Standard") on PC keyboard header to jump to normal keyboard directly.
 - [x] Dual Keyboards:
   - Standard Android Keyboard (Gboard): soft input with direct text transmission and voice-to-text.
