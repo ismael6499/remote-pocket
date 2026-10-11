@@ -315,10 +315,25 @@ public class TouchpadView extends View {
      * Server frames are delayed, so they are ignored while touching and for a short grace
      * period after the last local move to avoid cursor jitter ("earthquake" effect).
      */
+    private int pendingSrvX = -1, pendingSrvY = -1;
+    private int pendingSrvCount = 0;
+    private static final int SERVER_STABLE_FRAMES = 6;
+
     public void updateServerCursorPosition(int x, int y, int w, int h) {
         this.scrW = w > 0 ? w : this.scrW;
         this.scrH = h > 0 ? h : this.scrH;
-        if (x >= 0 && y >= 0) {
+
+        // Delayed frames carry a "trail" of old positions while the cursor moves.
+        // Only trust a position once it has been identical for several consecutive frames.
+        if (x == pendingSrvX && y == pendingSrvY) {
+            pendingSrvCount++;
+        } else {
+            pendingSrvX = x;
+            pendingSrvY = y;
+            pendingSrvCount = 1;
+        }
+        boolean stable = pendingSrvCount >= SERVER_STABLE_FRAMES && x >= 0 && y >= 0;
+        if (stable) {
             serverX = x;
             serverY = y;
         }
@@ -331,7 +346,7 @@ public class TouchpadView extends View {
             if (followCursor && currentScale > 1.0f) {
                 applyCenterTranslationDirect();
             }
-        } else if (!inGrace) {
+        } else if (!inGrace && stable && (Math.abs(curX - x) > 2 || Math.abs(curY - y) > 2)) {
             this.curX = x;
             this.curY = y;
             if (followCursor && currentScale > 1.05f) {
