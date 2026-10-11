@@ -409,7 +409,7 @@ app.get('/api/status', verifyPin, async (req, res) => {
     freeMemory: Math.round(os.freemem() / 1024 / 1024),
     audio,
     brightness,
-    version: '1.0.0'
+    version: '1.0.1'
   });
 });
 
@@ -671,8 +671,8 @@ app.get('/api/version', (req, res) => {
   const apkPath = path.join(UPDATES_DIR, 'app-release.apk');
   const exists = fs.existsSync(apkPath);
   res.json({
-    versionCode: 1,
-    versionName: '1.0.0',
+    versionCode: 2,
+    versionName: '1.0.1',
     hasUpdateFile: exists,
     apkUrl: exists ? '/updates/app-release.apk' : null
   });
