@@ -619,25 +619,26 @@ namespace InputHelper {
         private static void ScreenOffSequence() {
             try {
                 ReleaseAllModifiers();
-                Thread.Sleep(50);
 
-                // Pulse Windows key (open Start menu to grab shell focus)
-                keybd_event(0x5B, 0, 0, UIntPtr.Zero);
-                keybd_event(0x5B, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                Thread.Sleep(250);
-
-                // Pulse Windows key again (close Start menu, returning focus cleanly to shell/desktop)
-                keybd_event(0x5B, 0, 0, UIntPtr.Zero);
-                keybd_event(0x5B, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                Thread.Sleep(200);
-
-                // Send Alt + X (0x12 = VK_MENU, 0x58 = 'X' for PushMonitOff)
+                // 1. Send Alt + X immediately (Instant trigger for PushMonitOff hotkey)
                 keybd_event(0x12, 0, 0, UIntPtr.Zero);
-                Thread.Sleep(30);
                 keybd_event(0x58, 0, 0, UIntPtr.Zero);
-                Thread.Sleep(30);
                 keybd_event(0x58, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                keybd_event(0x12, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+
+                // 2. Fast shell focus reset in case foreground window trapped hotkeys
                 Thread.Sleep(30);
+                keybd_event(0x5B, 0, 0, UIntPtr.Zero);
+                keybd_event(0x5B, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                Thread.Sleep(50);
+                keybd_event(0x5B, 0, 0, UIntPtr.Zero);
+                keybd_event(0x5B, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                Thread.Sleep(30);
+
+                // 3. Repeat Alt + X after shell focus reset
+                keybd_event(0x12, 0, 0, UIntPtr.Zero);
+                keybd_event(0x58, 0, 0, UIntPtr.Zero);
+                keybd_event(0x58, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
                 keybd_event(0x12, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
             } catch { }
         }

@@ -86,6 +86,10 @@ public class SystemSheet extends Dialog {
         layoutShortcutsContainer = findViewById(R.id.layoutShortcutsContainer);
         btnScreenOff = findViewById(R.id.btnScreenOff);
 
+        String hostKey = (device != null && device.getHost() != null) ? device.getHost() : "default";
+        android.content.SharedPreferences prefs = getContext().getSharedPreferences("remote_pocket_prefs", Context.MODE_PRIVATE);
+        serverDetectedScreenOff = prefs.getBoolean("pref_device_screen_off_" + hostKey, true);
+
         if (btnScreenOff != null) {
             btnScreenOff.setOnClickListener(v -> triggerScreenOff());
         }
@@ -166,19 +170,12 @@ public class SystemSheet extends Dialog {
 
     private void loadInitialState() {
         if (device == null) return;
+        String hostKey = device.getHost() != null ? device.getHost() : "default";
+        android.content.SharedPreferences prefs = getContext().getSharedPreferences("remote_pocket_prefs", Context.MODE_PRIVATE);
+
         executor.execute(() -> {
             try {
-                // Fetch shortcuts
-                Request reqShortcuts = new Request.Builder().url(device.getBaseHttpUrl() + "/api/shortcuts").build();
-                Response respShortcuts = httpClient.newCall(reqShortcuts).execute();
-                if (respShortcuts.isSuccessful() && respShortcuts.body() != null) {
-                    String json = respShortcuts.body().string();
-                    Type listType = new TypeToken<List<Shortcut>>() {}.getType();
-                    List<Shortcut> shortcuts = gson.fromJson(json, listType);
-                    mainHandler.post(() -> renderShortcuts(shortcuts));
-                }
-
-                // Fetch status (brightness & audio)
+                // Fetch status first (brightness, audio, screenOffApp)
                 Request reqStatus = new Request.Builder().url(device.getBaseHttpUrl() + "/api/status").build();
                 Response respStatus = httpClient.newCall(reqStatus).execute();
                 if (respStatus.isSuccessful() && respStatus.body() != null) {
@@ -202,9 +199,21 @@ public class SystemSheet extends Dialog {
                         }
                     }
                     if (obj.has("screenOffApp") && !obj.get("screenOffApp").isJsonNull()) {
-                        serverDetectedScreenOff = obj.get("screenOffApp").getAsBoolean();
+                        boolean isScreenOffApp = obj.get("screenOffApp").getAsBoolean();
+                        serverDetectedScreenOff = isScreenOffApp;
+                        prefs.edit().putBoolean("pref_device_screen_off_" + hostKey, isScreenOffApp).apply();
                         mainHandler.post(this::updateScreenOffVisibility);
                     }
+                }
+
+                // Fetch shortcuts second
+                Request reqShortcuts = new Request.Builder().url(device.getBaseHttpUrl() + "/api/shortcuts").build();
+                Response respShortcuts = httpClient.newCall(reqShortcuts).execute();
+                if (respShortcuts.isSuccessful() && respShortcuts.body() != null) {
+                    String json = respShortcuts.body().string();
+                    Type listType = new TypeToken<List<Shortcut>>() {}.getType();
+                    List<Shortcut> shortcuts = gson.fromJson(json, listType);
+                    mainHandler.post(() -> renderShortcuts(shortcuts));
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error loading system sheet state", e);

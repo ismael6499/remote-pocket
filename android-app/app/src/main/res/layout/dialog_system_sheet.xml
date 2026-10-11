@@ -65,7 +65,7 @@
             android:text="@string/btn_screen_off"
             android:textColor="@color/accent_amber"
             android:textSize="11sp"
-            android:visibility="gone"
+            android:visibility="visible"
             app:cornerRadius="8dp"
             app:strokeColor="@color/accent_amber" />
     </LinearLayout>
