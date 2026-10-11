@@ -184,4 +184,3 @@ The compiled APK will automatically be placed in:
 ## 📄 License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for the full terms. Third-party dependencies remain under their respective licenses.
-
