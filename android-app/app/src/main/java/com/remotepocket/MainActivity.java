@@ -458,6 +458,7 @@ public class MainActivity extends AppCompatActivity {
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                 isFullscreenControlsCollapsed = false;
                 if (btnExpandFullscreenControls != null) btnExpandFullscreenControls.setVisibility(View.GONE);
+                if (btnExitFullscreen != null) btnExitFullscreen.setVisibility(View.VISIBLE);
                 if (layoutFullscreenTopBar != null) {
                     layoutFullscreenTopBar.setAlpha(1.0f);
                     layoutFullscreenTopBar.setVisibility(View.VISIBLE);
@@ -753,6 +754,7 @@ public class MainActivity extends AppCompatActivity {
             if (layoutFullscreenTopBar != null) layoutFullscreenTopBar.setVisibility(View.GONE);
             if (btnExpandFullscreenControls != null) btnExpandFullscreenControls.setVisibility(View.VISIBLE);
         } else {
+            if (btnExitFullscreen != null) btnExitFullscreen.setVisibility(View.VISIBLE);
             if (layoutFullscreenTopBar != null) {
                 layoutFullscreenTopBar.setAlpha(1.0f);
                 layoutFullscreenTopBar.setVisibility(View.VISIBLE);
@@ -800,7 +802,6 @@ public class MainActivity extends AppCompatActivity {
         handler.removeCallbacks(fadeFullscreenControlsRunnable);
         if (layoutFullscreenTopBar != null) layoutFullscreenTopBar.setVisibility(View.GONE);
         if (btnExpandFullscreenControls != null) btnExpandFullscreenControls.setVisibility(View.GONE);
-        if (btnExitFullscreen != null) btnExitFullscreen.setVisibility(View.GONE);
 
         // Restore containerMain 16dp margins and trackpad background
         if (containerMain != null) {
