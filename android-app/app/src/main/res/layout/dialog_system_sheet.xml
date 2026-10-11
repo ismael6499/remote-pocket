@@ -329,8 +329,10 @@
         android:textStyle="bold" />
 
     <HorizontalScrollView
+        android:id="@+id/scrollShortcuts"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="50dp"
+        android:minHeight="50dp"
         android:paddingTop="8dp"
         android:paddingEnd="16dp"
         android:clipToPadding="false"
@@ -339,7 +341,8 @@
         <LinearLayout
             android:id="@+id/layoutShortcutsContainer"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="42dp"
+            android:minHeight="42dp"
             android:orientation="horizontal" />
     </HorizontalScrollView>
 

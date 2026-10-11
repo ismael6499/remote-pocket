@@ -164,6 +164,20 @@ public class SystemSheet extends Dialog {
             btnRestartAgent.setOnClickListener(v -> confirmRestartAgent());
         }
 
+        // Pre-load Cached Shortcuts immediately to avoid pop-in
+        if (device != null) {
+            String cachedShortcutsJson = prefs.getString("pref_device_shortcuts_" + hostKey, null);
+            if (cachedShortcutsJson != null) {
+                try {
+                    Type listType = new TypeToken<List<Shortcut>>() {}.getType();
+                    List<Shortcut> cachedShortcuts = gson.fromJson(cachedShortcutsJson, listType);
+                    if (cachedShortcuts != null && !cachedShortcuts.isEmpty()) {
+                        renderShortcuts(cachedShortcuts);
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+
         // Load Initial State & Shortcuts
         loadInitialState();
     }
@@ -211,6 +225,7 @@ public class SystemSheet extends Dialog {
                 Response respShortcuts = httpClient.newCall(reqShortcuts).execute();
                 if (respShortcuts.isSuccessful() && respShortcuts.body() != null) {
                     String json = respShortcuts.body().string();
+                    prefs.edit().putString("pref_device_shortcuts_" + hostKey, json).apply();
                     Type listType = new TypeToken<List<Shortcut>>() {}.getType();
                     List<Shortcut> shortcuts = gson.fromJson(json, listType);
                     mainHandler.post(() -> renderShortcuts(shortcuts));
