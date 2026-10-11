@@ -25,6 +25,7 @@ public class WebSocketManager {
         void onDisconnected();
         void onScreenFrame(byte[] jpegData);
         void onError(String error);
+        default void onMonitorsInfo(JsonObject monitorsJson) {}
     }
 
     private final OkHttpClient client;
@@ -93,8 +94,17 @@ public class WebSocketManager {
 
             @Override
             public void onMessage(WebSocket ws, String text) {
-                // Handled in background, e.g. status or pong
-                // Can parse JSON if needed
+                if (listener != null && text != null) {
+                    try {
+                        JsonObject json = gson.fromJson(text, JsonObject.class);
+                        if (json != null && json.has("type")) {
+                            String type = json.get("type").getAsString();
+                            if ("monitors_info".equals(type)) {
+                                mainHandler.post(() -> listener.onMonitorsInfo(json));
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
             }
 
             @Override
@@ -178,6 +188,19 @@ public class WebSocketManager {
         JsonObject obj = new JsonObject();
         obj.addProperty("type", "set_screen_fps");
         obj.addProperty("fps", fps);
+        sendJson(obj);
+    }
+
+    public void sendSelectMonitor(int index) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("type", "select_monitor");
+        obj.addProperty("index", index);
+        sendJson(obj);
+    }
+
+    public void sendGetMonitors() {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("type", "get_monitors");
         sendJson(obj);
     }
 

@@ -188,8 +188,28 @@ Remote Pocket is a monorepo containing:
   - Successfully built `app-debug.apk` (`BUILD SUCCESSFUL`).
   - Staged APK in `pc-agent/updates/app-release.apk` for immediate OTA serving.
   - Auto-copied to `C:\Users\agust\Documents\Mobile Drop\RemotePocket.apk` (and `RemotePocket-v1.0.0.apk`).
+- [x] Multi-Monitor Support (Full Screen & Normal Live Screen):
+  - **PC Agent Win32 Engine (`InputHelper.cs` & `InputHelper.exe`)**:
+    - Multi-monitor enumeration via `System.Windows.Forms.Screen.AllScreens` with physical bounds, dimensions, and primary flags.
+    - CLI & stdin commands: `monitors` (returns JSON of all connected displays), `monitor <index>` (selects active display).
+    - Added `--stream [fps] [quality] [height] [monitorIndex]` support and live stream monitor switching.
+    - BitBlt desktop capture cropped precisely to selected monitor bounds `(monX, monY, monW, monH)`.
+    - Live cursor rendering and cursor offset calculation relative to the selected monitor.
+    - Absolute mouse positioning (`MouseSetPos` / `ma x y`): offsets Android coordinates by selected monitor origin `(monX, monY)`.
+  - **Server API & WebSocket (`server.js`)**:
+    - REST endpoints: `GET /api/monitors`, `POST /api/monitors/select`.
+    - WebSocket commands: `get_monitors`, `select_monitor` / `set_monitor`.
+    - Sends `monitors_info` payload automatically on client connection and upon any monitor switch.
+    - Dispatches monitor selection to both `inputProcess` and live `screenStreamProcess`.
+  - **Android Client UI & UX (`MainActivity.java`, `activity_main.xml`, `WebSocketManager.java`)**:
+    - **Normal Screen Controls Pill**: Added discrete `btnMonitorSelector` ("🖥️ 1" or "🖥️ 1/2") in `layoutScreenControls`.
+    - **Fullscreen Mode**: Added discrete glass `layoutFullscreenTopBar` in top-right corner with `btnFullscreenMonitor` next to `btnExitFullscreen`.
+    - **Single Tap**: Cycles to next monitor sequentially (`(currentMonitor + 1) % monitorCount`).
+    - **Long Press**: Opens selection dialog listing all connected displays with names and native resolutions (e.g., "Display 1 (1920x1080)").
+    - **Cursor Resync**: Automatically invokes `touchpadView.resyncCursorFromServer()` on switch to immediately adapt coordinates and aspect ratio to the new display.
+    - **i18n**: English and Spanish strings for monitor badges, toasts, and selection dialog.
 - [x] PC Agent Live State:
-  - Active PID on port 5050 (TCP HTTP/WS) and 5051 (UDP discovery). Tested and verified `/api/status`, `/api/logs` (POST & GET), and WebSocket screen frame streaming (87KB payload).
+  - Active PID on port 5050 (TCP HTTP/WS) and 5051 (UDP discovery). Tested and verified `/api/status`, `/api/monitors`, `/api/monitors/select`, `/api/logs`, and WebSocket screen frame streaming.
 
 ## How to Test & Run
 

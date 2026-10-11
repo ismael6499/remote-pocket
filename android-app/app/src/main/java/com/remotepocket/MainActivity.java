@@ -37,6 +37,8 @@ import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.remotepocket.model.Device;
 import com.remotepocket.network.UdpDiscovery;
@@ -76,12 +78,17 @@ public class MainActivity extends AppCompatActivity {
     private FloatingActionButton fabKeyboard;
 
     private LinearLayout layoutScreenControls;
-    private TextView btnToggleFollow, btnZoomLevel, btnFpsSelector, btnEnterFullscreen;
+    private TextView btnToggleFollow, btnZoomLevel, btnFpsSelector, btnEnterFullscreen, btnMonitorSelector;
+    private TextView btnFullscreenMonitor;
+    private LinearLayout layoutFullscreenTopBar;
     private ImageButton btnExitFullscreen;
     private LinearLayout headerLayout, layoutTabs, layoutMouseButtons;
     private FrameLayout containerMain;
     private boolean isFullscreen = false;
     private int currentFps = 30;
+    private int monitorCount = 1;
+    private int currentMonitorIndex = 0;
+    private final List<String> monitorNames = new ArrayList<>();
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean isAppInForeground = false;
@@ -159,7 +166,10 @@ public class MainActivity extends AppCompatActivity {
         btnZoomLevel = findViewById(R.id.btnZoomLevel);
         btnFpsSelector = findViewById(R.id.btnFpsSelector);
         btnEnterFullscreen = findViewById(R.id.btnEnterFullscreen);
+        btnMonitorSelector = findViewById(R.id.btnMonitorSelector);
         btnExitFullscreen = findViewById(R.id.btnExitFullscreen);
+        btnFullscreenMonitor = findViewById(R.id.btnFullscreenMonitor);
+        layoutFullscreenTopBar = findViewById(R.id.layoutFullscreenTopBar);
     }
 
     private final java.util.concurrent.ExecutorService frameDecoderExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
@@ -178,6 +188,7 @@ public class MainActivity extends AppCompatActivity {
                 handler.removeCallbacks(reconnectRunnable);
                 updateConnectionUi(true);
                 touchpadView.resyncCursorFromServer();
+                webSocketManager.sendGetMonitors();
                 if (isScreenMode) {
                     webSocketManager.startScreenStream();
                     webSocketManager.sendScreenFps(currentFps);
@@ -232,6 +243,11 @@ public class MainActivity extends AppCompatActivity {
                 if (isAppInForeground) {
                     scheduleAutoReconnect();
                 }
+            }
+
+            @Override
+            public void onMonitorsInfo(JsonObject monitorsJson) {
+                handleMonitorsInfo(monitorsJson);
             }
         });
     }
@@ -326,6 +342,25 @@ public class MainActivity extends AppCompatActivity {
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                 exitFullscreen();
             });
+        }
+
+        View.OnClickListener monitorClickListener = v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            cycleOrSelectMonitor();
+        };
+        View.OnLongClickListener monitorLongClickListener = v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+            showMonitorSelectionDialog();
+            return true;
+        };
+
+        if (btnMonitorSelector != null) {
+            btnMonitorSelector.setOnClickListener(monitorClickListener);
+            btnMonitorSelector.setOnLongClickListener(monitorLongClickListener);
+        }
+        if (btnFullscreenMonitor != null) {
+            btnFullscreenMonitor.setOnClickListener(monitorClickListener);
+            btnFullscreenMonitor.setOnLongClickListener(monitorLongClickListener);
         }
 
         // Mouse Action Buttons
@@ -549,8 +584,10 @@ public class MainActivity extends AppCompatActivity {
             hideNormalKeyboard();
         }
 
-        // Show discrete top-right exit button
-        if (btnExitFullscreen != null) {
+        // Show discrete top-right exit button & monitor selector
+        if (layoutFullscreenTopBar != null) {
+            layoutFullscreenTopBar.setVisibility(View.VISIBLE);
+        } else if (btnExitFullscreen != null) {
             btnExitFullscreen.setVisibility(View.VISIBLE);
         }
 
@@ -590,6 +627,7 @@ public class MainActivity extends AppCompatActivity {
         if (headerLayout != null) headerLayout.setVisibility(View.VISIBLE);
         if (layoutTabs != null) layoutTabs.setVisibility(View.VISIBLE);
         if (layoutMouseButtons != null) layoutMouseButtons.setVisibility(View.VISIBLE);
+        if (layoutFullscreenTopBar != null) layoutFullscreenTopBar.setVisibility(View.GONE);
         if (btnExitFullscreen != null) btnExitFullscreen.setVisibility(View.GONE);
 
         // Restore containerMain 16dp margins and trackpad background
@@ -659,6 +697,89 @@ public class MainActivity extends AppCompatActivity {
             }
             updateFpsUi();
         });
+    }
+
+    private void handleMonitorsInfo(JsonObject json) {
+        if (json == null) return;
+        runOnUiThread(() -> {
+            try {
+                if (json.has("count")) {
+                    monitorCount = Math.max(1, json.get("count").getAsInt());
+                }
+                if (json.has("active")) {
+                    currentMonitorIndex = Math.max(0, json.get("active").getAsInt());
+                }
+                monitorNames.clear();
+                if (json.has("monitors") && json.get("monitors").isJsonArray()) {
+                    for (JsonElement el : json.getAsJsonArray("monitors")) {
+                        JsonObject m = el.getAsJsonObject();
+                        String name = m.has("name") ? m.get("name").getAsString() : "Display";
+                        if (m.has("w") && m.has("h")) {
+                            name += " (" + m.get("w").getAsInt() + "x" + m.get("h").getAsInt() + ")";
+                        }
+                        monitorNames.add(name);
+                    }
+                }
+                updateMonitorButtonsUI();
+            } catch (Exception ignored) {}
+        });
+    }
+
+    private void updateMonitorButtonsUI() {
+        runOnUiThread(() -> {
+            String text;
+            if (monitorCount > 1) {
+                text = getString(R.string.monitor_format, (currentMonitorIndex + 1), monitorCount);
+            } else {
+                text = getString(R.string.monitor_single_format, (currentMonitorIndex + 1));
+            }
+            if (btnMonitorSelector != null) {
+                btnMonitorSelector.setText(text);
+            }
+            if (btnFullscreenMonitor != null) {
+                btnFullscreenMonitor.setText(text);
+            }
+        });
+    }
+
+    private void cycleOrSelectMonitor() {
+        if (monitorCount <= 1) {
+            Toast.makeText(this, getString(R.string.toast_single_monitor), Toast.LENGTH_SHORT).show();
+            webSocketManager.sendGetMonitors();
+            return;
+        }
+        int nextMonitor = (currentMonitorIndex + 1) % monitorCount;
+        switchToMonitor(nextMonitor);
+    }
+
+    private void switchToMonitor(int index) {
+        currentMonitorIndex = index;
+        webSocketManager.sendSelectMonitor(index);
+        updateMonitorButtonsUI();
+        if (touchpadView != null) {
+            touchpadView.resyncCursorFromServer();
+        }
+        Toast.makeText(this, getString(R.string.toast_monitor_switched, (index + 1)), Toast.LENGTH_SHORT).show();
+    }
+
+    private void showMonitorSelectionDialog() {
+        if (monitorCount <= 1 && monitorNames.isEmpty()) {
+            Toast.makeText(this, getString(R.string.toast_single_monitor), Toast.LENGTH_SHORT).show();
+            webSocketManager.sendGetMonitors();
+            return;
+        }
+
+        String[] items = new String[monitorCount];
+        for (int i = 0; i < monitorCount; i++) {
+            String name = (i < monitorNames.size()) ? monitorNames.get(i) : ("Display " + (i + 1));
+            items[i] = (i == currentMonitorIndex ? "✓ " : "   ") + name;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.dialog_select_monitor_title)
+                .setItems(items, (dialog, which) -> switchToMonitor(which))
+                .setNegativeButton(R.string.btn_close, null)
+                .show();
     }
 
     private void updateConnectionUi(boolean connected) {

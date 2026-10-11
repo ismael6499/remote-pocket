@@ -5,7 +5,7 @@ const dgram = require('dgram');
 const os = require('os');
 const path = require('path');
 const fs = require('fs');
-const { spawn, exec } = require('child_process');
+const { spawn, exec, execFile } = require('child_process');
 require('dotenv').config();
 
 process.on('uncaughtException', (err) => {
@@ -127,12 +127,44 @@ function sendInputCommand(cmd) {
 startInputProcess();
 
 // ==========================================
-// SCREEN STREAMING MANAGER (On-Demand 2 FPS)
+// SCREEN STREAMING & MULTI-MONITOR MANAGER
 // ==========================================
 let screenStreamProcess = null;
 const screenSubscribers = new Set();
 
 let currentScreenFps = 30;
+let currentMonitorIndex = 0;
+let cachedMonitorsInfo = { count: 1, active: 0, monitors: [{ index: 0, name: 'Display 1', w: 1920, h: 1080, primary: true }] };
+
+function fetchMonitorsInfo(cb) {
+  if (!fs.existsSync(INPUT_HELPER_PATH)) {
+    if (cb) cb(cachedMonitorsInfo);
+    return;
+  }
+  execFile(INPUT_HELPER_PATH, ['--monitors'], (err, stdout) => {
+    if (!err && stdout) {
+      try {
+        const parsed = JSON.parse(stdout.trim());
+        if (parsed && typeof parsed.count === 'number') {
+          cachedMonitorsInfo = parsed;
+          cachedMonitorsInfo.active = currentMonitorIndex;
+        }
+      } catch (e) {}
+    }
+    if (cb) cb(cachedMonitorsInfo);
+  });
+}
+
+function broadcastMonitors() {
+  fetchMonitorsInfo((info) => {
+    const payload = JSON.stringify({ type: 'monitors_info', ...info, active: currentMonitorIndex });
+    for (const client of wss.clients) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(payload);
+      }
+    }
+  });
+}
 
 function qualityForFps(fps) {
   if (fps >= 60) return '70';
@@ -147,9 +179,9 @@ function startScreenStreamer(fps = currentScreenFps) {
 
   const targetFps = Math.max(1, Math.min(60, fps));
   const q = qualityForFps(targetFps);
-  console.log(`[ScreenStream] Starting on-demand screen stream (${targetFps} FPS, ${q}% quality, 1080p Full HD)...`);
+  console.log(`[ScreenStream] Starting on-demand screen stream (Monitor ${currentMonitorIndex}, ${targetFps} FPS, ${q}% quality, 1080p Full HD)...`);
   try {
-    screenStreamProcess = spawn(INPUT_HELPER_PATH, ['--stream', String(targetFps), q, '1080'], {
+    screenStreamProcess = spawn(INPUT_HELPER_PATH, ['--stream', String(targetFps), q, '1080', String(currentMonitorIndex)], {
       stdio: ['pipe', 'pipe', 'ignore']
     });
 
@@ -574,6 +606,31 @@ app.post('/api/system/restart', verifyPin, (req, res) => {
   }, 1000);
 });
 
+// Multi-Monitor API
+app.get('/api/monitors', (req, res) => {
+  fetchMonitorsInfo((info) => {
+    res.json({ success: true, ...info, active: currentMonitorIndex });
+  });
+});
+
+app.post('/api/monitors/select', (req, res) => {
+  const index = parseInt(req.body.index, 10);
+  if (!isNaN(index)) {
+    const targetIndex = Math.max(0, index);
+    currentMonitorIndex = targetIndex;
+    console.log(`[Monitor] Switched to monitor index ${targetIndex} via REST`);
+    sendInputCommand(`monitor ${targetIndex}`);
+    if (screenStreamProcess && screenStreamProcess.stdin && !screenStreamProcess.stdin.destroyed) {
+      try {
+        screenStreamProcess.stdin.write(`monitor ${targetIndex}\n`);
+      } catch (e) {}
+    }
+    broadcastMonitors();
+    return res.json({ success: true, active: currentMonitorIndex });
+  }
+  res.status(400).json({ success: false, error: 'Invalid monitor index' });
+});
+
 // Agent Self-Restart Endpoint (Express Gateway style via remote_restart.vbs)
 app.post(['/api/server/restart', '/api/agent/restart', '/gateway/restart'], verifyPin, (req, res) => {
   console.log('[Server] Received agent restart request (/api/server/restart)...');
@@ -614,6 +671,12 @@ wss.on('connection', (ws, req) => {
   console.log(`[WebSocket] Client connected: ${req.socket.remoteAddress}`);
 
   ws.isSubscribedToScreen = false;
+
+  fetchMonitorsInfo((info) => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'monitors_info', ...info, active: currentMonitorIndex }));
+    }
+  });
 
   ws.on('message', (message, isBinary) => {
     if (isBinary) return; // ignore incoming binary frames
@@ -723,6 +786,31 @@ function handleWebSocketMessage(ws, data) {
         try {
           ws.send(JSON.stringify({ type: 'screen_fps_updated', fps: newFps }));
         } catch (e) {}
+      }
+      break;
+
+    // Multi-Monitor control
+    case 'get_monitors':
+      fetchMonitorsInfo((info) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'monitors_info', ...info, active: currentMonitorIndex }));
+        }
+      });
+      break;
+
+    case 'select_monitor':
+    case 'set_monitor':
+      if (typeof data.index === 'number') {
+        const targetIndex = Math.max(0, Math.round(data.index));
+        currentMonitorIndex = targetIndex;
+        console.log(`[Monitor] Switched to monitor index ${targetIndex}`);
+        sendInputCommand(`monitor ${targetIndex}`);
+        if (screenStreamProcess && screenStreamProcess.stdin && !screenStreamProcess.stdin.destroyed) {
+          try {
+            screenStreamProcess.stdin.write(`monitor ${targetIndex}\n`);
+          } catch (e) {}
+        }
+        broadcastMonitors();
       }
       break;
 

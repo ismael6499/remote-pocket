@@ -121,4 +121,9 @@
     <string name="btn_close">Cerrar</string>
     <string name="btn_fullscreen">⛶ Completa</string>
     <string name="btn_exit_fullscreen">Salir de pantalla completa</string>
+    <string name="monitor_format">🖥️ %1$d/%2$d</string>
+    <string name="monitor_single_format">🖥️ %1$d</string>
+    <string name="toast_monitor_switched">Cambiado a Pantalla %1$d</string>
+    <string name="toast_single_monitor">Solo 1 pantalla detectada en la PC</string>
+    <string name="dialog_select_monitor_title">Seleccionar pantalla de PC</string>
 </resources>

@@ -295,13 +295,21 @@ namespace InputHelper {
                 return;
             }
 
+            if (args.Length > 0 && args[0] == "--monitors") {
+                Console.WriteLine(GetMonitorsJson());
+                return;
+            }
+
             if (args.Length > 0 && args[0] == "--stream") {
                 int fps = 2;
                 int quality = 65;
                 int height = 720;
+                int mon = 0;
                 if (args.Length > 1) int.TryParse(args[1], out fps);
                 if (args.Length > 2) int.TryParse(args[2], out quality);
                 if (args.Length > 3) int.TryParse(args[3], out height);
+                if (args.Length > 4) int.TryParse(args[4], out mon);
+                SetSelectedMonitor(mon);
                 RunStreamLoop(fps, quality, height);
                 return;
             }
@@ -380,6 +388,12 @@ namespace InputHelper {
                             int newQ;
                             if (int.TryParse(line.Substring(8).Trim(), out newQ) && newQ > 0) {
                                 quality = Math.Max(10, Math.Min(100, newQ));
+                            }
+                        }
+                        if (line.StartsWith("monitor ", StringComparison.OrdinalIgnoreCase)) {
+                            int newMon;
+                            if (int.TryParse(line.Substring(8).Trim(), out newMon)) {
+                                SetSelectedMonitor(newMon);
                             }
                         }
                     }
@@ -544,6 +558,18 @@ namespace InputHelper {
                     SetClipboardText(textToSet);
                     Console.WriteLine("OK");
                     break;
+                case "monitors":
+                    Console.WriteLine("MONITORS:" + GetMonitorsJson());
+                    break;
+                case "monitor":
+                case "setmonitor":
+                case "setmon":
+                    int mIdx;
+                    if (int.TryParse(rest, out mIdx)) {
+                        SetSelectedMonitor(mIdx);
+                    }
+                    Console.WriteLine("OK");
+                    break;
                 default:
                     throw new ArgumentException("Unknown action: " + action);
             }
@@ -597,7 +623,9 @@ namespace InputHelper {
             if (coords.Length < 2) return;
             int x, y;
             if (int.TryParse(coords[0], out x) && int.TryParse(coords[1], out y)) {
-                SetCursorPos(x, y);
+                int monX, monY, monW, monH;
+                GetSelectedMonitorBounds(out monX, out monY, out monW, out monH);
+                SetCursorPos(x + monX, y + monY);
                 mouse_event(MOUSEEVENTF_MOVE, 0, 0, 0, UIntPtr.Zero);
             }
         }
@@ -901,6 +929,80 @@ namespace InputHelper {
             }
         }
 
+        private static int currentMonitorIndex = 0;
+
+        public static void SetSelectedMonitor(int index) {
+            try {
+                var screens = Screen.AllScreens;
+                if (screens != null && screens.Length > 0) {
+                    if (index < 0) index = 0;
+                    if (index >= screens.Length) index = screens.Length - 1;
+                    currentMonitorIndex = index;
+                } else {
+                    currentMonitorIndex = 0;
+                }
+            } catch {
+                currentMonitorIndex = 0;
+            }
+        }
+
+        public static void GetSelectedMonitorBounds(out int monX, out int monY, out int monW, out int monH) {
+            try {
+                var screens = Screen.AllScreens;
+                if (screens != null && screens.Length > 0) {
+                    int idx = currentMonitorIndex;
+                    if (idx < 0 || idx >= screens.Length) idx = 0;
+                    var s = screens[idx];
+                    monX = s.Bounds.X;
+                    monY = s.Bounds.Y;
+                    monW = s.Bounds.Width;
+                    monH = s.Bounds.Height;
+                    return;
+                }
+            } catch { }
+
+            monX = 0;
+            monY = 0;
+            monW = GetSystemMetrics(0);
+            monH = GetSystemMetrics(1);
+            if (monW <= 0) monW = 1920;
+            if (monH <= 0) monH = 1080;
+        }
+
+        public static string GetMonitorsJson() {
+            try {
+                var screens = Screen.AllScreens;
+                if (screens == null || screens.Length == 0) {
+                    return "{\"count\":1,\"active\":0,\"monitors\":[{\"index\":0,\"name\":\"Primary Display\",\"w\":1920,\"h\":1080,\"x\":0,\"y\":0,\"primary\":true}]}";
+                }
+                int active = currentMonitorIndex;
+                if (active < 0 || active >= screens.Length) active = 0;
+
+                StringBuilder sb = new StringBuilder();
+                sb.Append("{\"count\":").Append(screens.Length).Append(",\"active\":").Append(active).Append(",\"monitors\":[");
+                for (int i = 0; i < screens.Length; i++) {
+                    if (i > 0) sb.Append(",");
+                    var s = screens[i];
+                    string cleanName = (s.DeviceName ?? "").Replace("\\", "").Replace(".", "").Trim();
+                    if (string.IsNullOrEmpty(cleanName)) cleanName = "Display " + (i + 1);
+                    else cleanName = "Display " + (i + 1) + " (" + cleanName + ")";
+                    sb.Append("{")
+                      .Append("\"index\":").Append(i).Append(",")
+                      .Append("\"name\":\"").Append(cleanName).Append("\",")
+                      .Append("\"w\":").Append(s.Bounds.Width).Append(",")
+                      .Append("\"h\":").Append(s.Bounds.Height).Append(",")
+                      .Append("\"x\":").Append(s.Bounds.X).Append(",")
+                      .Append("\"y\":").Append(s.Bounds.Y).Append(",")
+                      .Append("\"primary\":").Append(s.Primary ? "true" : "false")
+                      .Append("}");
+                }
+                sb.Append("]}");
+                return sb.ToString();
+            } catch (Exception ex) {
+                return "{\"count\":1,\"active\":0,\"monitors\":[],\"error\":\"" + ex.Message.Replace("\"", "\\\"") + "\"}";
+            }
+        }
+
         private static void EnsureDesktopAccess() {
             try {
                 IntPtr hwinsta = OpenWindowStation("winsta0", false, 0x000F037F);
@@ -916,22 +1018,29 @@ namespace InputHelper {
         public static byte[] CaptureScreenJpeg(int quality, int targetHeight, out int curX, out int curY, out int scrW, out int scrH) {
             EnsureDesktopAccess();
 
-            int srcW = GetSystemMetrics(0);
-            int srcH = GetSystemMetrics(1);
+            int monX, monY, srcW, srcH;
+            GetSelectedMonitorBounds(out monX, out monY, out srcW, out srcH);
             if (srcW <= 0 || srcH <= 0) {
-                srcW = Screen.PrimaryScreen.Bounds.Width;
-                srcH = Screen.PrimaryScreen.Bounds.Height;
+                srcW = GetSystemMetrics(0);
+                srcH = GetSystemMetrics(1);
+                monX = 0;
+                monY = 0;
             }
             if (srcW <= 0) srcW = 1920;
             if (srcH <= 0) srcH = 1080;
             scrW = srcW;
             scrH = srcH;
 
-            // Retrieve live mouse cursor position
+            // Retrieve live mouse cursor position (relative to the selected monitor)
             POINT pt;
             if (GetCursorPos(out pt)) {
-                curX = pt.X;
-                curY = pt.Y;
+                if (pt.X >= monX && pt.X < monX + srcW && pt.Y >= monY && pt.Y < monY + srcH) {
+                    curX = pt.X - monX;
+                    curY = pt.Y - monY;
+                } else {
+                    curX = -1;
+                    curY = -1;
+                }
             } else {
                 curX = srcW / 2;
                 curY = srcH / 2;
@@ -959,7 +1068,7 @@ namespace InputHelper {
                         using (Graphics gSrc = Graphics.FromImage(srcBmp)) {
                             IntPtr hDestDC = gSrc.GetHdc();
                             try {
-                                BitBlt(hDestDC, 0, 0, srcW, srcH, hSrcDC, 0, 0, SRCCOPY | CAPTUREBLT);
+                                BitBlt(hDestDC, 0, 0, srcW, srcH, hSrcDC, monX, monY, SRCCOPY | CAPTUREBLT);
 
                                 // Render the real physical Windows mouse cursor onto the desktop frame
                                 try {
@@ -968,13 +1077,13 @@ namespace InputHelper {
                                     if (GetCursorInfo(out pci) && pci.flags == 0x00000001 && pci.hCursor != IntPtr.Zero) {
                                         ICONINFO ii;
                                         if (GetIconInfo(pci.hCursor, out ii)) {
-                                            int drawX = pci.ptScreenPos.X - ii.xHotspot;
-                                            int drawY = pci.ptScreenPos.Y - ii.yHotspot;
+                                            int drawX = pci.ptScreenPos.X - monX - ii.xHotspot;
+                                            int drawY = pci.ptScreenPos.Y - monY - ii.yHotspot;
                                             DrawIconEx(hDestDC, drawX, drawY, pci.hCursor, 0, 0, 0, IntPtr.Zero, 0x0003);
                                             if (ii.hbmMask != IntPtr.Zero) DeleteObject(ii.hbmMask);
                                             if (ii.hbmColor != IntPtr.Zero) DeleteObject(ii.hbmColor);
                                         } else {
-                                            DrawIconEx(hDestDC, pci.ptScreenPos.X, pci.ptScreenPos.Y, pci.hCursor, 0, 0, 0, IntPtr.Zero, 0x0003);
+                                            DrawIconEx(hDestDC, pci.ptScreenPos.X - monX, pci.ptScreenPos.Y - monY, pci.hCursor, 0, 0, 0, IntPtr.Zero, 0x0003);
                                         }
                                     }
                                 } catch { }
