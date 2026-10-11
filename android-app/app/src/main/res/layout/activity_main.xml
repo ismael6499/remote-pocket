@@ -202,6 +202,7 @@
                 android:focusable="true" />
 
             <View
+                android:id="@+id/dividerFollow"
                 android:layout_width="1dp"
                 android:layout_height="14dp"
                 android:background="#334155" />
@@ -240,12 +241,13 @@
                 android:background="#334155" />
 
             <TextView
-                android:id="@+id/btnEnterFullscreen"
+                android:id="@+id/btnMonitorSelector"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/btn_fullscreen"
-                android:textColor="@color/accent_cyan"
+                android:text="🖥️ 1"
+                android:textColor="@color/accent_indigo"
                 android:textSize="12sp"
+                android:textStyle="bold"
                 android:paddingStart="8dp"
                 android:paddingEnd="8dp"
                 android:clickable="true"
@@ -257,14 +259,14 @@
                 android:background="#334155" />
 
             <TextView
-                android:id="@+id/btnMonitorSelector"
+                android:id="@+id/btnEnterFullscreen"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="🖥️ 1"
-                android:textColor="@color/accent_indigo"
+                android:text="@string/btn_fullscreen"
+                android:textColor="@color/accent_cyan"
                 android:textSize="12sp"
-                android:textStyle="bold"
                 android:paddingStart="8dp"
+                android:paddingEnd="8dp"
                 android:clickable="true"
                 android:focusable="true" />
 

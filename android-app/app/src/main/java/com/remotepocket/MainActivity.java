@@ -123,6 +123,36 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private final Runnable fadeFabKeyboardRunnable = () -> {
+        if (fabKeyboard != null) {
+            fabKeyboard.animate().alpha(0.20f).setDuration(400).start();
+        }
+    };
+
+    private void resetFabKeyboardFade() {
+        handler.removeCallbacks(fadeFabKeyboardRunnable);
+        if (fabKeyboard != null) {
+            fabKeyboard.animate().alpha(1.0f).setDuration(150).start();
+            handler.postDelayed(fadeFabKeyboardRunnable, 3000);
+        }
+    }
+
+    private final Runnable fadeExpandScreenControlsRunnable = () -> {
+        if (btnExpandScreenControls != null && btnExpandScreenControls.getVisibility() == View.VISIBLE && !isFullscreen) {
+            btnExpandScreenControls.animate().alpha(0.20f).setDuration(400).start();
+        }
+    };
+
+    private void resetExpandScreenControlsFade() {
+        handler.removeCallbacks(fadeExpandScreenControlsRunnable);
+        if (btnExpandScreenControls != null) {
+            btnExpandScreenControls.animate().alpha(1.0f).setDuration(150).start();
+            if (btnExpandScreenControls.getVisibility() == View.VISIBLE && !isFullscreen) {
+                handler.postDelayed(fadeExpandScreenControlsRunnable, 3000);
+            }
+        }
+    }
+
     private void scheduleAutoReconnect() {
         if (!isAppInForeground || currentDevice == null) return;
         handler.removeCallbacks(reconnectRunnable);
@@ -394,13 +424,21 @@ public class MainActivity extends AppCompatActivity {
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                 isScreenControlsCollapsed = true;
                 if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.GONE);
-                if (btnExpandScreenControls != null) btnExpandScreenControls.setVisibility(View.VISIBLE);
+                if (btnExpandScreenControls != null) {
+                    btnExpandScreenControls.setVisibility(View.VISIBLE);
+                    resetExpandScreenControlsFade();
+                }
             });
         }
         if (btnExpandScreenControls != null) {
+            btnExpandScreenControls.setOnTouchListener((v, event) -> {
+                resetExpandScreenControlsFade();
+                return false;
+            });
             btnExpandScreenControls.setOnClickListener(v -> {
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                 isScreenControlsCollapsed = false;
+                handler.removeCallbacks(fadeExpandScreenControlsRunnable);
                 if (btnExpandScreenControls != null) btnExpandScreenControls.setVisibility(View.GONE);
                 if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.VISIBLE);
             });
@@ -507,6 +545,25 @@ public class MainActivity extends AppCompatActivity {
     private PcKeyboardDialog activePcKeyboardDialog = null;
 
     private void setupDraggableFab() {
+        resetFabKeyboardFade();
+
+        fabKeyboard.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            View parent = (View) v.getParent();
+            if (parent != null && parent.getWidth() > 0 && parent.getHeight() > 0) {
+                int margin = (int) (8 * getResources().getDisplayMetrics().density);
+                float minX = margin;
+                float maxX = Math.max(minX, parent.getWidth() - v.getWidth() - margin);
+                float minY = margin;
+                float maxY = Math.max(minY, parent.getHeight() - v.getHeight() - margin);
+                float curX = v.getX();
+                float curY = v.getY();
+                if (curX < minX || curX > maxX || curY < minY || curY > maxY) {
+                    v.setX(Math.max(minX, Math.min(curX, maxX)));
+                    v.setY(Math.max(minY, Math.min(curY, maxY)));
+                }
+            }
+        });
+
         fabKeyboard.setOnTouchListener(new View.OnTouchListener() {
             private float dX, dY;
             private float startX, startY;
@@ -514,6 +571,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean onTouch(View view, MotionEvent event) {
+                resetFabKeyboardFade();
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         dX = view.getX() - event.getRawX();
@@ -523,11 +581,20 @@ public class MainActivity extends AppCompatActivity {
                         return true;
 
                     case MotionEvent.ACTION_MOVE:
-                        view.animate()
-                                .x(event.getRawX() + dX)
-                                .y(event.getRawY() + dY)
-                                .setDuration(0)
-                                .start();
+                        float targetX = event.getRawX() + dX;
+                        float targetY = event.getRawY() + dY;
+                        View parent = (View) view.getParent();
+                        if (parent != null) {
+                            int margin = (int) (8 * getResources().getDisplayMetrics().density);
+                            float minX = margin;
+                            float maxX = Math.max(minX, parent.getWidth() - view.getWidth() - margin);
+                            float minY = margin;
+                            float maxY = Math.max(minY, parent.getHeight() - view.getHeight() - margin);
+                            targetX = Math.max(minX, Math.min(targetX, maxX));
+                            targetY = Math.max(minY, Math.min(targetY, maxY));
+                        }
+                        view.setX(targetX);
+                        view.setY(targetY);
                         return true;
 
                     case MotionEvent.ACTION_UP:
@@ -537,7 +604,13 @@ public class MainActivity extends AppCompatActivity {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                             onKeyboardFabClicked();
                         }
+                        resetFabKeyboardFade();
                         return true;
+
+                    case MotionEvent.ACTION_CANCEL:
+                        resetFabKeyboardFade();
+                        return true;
+
                     default:
                         return false;
                 }
@@ -618,10 +691,16 @@ public class MainActivity extends AppCompatActivity {
             if (!isFullscreen) {
                 if (isScreenControlsCollapsed) {
                     if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.GONE);
-                    if (btnExpandScreenControls != null) btnExpandScreenControls.setVisibility(View.VISIBLE);
+                    if (btnExpandScreenControls != null) {
+                        btnExpandScreenControls.setVisibility(View.VISIBLE);
+                        resetExpandScreenControlsFade();
+                    }
                 } else {
                     if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.VISIBLE);
-                    if (btnExpandScreenControls != null) btnExpandScreenControls.setVisibility(View.GONE);
+                    if (btnExpandScreenControls != null) {
+                        btnExpandScreenControls.setVisibility(View.GONE);
+                        handler.removeCallbacks(fadeExpandScreenControlsRunnable);
+                    }
                 }
                 updateScreenControlsUi(touchpadView.getCurrentScale(), touchpadView.isFollowCursor());
             }
@@ -639,6 +718,7 @@ public class MainActivity extends AppCompatActivity {
             }
             if (btnExpandScreenControls != null) {
                 btnExpandScreenControls.setVisibility(View.GONE);
+                handler.removeCallbacks(fadeExpandScreenControlsRunnable);
             }
             txtTouchpadHint.setVisibility(View.VISIBLE);
             touchpadView.resetZoom();
@@ -739,15 +819,24 @@ public class MainActivity extends AppCompatActivity {
         if (isScreenMode) {
             if (isScreenControlsCollapsed) {
                 if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.GONE);
-                if (btnExpandScreenControls != null) btnExpandScreenControls.setVisibility(View.VISIBLE);
+                if (btnExpandScreenControls != null) {
+                    btnExpandScreenControls.setVisibility(View.VISIBLE);
+                    resetExpandScreenControlsFade();
+                }
             } else {
                 if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.VISIBLE);
-                if (btnExpandScreenControls != null) btnExpandScreenControls.setVisibility(View.GONE);
+                if (btnExpandScreenControls != null) {
+                    btnExpandScreenControls.setVisibility(View.GONE);
+                    handler.removeCallbacks(fadeExpandScreenControlsRunnable);
+                }
             }
             if (txtTouchpadHint != null) txtTouchpadHint.setVisibility(View.GONE);
         } else {
             if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.GONE);
-            if (btnExpandScreenControls != null) btnExpandScreenControls.setVisibility(View.GONE);
+            if (btnExpandScreenControls != null) {
+                btnExpandScreenControls.setVisibility(View.GONE);
+                handler.removeCallbacks(fadeExpandScreenControlsRunnable);
+            }
             if (txtTouchpadHint != null) txtTouchpadHint.setVisibility(View.VISIBLE);
         }
 
@@ -787,9 +876,17 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateScreenControlsUi(float scale, boolean followCursor) {
         runOnUiThread(() -> {
+            View dividerFollow = findViewById(R.id.dividerFollow);
             if (btnToggleFollow != null) {
-                btnToggleFollow.setText(followCursor ? R.string.screen_follow_on : R.string.screen_follow_off);
-                btnToggleFollow.setTextColor(ContextCompat.getColor(this, followCursor ? R.color.accent_cyan : R.color.text_secondary));
+                if (scale <= 1.05f) {
+                    btnToggleFollow.setVisibility(View.GONE);
+                    if (dividerFollow != null) dividerFollow.setVisibility(View.GONE);
+                } else {
+                    btnToggleFollow.setVisibility(View.VISIBLE);
+                    if (dividerFollow != null) dividerFollow.setVisibility(View.VISIBLE);
+                    btnToggleFollow.setText(followCursor ? R.string.screen_follow_on : R.string.screen_follow_off);
+                    btnToggleFollow.setTextColor(ContextCompat.getColor(this, followCursor ? R.color.accent_cyan : R.color.text_secondary));
+                }
             }
             if (btnZoomLevel != null) {
                 if (scale <= 1.05f) {
@@ -1085,6 +1182,10 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         isAppInForeground = true;
         updateFpsUi();
+        resetFabKeyboardFade();
+        if (btnExpandScreenControls != null && btnExpandScreenControls.getVisibility() == View.VISIBLE && !isFullscreen) {
+            resetExpandScreenControlsFade();
+        }
 
         if (isFullscreen) {
             WindowInsetsControllerCompat insetsController = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
@@ -1130,6 +1231,9 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
         isAppInForeground = false;
         handler.removeCallbacks(reconnectRunnable);
+        handler.removeCallbacks(fadeFabKeyboardRunnable);
+        handler.removeCallbacks(fadeExpandScreenControlsRunnable);
+        handler.removeCallbacks(fadeFullscreenControlsRunnable);
         if (isScreenMode && webSocketManager.isConnected()) {
             webSocketManager.stopScreenStream();
         }

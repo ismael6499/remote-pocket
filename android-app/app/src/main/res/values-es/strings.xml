@@ -105,8 +105,8 @@
     <string name="confirm_restart_agent_title">Reiniciar Agente PC</string>
     <string name="confirm_restart_agent_msg">¿Deseas reiniciar el Agente de PC de Remote Pocket en segundo plano? Se reiniciará y se reconectará automáticamente.</string>
     <string name="toast_restarting_agent">Reiniciando el agente de PC en segundo plano...</string>
-    <string name="screen_follow_on">🎯 Seguir: SÍ</string>
-    <string name="screen_follow_off">🎯 Seguir: NO</string>
+    <string name="screen_follow_on">🖱️ Mover Mouse</string>
+    <string name="screen_follow_off">🖐️ Mover Pantalla</string>
     <string name="screen_zoom_format">🔍 %.1fx</string>
     <string name="screen_reset_zoom">Ajustar 1.0x</string>
     <string name="dialog_logs_title">Diagnóstico y Registros</string>

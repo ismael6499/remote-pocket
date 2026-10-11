@@ -317,7 +317,7 @@ public class TouchpadView extends View {
      */
     private int pendingSrvX = -1, pendingSrvY = -1;
     private int pendingSrvCount = 0;
-    private static final int SERVER_STABLE_FRAMES = 6;
+    private static final int SERVER_STABLE_FRAMES = 2;
 
     public void updateServerCursorPosition(int x, int y, int w, int h) {
         this.scrW = w > 0 ? w : this.scrW;
@@ -472,9 +472,8 @@ public class TouchpadView extends View {
                 isScaling = false;
                 isTouching = true;
 
-                // Stale local cursor (e.g. PC mouse moved or fresh connection): snap to the real PC position
-                if (serverX >= 0 && serverY >= 0 && (curX < 0 || curY < 0
-                        || System.currentTimeMillis() - lastLocalMoveTime >= SERVER_SYNC_GRACE_MS)) {
+                // Initial cursor position: if not initialized, snap to the real PC position
+                if (serverX >= 0 && serverY >= 0 && (curX < 0 || curY < 0)) {
                     curX = serverX;
                     curY = serverY;
                     if (followCursor && currentScale > 1.05f) {

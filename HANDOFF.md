@@ -87,7 +87,17 @@ Remote Pocket is a monorepo containing:
     - Hides top toolbar/header, mode tabs, and bottom mouse buttons.
     - Edge-to-edge desktop container (`0dp` margins, pitch black background).
     - Removed intrusive Toast notification when toggling fullscreen.
-    - **Draggable Keyboard FAB**: Floating keyboard action button remains accessible in landscape to quickly open PC / soft keyboards.
+    - **Draggable Keyboard FAB**:
+      - Clamped strictly within safe screen margins (`8dp`), preventing the button from escaping off-screen or getting lost under the status bar.
+      - Automatically re-clamps on orientation change (portrait <-> landscape).
+      - Auto-fades to subtle transparency (`alpha = 0.20f`) after 3 seconds of inactivity, instantly restoring to `1.0f` upon touch.
+    - **Screen Controls Header Pill**:
+      - Reordered buttons in normal mode: `[⚡ FPS] | [🖥️ Monitor] | [⛶ Full] | [✕ Close]`.
+      - Replaced ambiguous "Follow ON/OFF" text with intuitive labels: `🖱️ Mouse` vs `🖐️ Pan View` (Spanish: `🖱️ Mover Mouse` vs `🖐️ Mover Pantalla`).
+      - In 1.0x Full Desktop Fit, the follow toggle is automatically hidden (since full screen fits with no panning possible; dragging always moves the mouse).
+      - Collapsed controls pill auto-fades to `0.20f` after 3 seconds of inactivity, restoring to `1.0f` on touch.
+    - **Eliminated Low-FPS Cursor Jump**:
+      - Resolved issue where tapping in live screen at low FPS (e.g. 2 FPS) caused the cursor to momentarily jump to the left. Removed stale `serverX` overwrite on `ACTION_DOWN` when local coordinates are already active, and reduced `SERVER_STABLE_FRAMES` from 6 to 2.
     - **Dual Exit Mechanisms**:
       1. Discrete glass exit button (`btnExitFullscreen`, `@drawable/ic_fullscreen_exit`) fixed at top-right corner.
       2. Android hardware/gesture Back button (`OnBackPressedCallback`), gracefully returning to portrait mode and restoring toolbars and system bars.
