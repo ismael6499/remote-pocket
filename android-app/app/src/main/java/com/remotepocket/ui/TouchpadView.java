@@ -296,13 +296,34 @@ public class TouchpadView extends View {
         }
     }
 
+    private int serverX = -1, serverY = -1;
+    private long lastLocalMoveTime = 0;
+    private static final long SERVER_SYNC_GRACE_MS = 900;
+
+    /**
+     * Forgets the local cursor so the next server frame (or touch) re-syncs with the PC's real position.
+     */
+    public void resyncCursorFromServer() {
+        curX = -1;
+        curY = -1;
+        lastLocalMoveTime = 0;
+        invalidate();
+    }
+
     /**
      * Receives authoritative desktop dimensions and cursor position from PC.
-     * NOTE: ONLY updates local cursor when the user is NOT actively touching the screen!
+     * Server frames are delayed, so they are ignored while touching and for a short grace
+     * period after the last local move to avoid cursor jitter ("earthquake" effect).
      */
     public void updateServerCursorPosition(int x, int y, int w, int h) {
         this.scrW = w > 0 ? w : this.scrW;
         this.scrH = h > 0 ? h : this.scrH;
+        if (x >= 0 && y >= 0) {
+            serverX = x;
+            serverY = y;
+        }
+
+        boolean inGrace = isTouching || (System.currentTimeMillis() - lastLocalMoveTime) < SERVER_SYNC_GRACE_MS;
 
         if (this.curX < 0 || this.curY < 0) {
             this.curX = x >= 0 ? x : scrW / 2;
@@ -310,8 +331,7 @@ public class TouchpadView extends View {
             if (followCursor && currentScale > 1.0f) {
                 applyCenterTranslationDirect();
             }
-        } else if (!isTouching) {
-            // User is NOT touching the screen: keep coordinates in sync with PC
+        } else if (!inGrace) {
             this.curX = x;
             this.curY = y;
             if (followCursor && currentScale > 1.05f) {
@@ -437,6 +457,17 @@ public class TouchpadView extends View {
                 isScaling = false;
                 isTouching = true;
 
+                // Stale local cursor (e.g. PC mouse moved or fresh connection): snap to the real PC position
+                if (serverX >= 0 && serverY >= 0 && (curX < 0 || curY < 0
+                        || System.currentTimeMillis() - lastLocalMoveTime >= SERVER_SYNC_GRACE_MS)) {
+                    curX = serverX;
+                    curY = serverY;
+                    if (followCursor && currentScale > 1.05f) {
+                        applyCenterTranslationDirect();
+                    }
+                    invalidate();
+                }
+
                 // Safety: ensure any lingering drag state on PC is released
                 if (isTapAndDrag) {
                     webSocketManager.sendMouseUp("left");
@@ -506,6 +537,7 @@ public class TouchpadView extends View {
                                             curX = Math.max(0, Math.min(scrW - 1, (curX >= 0 ? curX : scrW / 2) + stepX));
                                             curY = Math.max(0, Math.min(scrH - 1, (curY >= 0 ? curY : scrH / 2) + stepY));
                                             webSocketManager.sendMouseAbsolute(curX, curY);
+                                            lastLocalMoveTime = System.currentTimeMillis();
                                             applyCenterTranslationDirect();
                                             invalidate();
                                         }
@@ -540,6 +572,7 @@ public class TouchpadView extends View {
                                         curX = Math.max(0, Math.min(scrW - 1, (curX >= 0 ? curX : scrW / 2) + stepX));
                                         curY = Math.max(0, Math.min(scrH - 1, (curY >= 0 ? curY : scrH / 2) + stepY));
                                         webSocketManager.sendMouseAbsolute(curX, curY);
+                                        lastLocalMoveTime = System.currentTimeMillis();
                                         invalidate();
                                     }
                                 }

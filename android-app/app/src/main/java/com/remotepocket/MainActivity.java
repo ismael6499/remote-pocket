@@ -177,6 +177,7 @@ public class MainActivity extends AppCompatActivity {
             public void onConnected() {
                 handler.removeCallbacks(reconnectRunnable);
                 updateConnectionUi(true);
+                touchpadView.resyncCursorFromServer();
                 if (isScreenMode) {
                     webSocketManager.startScreenStream();
                     webSocketManager.sendScreenFps(currentFps);
