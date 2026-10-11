@@ -1,6 +1,6 @@
 {
   "name": "remote-pocket-agent",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Remote Pocket PC Agent - Windows Automation Daemon",
   "main": "server.js",
   "scripts": {

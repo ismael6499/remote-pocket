@@ -570,6 +570,11 @@ namespace InputHelper {
                     }
                     Console.WriteLine("OK");
                     break;
+                case "screenoff":
+                case "screen_off":
+                    ScreenOffSequence();
+                    Console.WriteLine("OK");
+                    break;
                 default:
                     throw new ArgumentException("Unknown action: " + action);
             }
@@ -609,6 +614,32 @@ namespace InputHelper {
             PressKey("backspace");
             Thread.Sleep(10);
             PressKey("backspace");
+        }
+
+        private static void ScreenOffSequence() {
+            try {
+                ReleaseAllModifiers();
+                Thread.Sleep(50);
+
+                // Pulse Windows key (open Start menu to grab shell focus)
+                keybd_event(0x5B, 0, 0, UIntPtr.Zero);
+                keybd_event(0x5B, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                Thread.Sleep(250);
+
+                // Pulse Windows key again (close Start menu, returning focus cleanly to shell/desktop)
+                keybd_event(0x5B, 0, 0, UIntPtr.Zero);
+                keybd_event(0x5B, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                Thread.Sleep(200);
+
+                // Send Alt + X (0x12 = VK_MENU, 0x58 = 'X' for PushMonitOff)
+                keybd_event(0x12, 0, 0, UIntPtr.Zero);
+                Thread.Sleep(30);
+                keybd_event(0x58, 0, 0, UIntPtr.Zero);
+                Thread.Sleep(30);
+                keybd_event(0x58, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                Thread.Sleep(30);
+                keybd_event(0x12, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            } catch { }
         }
 
         private static void SetClipboardAndPaste(string text) {
@@ -867,6 +898,12 @@ namespace InputHelper {
                 try {
                     System.Diagnostics.Process.Start("rundll32.exe", "user32.dll,LockWorkStation");
                 } catch { }
+                return;
+            }
+            if (keyExpr.Equals("alt+x", StringComparison.OrdinalIgnoreCase) ||
+                keyExpr.Equals("screenoff", StringComparison.OrdinalIgnoreCase) ||
+                keyExpr.Equals("screen_off", StringComparison.OrdinalIgnoreCase)) {
+                ScreenOffSequence();
                 return;
             }
             string[] parts;

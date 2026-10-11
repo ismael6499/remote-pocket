@@ -114,24 +114,24 @@
         app:layout_constraintTop_toBottomOf="@id/headerLayout">
 
         <Button
-            android:id="@+id/tabTrackpad"
-            style="@style/Widget.MaterialComponents.Button"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:backgroundTint="@color/accent_indigo"
-            android:text="@string/tab_trackpad"
-            android:textColor="@color/text_primary"
-            android:textSize="13sp" />
-
-        <Button
             android:id="@+id/tabScreen"
             style="@style/Widget.MaterialComponents.Button"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:backgroundTint="@color/btn_surface"
+            android:backgroundTint="@color/accent_indigo"
             android:text="@string/tab_screen"
+            android:textColor="@color/text_primary"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/tabTrackpad"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:backgroundTint="@color/btn_surface"
+            android:text="@string/tab_trackpad"
             android:textColor="@color/text_secondary"
             android:textSize="13sp" />
     </LinearLayout>

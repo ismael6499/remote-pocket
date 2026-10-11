@@ -161,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
         handler.postDelayed(reconnectRunnable, 1200);
     }
 
-    private boolean isScreenMode = false;
+    private boolean isScreenMode = true;
     private DeviceManagerDialog deviceDialog;
     private final Gson gson = new Gson();
 
@@ -174,6 +174,7 @@ public class MainActivity extends AppCompatActivity {
         initManagers();
         loadSavedDevices();
         setupListeners();
+        switchMode(true);
 
         // Handle Back button to exit fullscreen if active
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {

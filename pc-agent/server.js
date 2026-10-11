@@ -421,7 +421,7 @@ app.get('/api/status', verifyPin, async (req, res) => {
     audio,
     brightness,
     screenOffApp: Boolean(config.screenOffApp),
-    version: '1.0.3'
+    version: '1.0.4'
   });
 });
 
@@ -636,8 +636,8 @@ app.post('/api/system/restart', verifyPin, (req, res) => {
 });
 
 app.post('/api/system/screen_off', verifyPin, (req, res) => {
-  console.log('[System] Screen off (Alt+X) requested');
-  sendInputCommand('k alt+x');
+  console.log('[System] Screen off sequence (Win -> Win -> Alt+X) requested');
+  sendInputCommand('screenoff');
   res.json({ success: true, action: 'screen_off' });
 });
 
@@ -917,8 +917,8 @@ function handleWebSocketMessage(ws, data) {
       break;
 
     case 'screen_off':
-      console.log('[WebSocket] Screen off (Alt+X) requested');
-      sendInputCommand('k alt+x');
+      console.log('[WebSocket] Screen off sequence (Win -> Win -> Alt+X) requested');
+      sendInputCommand('screenoff');
       break;
 
     default:
