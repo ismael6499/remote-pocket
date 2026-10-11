@@ -22,3 +22,4 @@ android-app/local.properties
 .DS_Store
 Thumbs.db
 .agents/
+!android-app/gradle/wrapper/gradle-wrapper.jar
