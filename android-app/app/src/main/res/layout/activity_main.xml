@@ -386,7 +386,7 @@
             android:layout_weight="1"
             android:background="@drawable/bg_trackpad"
             android:hint="@string/type_here_hint"
-            android:imeOptions="actionSend"
+            android:imeOptions="actionSend|flagNoExtractUi|flagNoFullscreen"
             android:inputType="text"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"

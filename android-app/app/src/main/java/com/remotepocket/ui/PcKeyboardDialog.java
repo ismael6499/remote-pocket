@@ -62,11 +62,32 @@ public class PcKeyboardDialog extends Dialog {
         this.onSwitchToNormalKeyboard = runnable;
     }
 
+    private void compactHeights(View root, float factor) {
+        if (root == null) return;
+        ViewGroup.LayoutParams lp = root.getLayoutParams();
+        if (lp != null && lp.height > 0 && !(root instanceof ViewGroup && ((ViewGroup) root).getChildCount() > 0)) {
+            float min = 26f * getContext().getResources().getDisplayMetrics().density;
+            lp.height = Math.max((int) min, Math.round(lp.height * factor));
+            root.setLayoutParams(lp);
+        }
+        if (root instanceof ViewGroup) {
+            ViewGroup g = (ViewGroup) root;
+            for (int i = 0; i < g.getChildCount(); i++) {
+                compactHeights(g.getChildAt(i), factor);
+            }
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.dialog_pc_keyboard);
+
+        // Landscape (e.g. fullscreen live screen): compact keys so the desktop stays visible above the keyboard
+        if (getContext().getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
+            compactHeights(findViewById(android.R.id.content), 0.74f);
+        }
 
         vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
 
