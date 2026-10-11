@@ -113,11 +113,11 @@ public class TouchpadView extends View {
         paintCursorStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
         paintCursorStroke.setStyle(Paint.Style.STROKE);
         paintCursorStroke.setColor(Color.BLACK);
-        paintCursorStroke.setStrokeWidth(2.0f);
+        paintCursorStroke.setStrokeWidth(1.6f);
         paintCursorStroke.setStrokeJoin(Paint.Join.ROUND);
 
         cursorPath = new android.graphics.Path();
-        float s = getResources().getDisplayMetrics().density * 1.15f;
+        float s = getResources().getDisplayMetrics().density * 0.75f;
         cursorPath.moveTo(0 * s, 0 * s);
         cursorPath.lineTo(0 * s, 17 * s);
         cursorPath.lineTo(4.5f * s, 13 * s);

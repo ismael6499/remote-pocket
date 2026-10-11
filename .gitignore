@@ -22,4 +22,5 @@ android-app/local.properties
 .DS_Store
 Thumbs.db
 .agents/
+HANDOFF.md
 !android-app/gradle/wrapper/gradle-wrapper.jar

@@ -383,7 +383,6 @@ public class MainActivity extends AppCompatActivity {
                 if (webSocketManager.isConnected()) {
                     webSocketManager.sendScreenFps(currentFps);
                 }
-                Toast.makeText(this, "Screen FPS: " + currentFps, Toast.LENGTH_SHORT).show();
             });
         }
         if (btnEnterFullscreen != null) {
