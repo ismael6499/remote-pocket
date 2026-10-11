@@ -445,6 +445,20 @@ public class TouchpadView extends View {
         return new int[]{dx, dy};
     }
 
+    private float getPointerAcceleration(float deltaX, float deltaY) {
+        float density = getResources().getDisplayMetrics().density;
+        if (density <= 0) density = 1.0f;
+        float distDp = (float) Math.hypot(deltaX, deltaY) / density;
+        if (distDp <= 3.0f) {
+            return 1.0f; // Micro-movements: 1:1 pixel precision
+        } else if (distDp <= 15.0f) {
+            return 1.0f + (distDp - 3.0f) * 0.065f; // Progressive smooth acceleration
+        } else {
+            float accel = 1.78f + (distDp - 15.0f) * 0.075f; // Swift flicks across screen
+            return Math.min(accel, 3.5f); // Safe clamp
+        }
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (scaleGestureDetector != null && event.getPointerCount() >= 2) {
@@ -529,6 +543,13 @@ public class TouchpadView extends View {
                         removeCallbacks(pendingTapRunnable);
                     }
 
+                    float accel = getPointerAcceleration(deltaRawX, deltaRawY);
+                    if (isTapAndDrag) {
+                        accel = Math.min(accel, 1.8f);
+                    }
+                    float effectiveDeltaX = deltaRawX * accel;
+                    float effectiveDeltaY = deltaRawY * accel;
+
                     if (isScreenMode) {
                         if (currentScale > 1.05f) {
                             if (followCursor || isTapAndDrag) {
@@ -539,8 +560,8 @@ public class TouchpadView extends View {
                                     float scaleFit = Math.min((float) viewW / scrW, (float) viewH / scrH);
                                     float effectiveScale = scaleFit * currentScale;
                                     if (effectiveScale > 0) {
-                                        float moveDesktopX = deltaRawX / effectiveScale;
-                                        float moveDesktopY = deltaRawY / effectiveScale;
+                                        float moveDesktopX = effectiveDeltaX / effectiveScale;
+                                        float moveDesktopY = effectiveDeltaY / effectiveScale;
                                         accumX += moveDesktopX;
                                         accumY += moveDesktopY;
                                         int stepX = Math.round(accumX);
@@ -574,8 +595,8 @@ public class TouchpadView extends View {
                             if (viewW > 0 && viewH > 0 && scrW > 0 && scrH > 0) {
                                 float scaleFit = Math.min((float) viewW / scrW, (float) viewH / scrH);
                                 if (scaleFit > 0) {
-                                    float moveDesktopX = deltaRawX / scaleFit;
-                                    float moveDesktopY = deltaRawY / scaleFit;
+                                    float moveDesktopX = effectiveDeltaX / scaleFit;
+                                    float moveDesktopY = effectiveDeltaY / scaleFit;
                                     accumX += moveDesktopX;
                                     accumY += moveDesktopY;
                                     int stepX = Math.round(accumX);
@@ -594,8 +615,8 @@ public class TouchpadView extends View {
                         }
                     } else {
                         // Classic Trackpad Mode: relative trackpad movements
-                        accumX += deltaRawX * SENSITIVITY;
-                        accumY += deltaRawY * SENSITIVITY;
+                        accumX += effectiveDeltaX * SENSITIVITY;
+                        accumY += effectiveDeltaY * SENSITIVITY;
 
                         int moveX = Math.round(accumX);
                         int moveY = Math.round(accumY);

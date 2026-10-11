@@ -19,6 +19,7 @@ android-app/.idea/
 android-app/*.iml
 android-app/local.properties
 *.apk
+*.zip
 .DS_Store
 Thumbs.db
 .agents/

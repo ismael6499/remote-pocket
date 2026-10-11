@@ -40,12 +40,24 @@ jobs:
           TAG_NAME="${GITHUB_REF_NAME:-v1.0.0}"
           cp android-app/app/build/outputs/apk/debug/app-debug.apk "release-output/RemotePocket-${TAG_NAME}.apk"
 
+      - name: Prepare PC Agent Zip Artifact
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME:-v1.0.0}"
+          mkdir -p pc-agent-package
+          cp -r pc-agent/* pc-agent-package/
+          rm -rf pc-agent-package/node_modules pc-agent-package/updates pc-agent-package/logs pc-agent-package/*.log pc-agent-package/*.exe
+          cd pc-agent-package
+          zip -r "../release-output/RemotePocket-PC-Agent-${TAG_NAME}.zip" .
+          cd ..
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           name: RemotePocket ${{ github.ref_name }}
-          files: release-output/*.apk
+          files: |
+            release-output/*.apk
+            release-output/*.zip
           draft: false
           prerelease: false
           generate_release_notes: true
