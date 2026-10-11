@@ -267,36 +267,63 @@
                 android:paddingStart="8dp"
                 android:clickable="true"
                 android:focusable="true" />
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="14dp"
+                android:background="#334155" />
+
+            <ImageView
+                android:id="@+id/btnCollapseScreenControls"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_marginStart="6dp"
+                android:padding="3dp"
+                android:src="@drawable/ic_close"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="@string/btn_collapse_controls"
+                app:tint="@color/text_muted" />
         </LinearLayout>
 
-        <!-- Discrete Top-Right Fullscreen Controls (Monitor Switcher & Exit Fullscreen) -->
+        <!-- Discrete Expand Screen Controls Pill (when collapsed in normal mode) -->
+        <LinearLayout
+            android:id="@+id/btnExpandScreenControls"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_margin="12dp"
+            android:background="@drawable/bg_card_glass"
+            android:backgroundTint="#D90F172A"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="6dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:elevation="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⚙️ ⋯"
+                android:textColor="@color/accent_cyan"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Discrete Top-Right Fullscreen Controls (Exit Fullscreen on Top, Monitor Switcher Below) -->
         <LinearLayout
             android:id="@+id/layoutFullscreenTopBar"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="top|end"
             android:layout_margin="14dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
             android:elevation="12dp"
             android:visibility="gone">
-
-            <TextView
-                android:id="@+id/btnFullscreenMonitor"
-                android:layout_width="wrap_content"
-                android:layout_height="38dp"
-                android:minWidth="38dp"
-                android:background="@drawable/bg_btn_rounded"
-                android:backgroundTint="#CC0F172A"
-                android:gravity="center"
-                android:paddingHorizontal="10dp"
-                android:text="🖥️ 1"
-                android:textColor="@color/accent_indigo"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:layout_marginEnd="8dp"
-                android:clickable="true"
-                android:focusable="true" />
 
             <ImageButton
                 android:id="@+id/btnExitFullscreen"
@@ -308,7 +335,55 @@
                 android:contentDescription="@string/btn_exit_fullscreen"
                 android:src="@drawable/ic_fullscreen_exit"
                 app:tint="@color/text_primary" />
+
+            <TextView
+                android:id="@+id/btnFullscreenMonitor"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:minWidth="38dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_btn_rounded"
+                android:backgroundTint="#CC0F172A"
+                android:gravity="center"
+                android:paddingHorizontal="8dp"
+                android:text="🖥️ 1"
+                android:textColor="@color/accent_indigo"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <ImageView
+                android:id="@+id/btnCollapseFullscreenControls"
+                android:layout_width="26dp"
+                android:layout_height="22dp"
+                android:layout_marginTop="6dp"
+                android:padding="3dp"
+                android:src="@drawable/ic_close"
+                android:background="@drawable/bg_btn_rounded"
+                android:backgroundTint="#800F172A"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="@string/btn_collapse_controls"
+                app:tint="@color/text_muted" />
         </LinearLayout>
+
+        <!-- Tiny Corner Expand Button in Fullscreen (when controls are collapsed) -->
+        <ImageButton
+            android:id="@+id/btnExpandFullscreenControls"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="14dp"
+            android:background="@drawable/bg_btn_rounded"
+            android:backgroundTint="#990F172A"
+            android:elevation="12dp"
+            android:padding="6dp"
+            android:alpha="0.4"
+            android:contentDescription="@string/btn_expand_controls"
+            android:src="@drawable/ic_fullscreen_exit"
+            android:visibility="gone"
+            app:tint="@color/text_secondary" />
     </FrameLayout>
 
     <!-- MOUSE BUTTONS ROW -->

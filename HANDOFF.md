@@ -202,12 +202,15 @@ Remote Pocket is a monorepo containing:
     - Sends `monitors_info` payload automatically on client connection and upon any monitor switch.
     - Dispatches monitor selection to both `inputProcess` and live `screenStreamProcess`.
   - **Android Client UI & UX (`MainActivity.java`, `activity_main.xml`, `WebSocketManager.java`)**:
-    - **Normal Screen Controls Pill**: Added discrete `btnMonitorSelector` ("🖥️ 1" or "🖥️ 1/2") in `layoutScreenControls`.
-    - **Fullscreen Mode**: Added discrete glass `layoutFullscreenTopBar` in top-right corner with `btnFullscreenMonitor` next to `btnExitFullscreen`.
+    - **Normal Screen Controls Pill**: Added discrete `btnMonitorSelector` ("🖥️ 1" or "🖥️ 1/2") in `layoutScreenControls`. Added collapse button `✕` that minimizes the entire bar into a compact floating `⚙️ ⋯` badge, keeping the screen 100% clear.
+    - **Fullscreen Mode Layout**: Reoriented top-right controls vertically (`layoutFullscreenTopBar`): Exit Fullscreen icon on top, and Monitor Switcher (`🖥️ 1`) right below it.
+    - **Fullscreen Collapsibility & Auto-Dim**: Added collapse button `✕` to hide controls into a tiny corner button, and auto-dimming after 3.5s of inactivity (fading to `alpha = 0.20`), waking back on touch so Windows title bars and close buttons are never obstructed.
     - **Single Tap**: Cycles to next monitor sequentially (`(currentMonitor + 1) % monitorCount`).
     - **Long Press**: Opens selection dialog listing all connected displays with names and native resolutions (e.g., "Display 1 (1920x1080)").
     - **Cursor Resync**: Automatically invokes `touchpadView.resyncCursorFromServer()` on switch to immediately adapt coordinates and aspect ratio to the new display.
     - **i18n**: English and Spanish strings for monitor badges, toasts, and selection dialog.
+- [x] Windows Startup & Auto-Start Reliability (`run_silent.vbs` & `install.bat`):
+  - Updated `run_silent.vbs` to execute `stop_server.bat` silently before launching `server.js`, terminating any zombie PIDs or locks on port 5050 and `InputHelper.exe` to guarantee clean startup when Windows boots.
 - [x] PC Agent Live State:
   - Active PID on port 5050 (TCP HTTP/WS) and 5051 (UDP discovery). Tested and verified `/api/status`, `/api/monitors`, `/api/monitors/select`, `/api/logs`, and WebSocket screen frame streaming.
 

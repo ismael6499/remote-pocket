@@ -126,4 +126,6 @@
     <string name="toast_monitor_switched">Cambiado a Pantalla %1$d</string>
     <string name="toast_single_monitor">Solo 1 pantalla detectada en la PC</string>
     <string name="dialog_select_monitor_title">Seleccionar pantalla de PC</string>
+    <string name="btn_collapse_controls">Ocultar controles</string>
+    <string name="btn_expand_controls">Mostrar controles</string>
 </resources>

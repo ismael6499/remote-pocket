@@ -63,8 +63,16 @@ echo [4/4] Configuring background auto-start at Windows logon...
 
 :: Create run_silent.vbs dynamically with current directory
 (
+echo Set fso = CreateObject^("Scripting.FileSystemObject"^)
+echo fullPath = fso.GetAbsolutePathName^(WScript.ScriptFullName^)
+echo scriptDir = fso.GetParentFolderName^(fullPath^)
 echo Set WshShell = CreateObject^("WScript.Shell"^)
-echo WshShell.Run Chr^(34^) ^& "%~dp0start.bat" ^& Chr^(34^), 0, False
+echo WshShell.CurrentDirectory = scriptDir
+echo WshShell.Run "cmd.exe /c """ ^& scriptDir ^& "\stop_server.bat""", 0, True
+echo WScript.Sleep 1500
+echo nodeExe = "node.exe"
+echo If fso.FileExists^("C:\Program Files\nodejs\node.exe"^) Then nodeExe = """C:\Program Files\nodejs\node.exe"""
+echo WshShell.Run nodeExe ^& " """ ^& scriptDir ^& "\server.js""", 0, False
 ) > "%~dp0run_silent.vbs"
 
 :: Create shortcut in Windows Startup folder (same as Express Gateway)

@@ -90,6 +90,17 @@ public class MainActivity extends AppCompatActivity {
     private int currentMonitorIndex = 0;
     private final List<String> monitorNames = new ArrayList<>();
 
+    private View btnCollapseScreenControls, btnExpandScreenControls;
+    private View btnCollapseFullscreenControls, btnExpandFullscreenControls;
+    private boolean isScreenControlsCollapsed = false;
+    private boolean isFullscreenControlsCollapsed = false;
+
+    private final Runnable fadeFullscreenControlsRunnable = () -> {
+        if (layoutFullscreenTopBar != null && isFullscreen && !isFullscreenControlsCollapsed) {
+            layoutFullscreenTopBar.animate().alpha(0.20f).setDuration(400).start();
+        }
+    };
+
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean isAppInForeground = false;
     private final Runnable reconnectRunnable = new Runnable() {
@@ -101,6 +112,16 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+
+    private void resetFullscreenControlsFade() {
+        handler.removeCallbacks(fadeFullscreenControlsRunnable);
+        if (layoutFullscreenTopBar != null) {
+            layoutFullscreenTopBar.animate().alpha(1.0f).setDuration(150).start();
+        }
+        if (isFullscreen && !isFullscreenControlsCollapsed) {
+            handler.postDelayed(fadeFullscreenControlsRunnable, 3500);
+        }
+    }
 
     private void scheduleAutoReconnect() {
         if (!isAppInForeground || currentDevice == null) return;
@@ -170,6 +191,10 @@ public class MainActivity extends AppCompatActivity {
         btnExitFullscreen = findViewById(R.id.btnExitFullscreen);
         btnFullscreenMonitor = findViewById(R.id.btnFullscreenMonitor);
         layoutFullscreenTopBar = findViewById(R.id.layoutFullscreenTopBar);
+        btnCollapseScreenControls = findViewById(R.id.btnCollapseScreenControls);
+        btnExpandScreenControls = findViewById(R.id.btnExpandScreenControls);
+        btnCollapseFullscreenControls = findViewById(R.id.btnCollapseFullscreenControls);
+        btnExpandFullscreenControls = findViewById(R.id.btnExpandFullscreenControls);
     }
 
     private final java.util.concurrent.ExecutorService frameDecoderExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
@@ -363,6 +388,54 @@ public class MainActivity extends AppCompatActivity {
             btnFullscreenMonitor.setOnLongClickListener(monitorLongClickListener);
         }
 
+        // Screen Controls Collapse / Expand (Normal Mode)
+        if (btnCollapseScreenControls != null) {
+            btnCollapseScreenControls.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                isScreenControlsCollapsed = true;
+                if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.GONE);
+                if (btnExpandScreenControls != null) btnExpandScreenControls.setVisibility(View.VISIBLE);
+            });
+        }
+        if (btnExpandScreenControls != null) {
+            btnExpandScreenControls.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                isScreenControlsCollapsed = false;
+                if (btnExpandScreenControls != null) btnExpandScreenControls.setVisibility(View.GONE);
+                if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.VISIBLE);
+            });
+        }
+
+        // Fullscreen Controls Collapse / Expand
+        if (btnCollapseFullscreenControls != null) {
+            btnCollapseFullscreenControls.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                isFullscreenControlsCollapsed = true;
+                handler.removeCallbacks(fadeFullscreenControlsRunnable);
+                if (layoutFullscreenTopBar != null) layoutFullscreenTopBar.setVisibility(View.GONE);
+                if (btnExpandFullscreenControls != null) btnExpandFullscreenControls.setVisibility(View.VISIBLE);
+            });
+        }
+        if (btnExpandFullscreenControls != null) {
+            btnExpandFullscreenControls.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                isFullscreenControlsCollapsed = false;
+                if (btnExpandFullscreenControls != null) btnExpandFullscreenControls.setVisibility(View.GONE);
+                if (layoutFullscreenTopBar != null) {
+                    layoutFullscreenTopBar.setAlpha(1.0f);
+                    layoutFullscreenTopBar.setVisibility(View.VISIBLE);
+                }
+                resetFullscreenControlsFade();
+            });
+        }
+
+        if (layoutFullscreenTopBar != null) {
+            layoutFullscreenTopBar.setOnTouchListener((v, event) -> {
+                resetFullscreenControlsFade();
+                return false;
+            });
+        }
+
         // Mouse Action Buttons
         findViewById(R.id.btnLeftClick).setOnClickListener(v -> {
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
@@ -537,8 +610,14 @@ public class MainActivity extends AppCompatActivity {
 
             imgScreenPreview.setVisibility(View.VISIBLE);
             txtTouchpadHint.setVisibility(View.GONE);
-            if (layoutScreenControls != null && !isFullscreen) {
-                layoutScreenControls.setVisibility(View.VISIBLE);
+            if (!isFullscreen) {
+                if (isScreenControlsCollapsed) {
+                    if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.GONE);
+                    if (btnExpandScreenControls != null) btnExpandScreenControls.setVisibility(View.VISIBLE);
+                } else {
+                    if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.VISIBLE);
+                    if (btnExpandScreenControls != null) btnExpandScreenControls.setVisibility(View.GONE);
+                }
                 updateScreenControlsUi(touchpadView.getCurrentScale(), touchpadView.isFollowCursor());
             }
             webSocketManager.startScreenStream();
@@ -552,6 +631,9 @@ public class MainActivity extends AppCompatActivity {
             imgScreenPreview.setVisibility(View.GONE);
             if (layoutScreenControls != null) {
                 layoutScreenControls.setVisibility(View.GONE);
+            }
+            if (btnExpandScreenControls != null) {
+                btnExpandScreenControls.setVisibility(View.GONE);
             }
             txtTouchpadHint.setVisibility(View.VISIBLE);
             touchpadView.resetZoom();
@@ -580,15 +662,22 @@ public class MainActivity extends AppCompatActivity {
         if (layoutMouseButtons != null) layoutMouseButtons.setVisibility(View.GONE);
         if (txtTouchpadHint != null) txtTouchpadHint.setVisibility(View.GONE);
         if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.GONE);
+        if (btnExpandScreenControls != null) btnExpandScreenControls.setVisibility(View.GONE);
         if (layoutTypingInput != null && layoutTypingInput.getVisibility() == View.VISIBLE) {
             hideNormalKeyboard();
         }
 
         // Show discrete top-right exit button & monitor selector
-        if (layoutFullscreenTopBar != null) {
-            layoutFullscreenTopBar.setVisibility(View.VISIBLE);
-        } else if (btnExitFullscreen != null) {
-            btnExitFullscreen.setVisibility(View.VISIBLE);
+        if (isFullscreenControlsCollapsed) {
+            if (layoutFullscreenTopBar != null) layoutFullscreenTopBar.setVisibility(View.GONE);
+            if (btnExpandFullscreenControls != null) btnExpandFullscreenControls.setVisibility(View.VISIBLE);
+        } else {
+            if (layoutFullscreenTopBar != null) {
+                layoutFullscreenTopBar.setAlpha(1.0f);
+                layoutFullscreenTopBar.setVisibility(View.VISIBLE);
+            }
+            if (btnExpandFullscreenControls != null) btnExpandFullscreenControls.setVisibility(View.GONE);
+            resetFullscreenControlsFade();
         }
 
         // Expand containerMain to 0dp margins edge-to-edge with black background
@@ -627,7 +716,9 @@ public class MainActivity extends AppCompatActivity {
         if (headerLayout != null) headerLayout.setVisibility(View.VISIBLE);
         if (layoutTabs != null) layoutTabs.setVisibility(View.VISIBLE);
         if (layoutMouseButtons != null) layoutMouseButtons.setVisibility(View.VISIBLE);
+        handler.removeCallbacks(fadeFullscreenControlsRunnable);
         if (layoutFullscreenTopBar != null) layoutFullscreenTopBar.setVisibility(View.GONE);
+        if (btnExpandFullscreenControls != null) btnExpandFullscreenControls.setVisibility(View.GONE);
         if (btnExitFullscreen != null) btnExitFullscreen.setVisibility(View.GONE);
 
         // Restore containerMain 16dp margins and trackpad background
@@ -641,10 +732,17 @@ public class MainActivity extends AppCompatActivity {
 
         // Restore view visibility according to current mode
         if (isScreenMode) {
-            if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.VISIBLE);
+            if (isScreenControlsCollapsed) {
+                if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.GONE);
+                if (btnExpandScreenControls != null) btnExpandScreenControls.setVisibility(View.VISIBLE);
+            } else {
+                if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.VISIBLE);
+                if (btnExpandScreenControls != null) btnExpandScreenControls.setVisibility(View.GONE);
+            }
             if (txtTouchpadHint != null) txtTouchpadHint.setVisibility(View.GONE);
         } else {
             if (layoutScreenControls != null) layoutScreenControls.setVisibility(View.GONE);
+            if (btnExpandScreenControls != null) btnExpandScreenControls.setVisibility(View.GONE);
             if (txtTouchpadHint != null) txtTouchpadHint.setVisibility(View.VISIBLE);
         }
 
