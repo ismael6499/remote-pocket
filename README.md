@@ -3,12 +3,12 @@
 [![Android](https://img.shields.io/badge/Android-SDK%2026--34-3DDC84?style=flat-square&logo=android&logoColor=white)](https://developer.android.com/)
 [![Java](https://img.shields.io/badge/Java-17%20%2F%2021-ED8B00?style=flat-square&logo=openjdk&logoColor=white)](https://www.oracle.com/java/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
-[![C# .NET](https://img.shields.io/badge/C%23-.NET%20Framework-512BD4?style=flat-square&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![C# .NET](https://img.shields.io/badge/C%23-.NET%20Framework%204.5%2B-512BD4?style=flat-square&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![WebSocket](https://img.shields.io/badge/WebSocket-Real--Time-010101?style=flat-square&logo=socketdotio&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket)
 [![UDP Discovery](https://img.shields.io/badge/UDP-Zero--Touch%20LAN-4B5563?style=flat-square)](https://en.wikipedia.org/wiki/User_Datagram_Protocol)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-**Remote Pocket** is an ultra-low-latency, zero-touch remote control and live desktop companion system pairing a native **Android client** with a lightweight **Windows background daemon**. Designed for speed, convenience, and complete local privacy, it turns your smartphone into a precision trackpad, dual-mode keyboard, multi-monitor display switcher, and system automation hub without third-party cloud intermediaries.
+**Remote Pocket** pairs a native **Android client** with a lightweight **Windows PC agent** so you can control a computer from your phone. It provides a trackpad, desktop keyboard, live screen stream, multi-monitor switching, and system controls. Devices discover each other automatically on the local network; an optional Ngrok tunnel supports connections from outside that network.
 
 ---
 
@@ -17,7 +17,7 @@
 ### 🔍 Zero-Touch LAN Discovery & Multi-PC Switching
 - **UDP Broadcast Auto-Detection:** Automatically discovers all host PCs on your local Wi-Fi within milliseconds using UDP port `5051`.
 - **Zero Manual IP Entry:** Switch between multiple computers (e.g. Work PC, Gaming Rig, Home Server) with a single tap from the top toolbar.
-- **Remote Access (Ngrok):** Securely tunnel through firewalls and NAT via built-in Ngrok support for control outside your home network.
+- **Ngrok Integration:** The agent can start a tunnel when an Ngrok auth token is configured. The current WebSocket endpoint has no authentication; see [Network & Security](#-network--security) before enabling any public tunnel.
 
 ### 🖱️ Precision Trackpad & Intuitive Multi-Touch Gestures
 - **Sub-Pixel Motion Smoothing:** Native mouse acceleration with fine tracking sensitivity.
@@ -60,7 +60,7 @@
 
 ### 📲 Over-the-Air (OTA) Updates & Mobile Drop
 - **1-Tap In-App Updates:** Check and install latest APK updates directly from the host PC agent.
-- **Automated Gradle Distribution:** Gradle builds automatically deliver release APKs to `C:\Users\agust\Documents\Mobile Drop\` and the PC agent `/updates` directory.
+- **Convenience APK Copy:** If `%USERPROFILE%\Documents\Mobile Drop` already exists, Gradle places versioned and generic APK copies there.
 
 ### 🌐 Internationalization (i18n)
 - Centralized multi-language architecture: **English (Default)** and **Español (Latin America)**.
@@ -112,18 +112,27 @@
    ```cmd
    install.bat
    ```
-   *This compiles `InputHelper.exe`, installs Node dependencies, and creates a Windows Startup shortcut so the agent starts automatically upon logon.*
+   *This compiles `InputHelper.exe`, installs Node dependencies, asks for a PC name, and creates a Windows Startup shortcut so the agent starts automatically after sign-in.*
 
-3. To start or restart the agent manually in the background:
+3. From the `pc-agent` directory, start or restart the agent manually in the background:
    ```powershell
-   Start-Process "explorer.exe" -ArgumentList '"pc-agent\run_silent.vbs"'
+   Start-Process "wscript.exe" -ArgumentList ".\run_silent.vbs" -WindowStyle Hidden
    ```
 
 ### 📱 2. Installing the Android App
 
-1. Grab the latest `RemotePocket.apk` from the [Releases](https://github.com/ismael6499/remote-pocket/releases) tab (or from `C:\Users\agust\Documents\Mobile Drop\RemotePocket.apk`).
+1. Download the latest APK from the [Releases](https://github.com/ismael6499/remote-pocket/releases) page. If you build the app yourself, the APK is at `android-app/app/build/outputs/apk/debug/app-debug.apk`.
 2. Install the APK on your Android phone and grant local network permissions.
 3. Open the app: **your PC will appear automatically in the top dropdown list within seconds.** Tap to connect!
+
+---
+
+## 🔐 Network & Security
+
+- The PC agent listens on all network interfaces, using TCP port `5050` by default for HTTP/WebSocket and UDP port `5051` for LAN discovery.
+- The PIN in `pc-agent/config.json` is empty by default. Setting one protects the REST endpoints, but the WebSocket connection does not currently enforce it.
+- Use the agent only on a trusted private network. **Do not expose it through Ngrok, port forwarding, or a public network** until WebSocket authentication is added. Ngrok starts when an auth token is configured, so keep that token unset unless you understand and accept the exposure.
+- UDP discovery is intended for devices on the same local network; it is not used for Ngrok connections.
 
 ---
 
@@ -168,11 +177,10 @@ cd android-app
 ```
 The compiled APK will automatically be placed in:
 - `android-app/app/build/outputs/apk/debug/app-debug.apk`
-- `pc-agent/updates/app-release.apk`
-- `C:\Users\agust\Documents\Mobile Drop\RemotePocket.apk`
+- If `%USERPROFILE%\Documents\Mobile Drop` exists, Gradle also copies versioned and generic APKs there for convenience.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for the full terms. Third-party dependencies remain under their respective licenses.
