@@ -421,7 +421,7 @@ app.get('/api/status', verifyPin, async (req, res) => {
     audio,
     brightness,
     screenOffApp: Boolean(config.screenOffApp),
-    version: '1.0.5'
+    version: '1.0.6'
   });
 });
 
