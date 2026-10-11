@@ -129,4 +129,9 @@
     <string name="btn_collapse_controls">Hide Controls</string>
     <string name="btn_expand_controls">Show Controls</string>
     <string name="btn_close_keyboard">Close Keyboard</string>
+    <string name="dialog_rename_device_title">Rename PC</string>
+    <string name="dialog_rename_device_msg">Enter a new display name for this computer. It will also be saved on the PC itself.</string>
+    <string name="hint_device_name">Computer Name</string>
+    <string name="btn_save">Save</string>
+    <string name="toast_device_renamed">PC renamed to %s</string>
 </resources>

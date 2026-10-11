@@ -200,7 +200,10 @@ public class SystemSheet extends Dialog {
         for (Shortcut s : shortcuts) {
             Button btn = new Button(getContext());
             btn.setText(s.getName());
-            btn.setTextSize(12f);
+            btn.setTextSize(11.5f);
+            btn.setSingleLine(true);
+            btn.setMaxLines(1);
+            btn.setPadding(dpToPx(14), 0, dpToPx(14), 0);
             btn.setTextColor(ContextCompat.getColor(getContext(), R.color.text_primary));
             btn.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getContext(), R.color.btn_surface)));
 

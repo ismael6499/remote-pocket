@@ -523,13 +523,6 @@ public class MainActivity extends AppCompatActivity {
                 showPcKeyboard();
             });
         }
-        View btnHideTypingKeyboard = findViewById(R.id.btnHideTypingKeyboard);
-        if (btnHideTypingKeyboard != null) {
-            btnHideTypingKeyboard.setOnClickListener(v -> {
-                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-                hideNormalKeyboard();
-            });
-        }
         editTypingText.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEND) {
                 sendEnteredText();
@@ -669,7 +662,11 @@ public class MainActivity extends AppCompatActivity {
     private void sendEnteredText() {
         String text = editTypingText.getText().toString();
         if (!text.isEmpty()) {
-            webSocketManager.sendTypeText(text);
+            if (text.length() > 25 || text.contains("\n") || text.contains("\r")) {
+                webSocketManager.sendPaste(text);
+            } else {
+                webSocketManager.sendTypeText(text);
+            }
             editTypingText.setText("");
         }
     }
@@ -1111,6 +1108,18 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
+            public void onDeviceRenamed(Device device, String newName) {
+                device.setDeviceName(newName);
+                saveKnownDevices();
+                if (currentDevice != null && currentDevice.getHost().equals(device.getHost()) && currentDevice.getPort() == device.getPort()) {
+                    currentDevice.setDeviceName(newName);
+                    txtDeviceName.setText(newName);
+                }
+                Toast.makeText(MainActivity.this, getString(R.string.toast_device_renamed, newName), Toast.LENGTH_SHORT).show();
+                renameDeviceOnPc(device, newName);
+            }
+
+            @Override
             public void onAddCustomDevice(Device device) {
                 for (int i = knownDevices.size() - 1; i >= 0; i--) {
                     Device d = knownDevices.get(i);
@@ -1135,6 +1144,28 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         deviceDialog.show();
+    }
+
+    private void renameDeviceOnPc(Device device, String newName) {
+        if (device == null || newName == null) return;
+        if (webSocketManager.isConnected() && currentDevice != null && currentDevice.getHost().equals(device.getHost())) {
+            webSocketManager.sendSetDeviceName(newName);
+        }
+        new Thread(() -> {
+            try {
+                okhttp3.MediaType JSON = okhttp3.MediaType.parse("application/json; charset=utf-8");
+                JsonObject bodyJson = new JsonObject();
+                bodyJson.addProperty("name", newName);
+                okhttp3.RequestBody body = okhttp3.RequestBody.create(bodyJson.toString(), JSON);
+                okhttp3.Request request = new okhttp3.Request.Builder()
+                        .url(device.getHttpUrl() + "/api/device/name")
+                        .post(body)
+                        .build();
+                new okhttp3.OkHttpClient().newCall(request).execute();
+            } catch (Exception e) {
+                AppLogger.e("MainActivity", "Failed to update device name on PC", e);
+            }
+        }).start();
     }
 
     private void showLogViewerDialog() {

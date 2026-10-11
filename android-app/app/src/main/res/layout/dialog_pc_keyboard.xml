@@ -64,15 +64,18 @@
             android:text="@string/btn_esc"
             android:textSize="10sp" />
 
-        <!-- Close Dialog -->
-        <ImageButton
+        <!-- Close PC Keyboard (FAB button) -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/btnCloseKeyboard"
-            android:layout_width="34dp"
-            android:layout_height="34dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
             android:contentDescription="@string/btn_close"
-            android:src="@drawable/ic_close"
-            app:tint="@color/text_secondary" />
+            android:src="@drawable/ic_keyboard"
+            app:backgroundTint="@color/accent_indigo"
+            app:fabCustomSize="36dp"
+            app:maxImageSize="20dp"
+            app:tint="#FFFFFF" />
     </LinearLayout>
 
     <!-- Collapsible Special Actions & F-Keys Panel -->

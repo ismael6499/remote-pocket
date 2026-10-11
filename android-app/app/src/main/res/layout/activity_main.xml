@@ -407,11 +407,17 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_marginEnd="4dp"
-            android:layout_weight="1.3"
+            android:layout_weight="1.1"
             android:backgroundTint="@color/btn_surface"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:padding="0dp"
+            android:singleLine="true"
+            android:maxLines="1"
             android:text="@string/btn_left_click"
             android:textColor="@color/text_primary"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
         <Button
@@ -420,11 +426,17 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_marginEnd="4dp"
-            android:layout_weight="1"
+            android:layout_weight="1.1"
             android:backgroundTint="@color/btn_surface"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:padding="0dp"
+            android:singleLine="true"
+            android:maxLines="1"
             android:text="@string/btn_middle_click"
             android:textColor="@color/text_primary"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
 
         <Button
             android:id="@+id/btnRightClick"
@@ -432,11 +444,17 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_marginEnd="4dp"
-            android:layout_weight="1.3"
+            android:layout_weight="1.1"
             android:backgroundTint="@color/btn_surface"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:padding="0dp"
+            android:singleLine="true"
+            android:maxLines="1"
             android:text="@string/btn_right_click"
             android:textColor="@color/text_primary"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
         <Button
@@ -445,11 +463,17 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_marginEnd="4dp"
-            android:layout_weight="1.1"
+            android:layout_weight="1.25"
             android:backgroundTint="@color/btn_surface"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:padding="0dp"
+            android:singleLine="true"
+            android:maxLines="1"
             android:text="@string/btn_drag_hold"
             android:textColor="@color/text_primary"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
 
         <Button
             android:id="@+id/btnDoubleClick"
@@ -457,19 +481,31 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_marginEnd="4dp"
-            android:layout_weight="0.9"
+            android:layout_weight="1.0"
             android:backgroundTint="@color/btn_surface"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:padding="0dp"
+            android:singleLine="true"
+            android:maxLines="1"
             android:text="@string/btn_double_click"
             android:textColor="@color/text_primary"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
 
         <Button
             android:id="@+id/btnScrollUp"
             style="@style/Widget.MaterialComponents.Button"
-            android:layout_width="40dp"
+            android:layout_width="36dp"
             android:layout_height="match_parent"
             android:layout_marginEnd="2dp"
             android:backgroundTint="@color/btn_surface"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:padding="0dp"
+            android:singleLine="true"
+            android:maxLines="1"
             android:text="@string/btn_scroll_up"
             android:textColor="@color/text_primary"
             android:textSize="12sp" />
@@ -477,9 +513,15 @@
         <Button
             android:id="@+id/btnScrollDown"
             style="@style/Widget.MaterialComponents.Button"
-            android:layout_width="40dp"
+            android:layout_width="36dp"
             android:layout_height="match_parent"
             android:backgroundTint="@color/btn_surface"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:padding="0dp"
+            android:singleLine="true"
+            android:maxLines="1"
             android:text="@string/btn_scroll_down"
             android:textColor="@color/text_primary"
             android:textSize="12sp" />
@@ -514,20 +556,6 @@
             android:textColorHint="@color/text_muted"
             android:textSize="14sp" />
 
-        <Button
-            android:id="@+id/btnHideTypingKeyboard"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginStart="6dp"
-            android:minWidth="0dp"
-            android:padding="0dp"
-            android:text="✕"
-            android:textColor="@color/text_secondary"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:contentDescription="@string/btn_close_keyboard"
-            app:strokeColor="@color/surface_card_border" />
 
         <Button
             android:id="@+id/btnSendTyping"

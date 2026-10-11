@@ -746,6 +746,10 @@ namespace InputHelper {
 
         private static void TypeText(string text) {
             if (string.IsNullOrEmpty(text)) return;
+            if (text.Length > 25 || text.Contains("\n") || text.Contains("\r")) {
+                SetClipboardAndPaste(text);
+                return;
+            }
             int len = text.Length;
             INPUT[] inputs = new INPUT[len * 2];
             int structSize = Marshal.SizeOf(typeof(INPUT));

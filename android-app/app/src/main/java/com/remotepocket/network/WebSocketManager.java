@@ -204,7 +204,14 @@ public class WebSocketManager {
         sendJson(obj);
     }
 
-    private void sendJson(JsonObject obj) {
+    public void sendSetDeviceName(String name) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("type", "set_device_name");
+        obj.addProperty("name", name);
+        sendJson(obj);
+    }
+
+    public void sendJson(JsonObject obj) {
         if (webSocket != null) {
             try {
                 webSocket.send(gson.toJson(obj));

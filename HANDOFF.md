@@ -219,10 +219,23 @@ Remote Pocket is a monorepo containing:
     - **Long Press**: Opens selection dialog listing all connected displays with names and native resolutions (e.g., "Display 1 (1920x1080)").
     - **Cursor Resync**: Automatically invokes `touchpadView.resyncCursorFromServer()` on switch to immediately adapt coordinates and aspect ratio to the new display.
     - **i18n**: English and Spanish strings for monitor badges, toasts, and selection dialog.
-- [x] Windows Startup & Auto-Start Reliability (`run_silent.vbs` & `install.bat`):
-  - Updated `run_silent.vbs` to execute `stop_server.bat` silently before launching `server.js`, terminating any zombie PIDs or locks on port 5050 and `InputHelper.exe` to guarantee clean startup when Windows boots.
-- [x] PC Agent Live State:
-  - Active PID on port 5050 (TCP HTTP/WS) and 5051 (UDP discovery). Tested and verified `/api/status`, `/api/monitors`, `/api/monitors/select`, `/api/logs`, and WebSocket screen frame streaming.
+- [x] Device Renaming & Persistence:
+  - Added edit pencil icon `btnEdit` next to each device in the "Manage Devices" dialog (`DeviceManagerDialog.java`).
+  - Added rename dialog prompting for new machine name with i18n support.
+  - On submit, updates device entry in Android preferences and updates the active toolbar title immediately.
+  - Dispatches rename request to PC agent via `POST /api/device/name` and WebSocket `set_device_name`.
+  - `server.js` saves new name to `config.json` and updates broadcast payloads, keeping names distinct across multiple machines (e.g. personal vs work PC).
+- [x] Fast Text Pasting for Large Text:
+  - Eliminated UI freezing and message queue saturation when sending long text chunks.
+  - Automatically routes text longer than 25 characters or containing newlines via fast clipboard paste (`SetClipboardAndPaste` with `Ctrl+V`), reducing execution latency from several seconds to under 30ms.
+- [x] Button Formatting & Layout Refinements:
+  - **Mouse Controls Bar**: Declared `padding="0dp"`, `insetTop/Bottom="0dp"`, `minWidth="0dp"`, and `singleLine="true"` across `[L]`, `[MID]`, `[R]`, `[HOLD]`, `[2X]`, `[▲]`, `[▼]` to prevent text wrapping on small displays.
+  - **System Sheet Media & Power**: Adjusted button weights and removed extra padding so `PLAY/PAUSE` and `SHUTDOWN` never wrap or clip.
+  - **Typing Bar Clean-up**: Removed redundant `btnHideTypingKeyboard` next to Send button (FAB is used for dismissal).
+  - **PC Keyboard Dismissal**: Floating action button matches theme and dismisses PC keyboard directly, while dedicated toggle buttons switch between Standard and PC layouts.
+- [x] GitHub Repository & Automated Releases:
+  - GitHub Repository: `https://github.com/ismael6499/remote-pocket`
+  - GitHub Actions Workflow: `.github/workflows/release.yml` for automated releases on tag push with a single artifact `RemotePocket-${TAG_NAME}.apk`.
 
 ## How to Test & Run
 

@@ -21,6 +21,9 @@ import androidx.annotation.NonNull;
 import com.remotepocket.R;
 import com.remotepocket.model.Device;
 
+import android.widget.ImageView;
+import android.content.res.ColorStateList;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +31,7 @@ public class DeviceManagerDialog extends Dialog {
     public interface OnDeviceSelectedListener {
         void onDeviceSelected(Device device);
         void onDeviceDeleted(Device device);
+        void onDeviceRenamed(Device device, String newName);
         void onAddCustomDevice(Device device);
         void onForceRescan();
         void onOpenLogs();
@@ -154,12 +158,27 @@ public class DeviceManagerDialog extends Dialog {
 
             row.addView(textBlock);
 
+            // Edit button
+            ImageView btnEdit = new ImageView(getContext());
+            btnEdit.setImageResource(R.drawable.ic_edit);
+            btnEdit.setPadding(12, 12, 12, 12);
+            btnEdit.setImageTintList(ColorStateList.valueOf(getContext().getColor(R.color.accent_indigo)));
+            int editSize = (int) (38 * getContext().getResources().getDisplayMetrics().density);
+            LinearLayout.LayoutParams editLp = new LinearLayout.LayoutParams(editSize, editSize);
+            editLp.setMargins(0, 0, 4, 0);
+            btnEdit.setLayoutParams(editLp);
+            btnEdit.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                showRenameDeviceDialog(d);
+            });
+            row.addView(btnEdit);
+
             // Delete button
             TextView btnDelete = new TextView(getContext());
             btnDelete.setText("✕");
             btnDelete.setTextSize(16f);
             btnDelete.setTextColor(getContext().getColor(R.color.text_muted));
-            btnDelete.setPadding(24, 16, 16, 16);
+            btnDelete.setPadding(20, 16, 16, 16);
             btnDelete.setOnClickListener(v -> {
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                 if (listener != null) {
@@ -172,6 +191,38 @@ public class DeviceManagerDialog extends Dialog {
             row.addView(btnDelete);
             layoutDeviceList.addView(row);
         }
+    }
+
+    private void showRenameDeviceDialog(Device d) {
+        int pad = (int) (24 * getContext().getResources().getDisplayMetrics().density);
+        EditText input = new EditText(getContext());
+        input.setText(d.getDeviceName());
+        input.setSelectAllOnFocus(true);
+        input.setHint(R.string.hint_device_name);
+        input.setTextColor(getContext().getColor(R.color.text_primary));
+        input.setHintTextColor(getContext().getColor(R.color.text_muted));
+
+        LinearLayout container = new LinearLayout(getContext());
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(pad, pad / 3, pad, pad / 3);
+        container.addView(input);
+
+        new AlertDialog.Builder(getContext())
+                .setTitle(R.string.dialog_rename_device_title)
+                .setMessage(R.string.dialog_rename_device_msg)
+                .setView(container)
+                .setPositiveButton(R.string.btn_save, (dialog, which) -> {
+                    String newName = input.getText().toString().trim();
+                    if (!newName.isEmpty() && !newName.equals(d.getDeviceName())) {
+                        d.setDeviceName(newName);
+                        if (listener != null) {
+                            listener.onDeviceRenamed(d, newName);
+                        }
+                        renderDevices();
+                    }
+                })
+                .setNegativeButton(R.string.action_cancel, null)
+                .show();
     }
 
     private void showAddDeviceDialog() {

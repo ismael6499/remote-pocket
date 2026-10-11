@@ -129,4 +129,9 @@
     <string name="btn_collapse_controls">Ocultar controles</string>
     <string name="btn_expand_controls">Mostrar controles</string>
     <string name="btn_close_keyboard">Cerrar teclado</string>
+    <string name="dialog_rename_device_title">Renombrar PC</string>
+    <string name="dialog_rename_device_msg">Ingresa un nuevo nombre para esta computadora. También se guardará en la PC.</string>
+    <string name="hint_device_name">Nombre de la PC</string>
+    <string name="btn_save">Guardar</string>
+    <string name="toast_device_renamed">PC renombrada a %s</string>
 </resources>

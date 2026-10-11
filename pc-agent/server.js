@@ -516,6 +516,23 @@ app.post('/api/clipboard', verifyPin, (req, res) => {
   res.json({ success: true });
 });
 
+// Rename Device API (persists to config.json)
+app.post('/api/device/name', verifyPin, (req, res) => {
+  const { name } = req.body || {};
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ success: false, error: 'Invalid name' });
+  }
+  config.deviceName = name.trim();
+  try {
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+    console.log(`[Config] Device renamed to: "${config.deviceName}" via REST`);
+    res.json({ success: true, deviceName: config.deviceName });
+  } catch (err) {
+    console.error('[Config] Failed to save config:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Mobile Diagnostics & Logs API
 const LOGS_DIR = path.join(__dirname, 'logs');
 if (!fs.existsSync(LOGS_DIR)) {
@@ -746,13 +763,32 @@ function handleWebSocketMessage(ws, data) {
       break;
     case 'type_text':
       if (data.text) {
-        sendInputCommand(`t ${data.text}`);
+        if (data.text.length > 25 || data.text.includes('\n') || data.text.includes('\r')) {
+          const b64 = Buffer.from(data.text, 'utf-8').toString('base64');
+          sendInputCommand(`p ${b64}`);
+        } else {
+          const clean = data.text.replace(/[\r\n]+/g, ' ');
+          sendInputCommand(`t ${clean}`);
+        }
       }
       break;
     case 'paste':
       if (data.text) {
         const b64 = Buffer.from(data.text, 'utf-8').toString('base64');
         sendInputCommand(`p ${b64}`);
+      }
+      break;
+    case 'set_device_name':
+    case 'rename_device':
+      if (data.name && typeof data.name === 'string' && data.name.trim()) {
+        config.deviceName = data.name.trim();
+        try {
+          fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+          console.log(`[Config] Device renamed to: "${config.deviceName}" via WS`);
+          ws.send(JSON.stringify({ type: 'device_name_updated', deviceName: config.deviceName }));
+        } catch (err) {
+          console.error('[Config] Failed to save config:', err);
+        }
       }
       break;
     case 'release_modifiers':
