@@ -90,6 +90,15 @@ public class SystemSheet extends Dialog {
         android.content.SharedPreferences prefs = getContext().getSharedPreferences("remote_pocket_prefs", Context.MODE_PRIVATE);
         serverDetectedScreenOff = prefs.getBoolean("pref_device_screen_off_" + hostKey, true);
 
+        // Pre-load cached Brightness & Volume immediately to eliminate visual slider jump/movement
+        int cachedBrightness = prefs.getInt("pref_device_brightness_" + hostKey, 100);
+        seekBrightness.setProgress(cachedBrightness);
+        txtBrightnessVal.setText(cachedBrightness + "%");
+
+        int cachedVolume = prefs.getInt("pref_device_volume_" + hostKey, 50);
+        seekVolume.setProgress(cachedVolume);
+        txtVolumeVal.setText(cachedVolume + "%");
+
         if (btnScreenOff != null) {
             btnScreenOff.setOnClickListener(v -> triggerScreenOff());
         }
@@ -107,6 +116,9 @@ public class SystemSheet extends Dialog {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 txtBrightnessVal.setText(progress + "%");
+                if (fromUser) {
+                    prefs.edit().putInt("pref_device_brightness_" + hostKey, progress).apply();
+                }
                 long now = System.currentTimeMillis();
                 if (fromUser && webSocketManager != null && now - lastSend >= 400) {
                     lastSend = now;
@@ -119,6 +131,7 @@ public class SystemSheet extends Dialog {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
+                prefs.edit().putInt("pref_device_brightness_" + hostKey, seekBar.getProgress()).apply();
                 postBrightness(seekBar.getProgress());
             }
         });
@@ -130,6 +143,9 @@ public class SystemSheet extends Dialog {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 txtVolumeVal.setText(progress + "%");
+                if (fromUser) {
+                    prefs.edit().putInt("pref_device_volume_" + hostKey, progress).apply();
+                }
                 long now = System.currentTimeMillis();
                 if (fromUser && webSocketManager != null && now - lastSend >= 80) {
                     lastSend = now;
@@ -142,6 +158,7 @@ public class SystemSheet extends Dialog {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
+                prefs.edit().putInt("pref_device_volume_" + hostKey, seekBar.getProgress()).apply();
                 postAudioVolume(seekBar.getProgress());
             }
         });
@@ -197,18 +214,24 @@ public class SystemSheet extends Dialog {
                     com.google.gson.JsonObject obj = gson.fromJson(json, com.google.gson.JsonObject.class);
                     if (obj.has("brightness")) {
                         int b = obj.get("brightness").getAsInt();
+                        prefs.edit().putInt("pref_device_brightness_" + hostKey, b).apply();
                         mainHandler.post(() -> {
-                            seekBrightness.setProgress(b);
-                            txtBrightnessVal.setText(b + "%");
+                            if (seekBrightness != null && seekBrightness.getProgress() != b) {
+                                seekBrightness.setProgress(b);
+                                txtBrightnessVal.setText(b + "%");
+                            }
                         });
                     }
                     if (obj.has("audio") && obj.getAsJsonObject("audio").has("volume")) {
                         com.google.gson.JsonElement vElem = obj.getAsJsonObject("audio").get("volume");
                         if (!vElem.isJsonNull()) {
                             int v = vElem.getAsInt();
+                            prefs.edit().putInt("pref_device_volume_" + hostKey, v).apply();
                             mainHandler.post(() -> {
-                                seekVolume.setProgress(v);
-                                txtVolumeVal.setText(v + "%");
+                                if (seekVolume != null && seekVolume.getProgress() != v) {
+                                    seekVolume.setProgress(v);
+                                    txtVolumeVal.setText(v + "%");
+                                }
                             });
                         }
                     }

@@ -84,7 +84,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:max="100"
-            android:progress="70"
+            android:progress="100"
             android:progressTint="@color/accent_amber"
             android:thumbTint="@color/accent_amber" />
 
@@ -93,7 +93,7 @@
             android:layout_width="45dp"
             android:layout_height="wrap_content"
             android:gravity="end"
-            android:text="70%"
+            android:text="100%"
             android:textColor="@color/text_primary"
             android:textSize="13sp" />
     </LinearLayout>

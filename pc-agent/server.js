@@ -333,31 +333,39 @@ function unsubscribeScreen(ws) {
 // ==========================================
 // HELPER FUNCTIONS (Audio, Brightness, Shortcuts)
 // ==========================================
+let cachedAudio = { volume: 50, muted: false, playing: false };
+let cachedBrightness = 100;
+
 function getAudioStatus() {
   return new Promise((resolve) => {
     exec(`"${INPUT_HELPER_PATH}" volume`, { timeout: 2000 }, (err, stdout) => {
       if (err) {
-        return resolve({ volume: 50, muted: false, playing: false });
+        return resolve(cachedAudio);
       }
       const match = stdout.match(/AUDIO:(.+)/);
       if (match) {
         try {
-          return resolve(JSON.parse(match[1]));
+          cachedAudio = JSON.parse(match[1]);
+          return resolve(cachedAudio);
         } catch (e) {}
       }
-      resolve({ volume: 50, muted: false, playing: false });
+      resolve(cachedAudio);
     });
   });
 }
 
 function setAudioVolume(level) {
-  sendInputCommand(`vol ${level}`);
+  const safeVol = Math.max(0, Math.min(100, parseInt(level, 10) || 0));
+  cachedAudio.volume = safeVol;
+  sendInputCommand(`vol ${safeVol}`);
 }
 
 function toggleAudioMute(muted) {
   if (typeof muted === 'boolean') {
+    cachedAudio.muted = muted;
     sendInputCommand(`mute ${muted}`);
   } else {
+    cachedAudio.muted = !cachedAudio.muted;
     sendInputCommand('mute');
   }
 }
@@ -366,9 +374,10 @@ function getBrightness() {
   return new Promise((resolve) => {
     const cmd = `powershell -NoProfile -Command "try { (Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorBrightness -ErrorAction Stop).CurrentBrightness } catch { 100 }"`;
     exec(cmd, { timeout: 3000 }, (err, stdout) => {
-      if (err) return resolve(100);
+      if (err) return resolve(cachedBrightness);
       const val = parseInt(stdout.trim(), 10);
-      resolve(isNaN(val) ? 100 : val);
+      cachedBrightness = isNaN(val) ? 100 : val;
+      resolve(cachedBrightness);
     });
   });
 }
@@ -378,6 +387,7 @@ let brightnessPending = null;
 
 function setBrightness(level) {
   const safeLevel = Math.max(0, Math.min(100, parseInt(level, 10) || 0));
+  cachedBrightness = safeLevel;
   if (brightnessBusy) {
     brightnessPending = safeLevel; // keep only the latest requested value
     return Promise.resolve(safeLevel);
@@ -760,7 +770,10 @@ wss.on('connection', (ws, req) => {
       deviceName: config.deviceName,
       keyboardLayout: cachedKeyboardLayout,
       keyboardCulture: cachedKeyboardCulture,
-      keyboardName: cachedKeyboardName
+      keyboardName: cachedKeyboardName,
+      brightness: cachedBrightness,
+      audio: cachedAudio,
+      screenOffApp: Boolean(config.screenOffApp)
     }));
   }
 
@@ -1085,6 +1098,8 @@ function startHttpServer(initialPort, maxAttempts = 15) {
       console.log(`  UDP Discovery: Port ${config.udpPort || 5051}`);
       console.log('====================================================');
       initNgrok(activePort);
+      getAudioStatus().catch(() => {});
+      getBrightness().catch(() => {});
     });
   }
 

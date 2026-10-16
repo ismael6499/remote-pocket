@@ -55,6 +55,10 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+
 public class MainActivity extends AppCompatActivity {
     private static final String PREFS_NAME = "remote_pocket_prefs";
     private static final String KEY_SAVED_DEVICES = "saved_devices";
@@ -63,6 +67,8 @@ public class MainActivity extends AppCompatActivity {
 
     private final List<Device> knownDevices = new ArrayList<>();
     private Device currentDevice;
+
+    private final OkHttpClient httpClient = new OkHttpClient();
 
     private WebSocketManager webSocketManager;
     private UdpDiscovery udpDiscovery;
@@ -291,6 +297,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 if (currentDevice != null) {
                     updateManager.checkForUpdates(currentDevice, true);
+                    prefetchDeviceStatus(currentDevice);
                 }
             }
 
@@ -327,14 +334,67 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onDeviceInfo(JsonObject deviceInfoJson) {
-                if (deviceInfoJson != null && deviceInfoJson.has("keyboardLayout")) {
-                    detectedPcKeyboardLayout = deviceInfoJson.get("keyboardLayout").getAsString();
-                    if (activePcKeyboardDialog != null && activePcKeyboardDialog.isShowing()) {
-                        activePcKeyboardDialog.setDetectedLayout(detectedPcKeyboardLayout);
+                if (deviceInfoJson != null) {
+                    String hostKey = currentDevice != null && currentDevice.getHost() != null ? currentDevice.getHost() : "default";
+                    SharedPreferences prefs = getSharedPreferences("remote_pocket_prefs", MODE_PRIVATE);
+                    SharedPreferences.Editor editor = prefs.edit();
+
+                    if (deviceInfoJson.has("brightness") && !deviceInfoJson.get("brightness").isJsonNull()) {
+                        editor.putInt("pref_device_brightness_" + hostKey, deviceInfoJson.get("brightness").getAsInt());
                     }
+                    if (deviceInfoJson.has("audio") && !deviceInfoJson.get("audio").isJsonNull()) {
+                        JsonObject audioObj = deviceInfoJson.getAsJsonObject("audio");
+                        if (audioObj.has("volume") && !audioObj.get("volume").isJsonNull()) {
+                            editor.putInt("pref_device_volume_" + hostKey, audioObj.get("volume").getAsInt());
+                        }
+                    }
+                    if (deviceInfoJson.has("screenOffApp") && !deviceInfoJson.get("screenOffApp").isJsonNull()) {
+                        editor.putBoolean("pref_device_screen_off_" + hostKey, deviceInfoJson.get("screenOffApp").getAsBoolean());
+                    }
+                    if (deviceInfoJson.has("keyboardLayout") && !deviceInfoJson.get("keyboardLayout").isJsonNull()) {
+                        detectedPcKeyboardLayout = deviceInfoJson.get("keyboardLayout").getAsString();
+                        editor.putString("pref_device_keyboard_layout_" + hostKey, detectedPcKeyboardLayout);
+                        if (activePcKeyboardDialog != null && activePcKeyboardDialog.isShowing()) {
+                            activePcKeyboardDialog.setDetectedLayout(detectedPcKeyboardLayout);
+                        }
+                    }
+                    editor.apply();
                 }
             }
         });
+    }
+
+    private void prefetchDeviceStatus(Device device) {
+        if (device == null) return;
+        new Thread(() -> {
+            try {
+                Request req = new Request.Builder().url(device.getBaseHttpUrl() + "/api/status").build();
+                Response resp = httpClient.newCall(req).execute();
+                if (resp.isSuccessful() && resp.body() != null) {
+                    JsonObject obj = gson.fromJson(resp.body().string(), JsonObject.class);
+                    SharedPreferences prefs = getSharedPreferences("remote_pocket_prefs", MODE_PRIVATE);
+                    SharedPreferences.Editor editor = prefs.edit();
+                    String hostKey = device.getHost() != null ? device.getHost() : "default";
+                    if (obj.has("brightness") && !obj.get("brightness").isJsonNull()) {
+                        editor.putInt("pref_device_brightness_" + hostKey, obj.get("brightness").getAsInt());
+                    }
+                    if (obj.has("audio") && !obj.get("audio").isJsonNull()) {
+                        JsonObject audioObj = obj.getAsJsonObject("audio");
+                        if (audioObj.has("volume") && !audioObj.get("volume").isJsonNull()) {
+                            editor.putInt("pref_device_volume_" + hostKey, audioObj.get("volume").getAsInt());
+                        }
+                    }
+                    if (obj.has("screenOffApp") && !obj.get("screenOffApp").isJsonNull()) {
+                        editor.putBoolean("pref_device_screen_off_" + hostKey, obj.get("screenOffApp").getAsBoolean());
+                    }
+                    if (obj.has("keyboardLayout") && !obj.get("keyboardLayout").isJsonNull()) {
+                        detectedPcKeyboardLayout = obj.get("keyboardLayout").getAsString();
+                        editor.putString("pref_device_keyboard_layout_" + hostKey, detectedPcKeyboardLayout);
+                    }
+                    editor.apply();
+                }
+            } catch (Exception ignored) {}
+        }).start();
     }
 
     private boolean isManualDragActive = false;
