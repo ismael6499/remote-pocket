@@ -65,6 +65,11 @@
     <string name="btn_altgr">AltGr</string>
     <string name="btn_fn">Fn</string>
     <string name="toast_layout_switched">Distribución de teclado: %s</string>
+    <string name="btn_mode_mobile">📱 Móvil</string>
+    <string name="btn_mode_desktop">💻 Completo</string>
+    <string name="btn_tab_symbols">\?123</string>
+    <string name="btn_tab_letters">ABC</string>
+    <string name="toast_mode_switched">Modo de teclado: %s</string>
     <string name="toggle_special_keys">⚡ Acciones Especiales y Teclas F ▾</string>
     <string name="toggle_special_keys_hide">▲ Ocultar Teclas Especiales</string>
 

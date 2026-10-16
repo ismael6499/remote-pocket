@@ -65,6 +65,11 @@
     <string name="btn_altgr">AltGr</string>
     <string name="btn_fn">Fn</string>
     <string name="toast_layout_switched">Keyboard layout: %s</string>
+    <string name="btn_mode_mobile">📱 Comfort</string>
+    <string name="btn_mode_desktop">💻 Full PC</string>
+    <string name="btn_tab_symbols">\?123</string>
+    <string name="btn_tab_letters">ABC</string>
+    <string name="toast_mode_switched">Keyboard mode: %s</string>
     <string name="toggle_special_keys">⚡ Special Actions &amp; F-Keys ▾</string>
     <string name="toggle_special_keys_hide">▲ Hide Special Keys</string>
 

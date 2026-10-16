@@ -18,7 +18,7 @@
         android:orientation="horizontal"
         android:paddingBottom="4dp">
 
-        <!-- Switch to Standard Keyboard Button -->
+        <!-- Switch to Standard Keyboard Button (Gboard) -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSwitchToNormal"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -36,13 +36,31 @@
             app:cornerRadius="6dp"
             app:strokeColor="@color/surface_card_border" />
 
+        <!-- Layout Mode Toggle (📱 Móvil / 💻 Completo) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnToggleLayoutMode"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:text="@string/btn_mode_desktop"
+            android:textColor="@color/accent_cyan"
+            android:textSize="10sp"
+            app:cornerRadius="6dp"
+            app:strokeColor="@color/accent_cyan" />
+
         <!-- Toggle Special Actions & F-Keys -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnToggleSpecial"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="0dp"
             android:layout_height="32dp"
-            android:layout_weight="1.2"
+            android:layout_weight="1.1"
             android:layout_marginEnd="4dp"
             android:insetTop="0dp"
             android:insetBottom="0dp"
@@ -385,703 +403,1730 @@
     </LinearLayout>
 
     <!-- ============================================================= -->
-    <!-- WINDOWS TOUCH KEYBOARD (ESP / ENG ISO Layout)                 -->
+    <!-- 1. MOBILE COMFORT KEYBOARD (Default in portrait, 10-key wide) -->
     <!-- ============================================================= -->
-
-    <!-- Row 1: Esc, º, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, ', ¡, Bksp (15 keys) -->
     <LinearLayout
+        android:id="@+id/layoutMobileComfortKeyboard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingBottom="2dp">
+        android:orientation="vertical"
+        android:visibility="visible">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_esc"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="Esc"
-            android:textSize="10sp" />
+        <!-- Row 0: Top PC Utility Bar (Esc, Tab, Ctrl, Alt, Win, Copy, Paste, Supr, ESP) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="4dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_ord"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="º" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/m_key_esc"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="Esc"
+                android:textSize="10sp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_1"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="1" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/m_key_tab"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="Tab"
+                android:textSize="10sp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_2"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="2" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/m_key_ctrl"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="Ctrl"
+                android:textSize="10sp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_3"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="3" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/m_key_alt"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="Alt"
+                android:textSize="10sp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_4"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="4" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/m_key_win"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="⊞"
+                android:textSize="11sp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_5"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="5" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/m_key_copy"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.2"
+                android:text="C+C"
+                android:textColor="@color/accent_emerald"
+                android:textSize="10sp"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_6"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="6" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/m_key_paste"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.2"
+                android:text="C+V"
+                android:textColor="@color/accent_emerald"
+                android:textSize="10sp"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_7"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="7" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/m_key_del"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.1"
+                android:text="Supr"
+                android:textSize="10sp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_8"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="8" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/m_key_layout"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1.1"
+                android:text="ESP"
+                android:textColor="@color/accent_cyan"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_9"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="9" />
+        <!-- Sub-View A: Mobile Letters (QWERTY, 10 per row, large keys) -->
+        <LinearLayout
+            android:id="@+id/layoutMobileLetters"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="visible">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_0"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="0" />
+            <!-- Row 1: Q W E R T Y U I O P (10 keys) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingBottom="3dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_quote"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="'" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_q"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="Q"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_excl_open"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="¡" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_w"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="W"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_bksp"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_weight="1.3"
-            android:text="⌫"
-            android:textSize="13sp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_e"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="E"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_r"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="R"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_t"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="T"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_y"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="Y"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_u"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="U"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_i"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="I"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_o"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="O"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_p"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:text="P"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Row 2: A S D F G H J K L Ñ (10 keys) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingBottom="3dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_a"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="A"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_s"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="S"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_d"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="D"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_f"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="F"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_g"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="G"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_h"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="H"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_j"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="J"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_k"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="K"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_l"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="L"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_nn"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:text="Ñ"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Row 3: Shift, Z X C V B N M, Bksp (9 keys) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingBottom="3dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_shift"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1.3"
+                    android:text="⇧"
+                    android:textSize="16sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_z"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="Z"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_x"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="X"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_c"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="C"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_v"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="V"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_b"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="B"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_n"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="N"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_m"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="M"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_bksp"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1.3"
+                    android:text="⌫"
+                    android:textSize="15sp" />
+            </LinearLayout>
+
+            <!-- Row 4: ?123, ,, Space, ., ◄, ►, Enter -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_to_symbols"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1.4"
+                    android:backgroundTint="@color/accent_indigo"
+                    android:text="@string/btn_tab_symbols"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_comma"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="0.9"
+                    android:text=","
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_space"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="3.2"
+                    android:text="@string/btn_space"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_period"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="0.9"
+                    android:text="."
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_arrow_left"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="0.9"
+                    android:backgroundTint="@color/btn_surface_active"
+                    android:text="◄" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_arrow_right"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="0.9"
+                    android:backgroundTint="@color/btn_surface_active"
+                    android:text="►" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_enter"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1.6"
+                    android:backgroundTint="@color/accent_indigo"
+                    android:text="@string/btn_enter"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Sub-View B: Mobile Symbols & Numbers (?123 view, full PC symbols) -->
+        <LinearLayout
+            android:id="@+id/layoutMobileSymbols"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- Symbols Row 1: 1 2 3 4 5 6 7 8 9 0 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingBottom="3dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_1"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="1"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_2"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="2"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_3"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="3"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_4"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="4"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_5"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="5"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_6"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="6"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_7"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="7"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_8"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="8"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_9"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="9"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_0"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:text="0"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Symbols Row 2: ! " · $ % & / ( ) = -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingBottom="3dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_excl"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="!"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_dquote"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="&quot;"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_middot"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="·"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_dollar"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="$"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_percent"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="%"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_amp"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="&amp;"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_slash"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="/"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_paren_open"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="("
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_paren_close"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text=")"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_equal"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:text="="
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Symbols Row 3: AltGr, ', ?, ¡, ¿, \, |, @, #, Bksp -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingBottom="3dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_altgr"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1.3"
+                    android:text="AltGr"
+                    android:textColor="@color/accent_emerald"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_quote"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="'"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_question"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="\?"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_excl_open"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="¡"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_question_open"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="¿"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_backslash"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="\\"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_pipe"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="|"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_at"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="@"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_hash"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="#"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_bksp"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1.3"
+                    android:text="⌫"
+                    android:textSize="15sp" />
+            </LinearLayout>
+
+            <!-- Symbols Row 4: ABC, [, ], {, }, <, >, ;, :, ▲ ▼, Enter -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_key_to_letters"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1.4"
+                    android:backgroundTint="@color/accent_cyan"
+                    android:text="@string/btn_tab_letters"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_euro"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="€"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_bracket_left"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="["
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_bracket_right"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="]"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_brace_left"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="{"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_brace_right"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="}"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_less"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="&lt;"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_greater"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text="&gt;"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_semicolon"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_marginEnd="2dp"
+                    android:layout_weight="1"
+                    android:text=";"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/m_sym_colon"
+                    style="@style/Widget.RemotePocket.KeyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:text=":"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 
-    <!-- Row 2: Tab, Q, W, E, R, T, Y, U, I, O, P, `, +, Enter (14 keys) -->
+    <!-- ============================================================= -->
+    <!-- 2. FULL DESKTOP KEYBOARD (Default in landscape, 15-key wide)  -->
+    <!-- ============================================================= -->
     <LinearLayout
+        android:id="@+id/layoutFullDesktopKeyboard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingBottom="2dp">
+        android:orientation="vertical"
+        android:visibility="gone">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_tab"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.2"
-            android:text="@string/btn_tab"
-            android:textSize="10sp" />
+        <!-- Row 1: Esc, º, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, ', ¡, Bksp (15 keys) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="2dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_q"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="Q"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_esc"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="Esc"
+                android:textSize="10sp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_w"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="W"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_ord"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="º" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_e"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="E"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_1"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="1" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_r"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="R"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_2"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="2" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_t"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="T"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_3"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="3" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_y"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="Y"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_4"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="4" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_u"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="U"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_5"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="5" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_i"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="I"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_6"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="6" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_o"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="O"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_7"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="7" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_p"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="P"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_8"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="8" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_grave"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="`" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_9"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="9" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_plus"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="+" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_0"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="0" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_enter"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_weight="1.5"
-            android:backgroundTint="@color/accent_indigo"
-            android:text="@string/btn_enter"
-            android:textSize="11sp" />
-    </LinearLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_quote"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="'" />
 
-    <!-- Row 3: Caps, A, S, D, F, G, H, J, K, L, Ñ, ´, ç (13 keys) -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingBottom="2dp">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_excl_open"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="¡" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_caps"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.3"
-            android:text="@string/btn_caps"
-            android:textSize="10sp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_bksp"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1.3"
+                android:text="⌫"
+                android:textSize="13sp" />
+        </LinearLayout>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_a"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="A"
-            android:textStyle="bold" />
+        <!-- Row 2: Tab, Q, W, E, R, T, Y, U, I, O, P, `, +, Enter (14 keys) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="2dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_s"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="S"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_tab"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.2"
+                android:text="@string/btn_tab"
+                android:textSize="10sp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_d"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="D"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_q"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="Q"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_f"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="F"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_w"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="W"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_g"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="G"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_e"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="E"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_h"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="H"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_r"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="R"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_j"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="J"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_t"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="T"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_k"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="K"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_y"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="Y"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_l"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="L"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_u"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="U"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_nn"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="Ñ"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_i"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="I"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_acute"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="´" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_o"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="O"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_cedilla"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_weight="1.0"
-            android:text="ç" />
-    </LinearLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_p"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="P"
+                android:textStyle="bold" />
 
-    <!-- Row 4: Shift, <, Z, X, C, V, B, N, M, ,, ., -, ▲, Shift, Supr (15 keys) -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingBottom="2dp">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_grave"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="`" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_shift"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.3"
-            android:text="@string/btn_shift"
-            android:textSize="10sp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_plus"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="+" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_less"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="&lt;" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_enter"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1.5"
+                android:backgroundTint="@color/accent_indigo"
+                android:text="@string/btn_enter"
+                android:textSize="11sp" />
+        </LinearLayout>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_z"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="Z"
-            android:textStyle="bold" />
+        <!-- Row 3: Caps, A, S, D, F, G, H, J, K, L, Ñ, ´, ç (13 keys) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="2dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_x"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="X"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_caps"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.3"
+                android:text="@string/btn_caps"
+                android:textSize="10sp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_c"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="C"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_a"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="A"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_v"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="V"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_s"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="S"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_b"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="B"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_d"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="D"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_n"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="N"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_f"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="F"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_m"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="M"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_g"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="G"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_comma"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="," />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_h"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="H"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_period"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="." />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_j"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="J"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_minus"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="-" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_k"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="K"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_arrow_up"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.1"
-            android:backgroundTint="@color/btn_surface_active"
-            android:text="▲" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_l"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="L"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_shift_right"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.3"
-            android:text="@string/btn_shift"
-            android:textSize="10sp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_nn"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="Ñ"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_supr"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_weight="1.1"
-            android:text="@string/btn_del"
-            android:textSize="10sp" />
-    </LinearLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_acute"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="´" />
 
-    <!-- Row 5: Fn, Ctrl, Win, Alt, Space, AltGr, Ctrl, ◄, ▼, ►, Layout (11 keys) -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_cedilla"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1.0"
+                android:text="ç" />
+        </LinearLayout>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_fn"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="@string/btn_fn"
-            android:textSize="10sp" />
+        <!-- Row 4: Shift, <, Z, X, C, V, B, N, M, ,, ., -, ▲, Shift, Supr (15 keys) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingBottom="2dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_ctrl"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.1"
-            android:text="@string/btn_ctrl"
-            android:textSize="10sp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_shift"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.3"
+                android:text="@string/btn_shift"
+                android:textSize="10sp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_win"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="⊞"
-            android:textSize="12sp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_less"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="&lt;" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_alt"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="@string/btn_alt"
-            android:textSize="10sp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_z"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="Z"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_space"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="3.6"
-            android:text="@string/btn_space"
-            android:textSize="11sp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_x"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="X"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_altgr"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.1"
-            android:text="@string/btn_altgr"
-            android:textSize="10sp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_c"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="C"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_ctrl_right"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.0"
-            android:text="@string/btn_ctrl"
-            android:textSize="10sp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_v"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="V"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_arrow_left"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.1"
-            android:backgroundTint="@color/btn_surface_active"
-            android:text="◄" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_b"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="B"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_arrow_down"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.1"
-            android:backgroundTint="@color/btn_surface_active"
-            android:text="▼" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_n"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="N"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_arrow_right"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1.1"
-            android:backgroundTint="@color/btn_surface_active"
-            android:text="►" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_m"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="M"
+                android:textStyle="bold" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_layout"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_weight="1.1"
-            android:text="ESP"
-            android:textColor="@color/accent_cyan"
-            android:textSize="10sp"
-            android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_comma"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="," />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_period"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="." />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_minus"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="-" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_arrow_up"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.1"
+                android:backgroundTint="@color/btn_surface_active"
+                android:text="▲" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_shift_right"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.3"
+                android:text="@string/btn_shift"
+                android:textSize="10sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_supr"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1.1"
+                android:text="@string/btn_del"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- Row 5: Fn, Ctrl, Win, Alt, Space, AltGr, Ctrl, ◄, ▼, ►, Layout (11 keys) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_fn"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="@string/btn_fn"
+                android:textSize="10sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_ctrl"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.1"
+                android:text="@string/btn_ctrl"
+                android:textSize="10sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_win"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="⊞"
+                android:textSize="12sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_alt"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="@string/btn_alt"
+                android:textSize="10sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_space"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="3.6"
+                android:text="@string/btn_space"
+                android:textSize="11sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_altgr"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.1"
+                android:text="@string/btn_altgr"
+                android:textSize="10sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_ctrl_right"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.0"
+                android:text="@string/btn_ctrl"
+                android:textSize="10sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_arrow_left"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.1"
+                android:backgroundTint="@color/btn_surface_active"
+                android:text="◄" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_arrow_down"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.1"
+                android:backgroundTint="@color/btn_surface_active"
+                android:text="▼" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_arrow_right"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="2dp"
+                android:layout_weight="1.1"
+                android:backgroundTint="@color/btn_surface_active"
+                android:text="►" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/key_layout"
+                style="@style/Widget.RemotePocket.KeyButton"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_weight="1.1"
+                android:text="ESP"
+                android:textColor="@color/accent_cyan"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </LinearLayout>
 
 </LinearLayout>
