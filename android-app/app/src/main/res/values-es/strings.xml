@@ -51,6 +51,10 @@
     <string name="btn_pgdn">AvPág</string>
     <string name="btn_copy">Ctrl+C</string>
     <string name="btn_paste">Ctrl+V</string>
+    <string name="btn_undo">Ctrl+Z</string>
+    <string name="btn_select_all">Ctrl+A</string>
+    <string name="btn_cut">Ctrl+X</string>
+    <string name="btn_save_shortcut">Ctrl+S</string>
     <string name="btn_alt_tab">Alt+Tab</string>
     <string name="btn_win_d">Win+D</string>
     <string name="btn_taskmgr">Admin. Tareas</string>
@@ -58,6 +62,9 @@
     <string name="btn_win_l">Bloquear (Win+L)</string>
     <string name="btn_caps">BloqMayús</string>
     <string name="btn_space">Espacio</string>
+    <string name="btn_altgr">AltGr</string>
+    <string name="btn_fn">Fn</string>
+    <string name="toast_layout_switched">Distribución de teclado: %s</string>
     <string name="toggle_special_keys">⚡ Acciones Especiales y Teclas F ▾</string>
     <string name="toggle_special_keys_hide">▲ Ocultar Teclas Especiales</string>
 

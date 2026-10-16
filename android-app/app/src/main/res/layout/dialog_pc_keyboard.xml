@@ -5,10 +5,10 @@
     android:layout_height="wrap_content"
     android:background="@drawable/bg_keyboard_dialog"
     android:orientation="vertical"
-    android:paddingStart="6dp"
-    android:paddingTop="8dp"
-    android:paddingEnd="6dp"
-    android:paddingBottom="8dp">
+    android:paddingStart="4dp"
+    android:paddingTop="6dp"
+    android:paddingEnd="4dp"
+    android:paddingBottom="6dp">
 
     <!-- Top Action Bar -->
     <LinearLayout
@@ -16,14 +16,14 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingBottom="6dp">
+        android:paddingBottom="4dp">
 
         <!-- Switch to Standard Keyboard Button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSwitchToNormal"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="0dp"
-            android:layout_height="34dp"
+            android:layout_height="32dp"
             android:layout_weight="1"
             android:layout_marginEnd="4dp"
             android:insetTop="0dp"
@@ -41,7 +41,7 @@
             android:id="@+id/btnToggleSpecial"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="0dp"
-            android:layout_height="34dp"
+            android:layout_height="32dp"
             android:layout_weight="1.2"
             android:layout_marginEnd="4dp"
             android:insetTop="0dp"
@@ -58,8 +58,8 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnEscHeader"
             style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="40dp"
-            android:layout_height="34dp"
+            android:layout_width="38dp"
+            android:layout_height="32dp"
             android:layout_marginEnd="4dp"
             android:text="@string/btn_esc"
             android:textSize="10sp" />
@@ -69,12 +69,12 @@
             android:id="@+id/btnCloseKeyboard"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
+            android:layout_marginStart="2dp"
             android:contentDescription="@string/btn_close"
             android:src="@drawable/ic_keyboard"
             app:backgroundTint="@color/accent_indigo"
-            app:fabCustomSize="36dp"
-            app:maxImageSize="20dp"
+            app:fabCustomSize="32dp"
+            app:maxImageSize="18dp"
             app:tint="#FFFFFF" />
     </LinearLayout>
 
@@ -83,17 +83,17 @@
         android:id="@+id/layoutSpecialFunctions"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="6dp"
         android:background="@drawable/bg_trackpad"
         android:orientation="vertical"
-        android:padding="8dp"
+        android:padding="6dp"
         android:visibility="gone">
 
-        <!-- Special Shortcuts (Ctrl+Alt+Del, Alt+Tab, Win+D, etc.) -->
+        <!-- Special Shortcuts: Ctrl+C and Ctrl+V FIRST as requested by user! -->
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingBottom="6dp"
+            android:paddingBottom="4dp"
             android:scrollbars="none">
 
             <LinearLayout
@@ -102,32 +102,114 @@
                 android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnShortcutCtrlAltDel"
+                    android:id="@+id/btnShortcutCopy"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="4dp"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
                     android:minWidth="0dp"
                     android:paddingStart="8dp"
                     android:paddingEnd="8dp"
-                    android:text="@string/btn_ctrl_alt_del"
-                    android:textColor="@color/accent_coral"
+                    android:text="@string/btn_copy"
+                    android:textColor="@color/accent_emerald"
                     android:textSize="11sp"
-                    app:strokeColor="@color/accent_coral" />
+                    android:textStyle="bold"
+                    app:strokeColor="@color/accent_emerald" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnShortcutPaste"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="4dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:minWidth="0dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:text="@string/btn_paste"
+                    android:textColor="@color/accent_emerald"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    app:strokeColor="@color/accent_emerald" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnShortcutUndo"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="4dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:minWidth="0dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:text="@string/btn_undo"
+                    android:textColor="@color/text_primary"
+                    android:textSize="11sp"
+                    app:strokeColor="@color/surface_card_border" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnShortcutSelectAll"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="4dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:minWidth="0dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:text="@string/btn_select_all"
+                    android:textColor="@color/text_primary"
+                    android:textSize="11sp"
+                    app:strokeColor="@color/surface_card_border" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnShortcutCut"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="4dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:minWidth="0dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:text="@string/btn_cut"
+                    android:textColor="@color/text_primary"
+                    android:textSize="11sp"
+                    app:strokeColor="@color/surface_card_border" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnShortcutSave"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="4dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:minWidth="0dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:text="@string/btn_save_shortcut"
+                    android:textColor="@color/text_primary"
+                    android:textSize="11sp"
+                    app:strokeColor="@color/surface_card_border" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnShortcutAltTab"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="4dp"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
                     android:minWidth="0dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
                     android:text="@string/btn_alt_tab"
                     android:textColor="@color/accent_indigo"
                     android:textSize="11sp"
@@ -137,29 +219,29 @@
                     android:id="@+id/btnShortcutWinD"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="4dp"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
                     android:minWidth="0dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
                     android:text="@string/btn_win_d"
-                    android:textColor="@color/accent_emerald"
+                    android:textColor="@color/accent_cyan"
                     android:textSize="11sp"
-                    app:strokeColor="@color/accent_emerald" />
+                    app:strokeColor="@color/accent_cyan" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnShortcutTaskMgr"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="4dp"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
                     android:minWidth="0dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
                     android:text="@string/btn_taskmgr"
                     android:textColor="@color/accent_coral"
                     android:textSize="11sp"
@@ -169,48 +251,32 @@
                     android:id="@+id/btnShortcutWinL"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="4dp"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
                     android:minWidth="0dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
                     android:text="@string/btn_win_l"
                     android:textColor="@color/accent_indigo"
                     android:textSize="11sp"
                     app:strokeColor="@color/accent_indigo" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnShortcutCopy"
+                    android:id="@+id/btnShortcutCtrlAltDel"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_height="32dp"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
                     android:minWidth="0dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
-                    android:text="@string/btn_copy"
-                    android:textColor="@color/text_primary"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:text="@string/btn_ctrl_alt_del"
+                    android:textColor="@color/accent_coral"
                     android:textSize="11sp"
-                    app:strokeColor="@color/surface_card_border" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnShortcutPaste"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
-                    android:minWidth="0dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
-                    android:text="@string/btn_paste"
-                    android:textColor="@color/text_primary"
-                    android:textSize="11sp"
-                    app:strokeColor="@color/surface_card_border" />
+                    app:strokeColor="@color/accent_coral" />
             </LinearLayout>
         </HorizontalScrollView>
 
@@ -218,7 +284,7 @@
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingBottom="6dp"
+            android:paddingBottom="4dp"
             android:scrollbars="none">
 
             <LinearLayout
@@ -230,77 +296,77 @@
                     android:id="@+id/btnIns"
                     style="@style/Widget.RemotePocket.KeyButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="34dp"
+                    android:layout_height="30dp"
                     android:layout_marginEnd="4dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
                     android:text="Ins"
-                    android:textSize="11sp" />
+                    android:textSize="10sp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnDel"
                     style="@style/Widget.RemotePocket.KeyButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="34dp"
+                    android:layout_height="30dp"
                     android:layout_marginEnd="4dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
                     android:text="@string/btn_del"
-                    android:textSize="11sp" />
+                    android:textSize="10sp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnHome"
                     style="@style/Widget.RemotePocket.KeyButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="34dp"
+                    android:layout_height="30dp"
                     android:layout_marginEnd="4dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
                     android:text="@string/btn_home"
-                    android:textSize="11sp" />
+                    android:textSize="10sp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnEnd"
                     style="@style/Widget.RemotePocket.KeyButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="34dp"
+                    android:layout_height="30dp"
                     android:layout_marginEnd="4dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
                     android:text="@string/btn_end"
-                    android:textSize="11sp" />
+                    android:textSize="10sp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnPgUp"
                     style="@style/Widget.RemotePocket.KeyButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="34dp"
+                    android:layout_height="30dp"
                     android:layout_marginEnd="4dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
                     android:text="@string/btn_pgup"
-                    android:textSize="11sp" />
+                    android:textSize="10sp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnPgDn"
                     style="@style/Widget.RemotePocket.KeyButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="34dp"
+                    android:layout_height="30dp"
                     android:layout_marginEnd="4dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
                     android:text="@string/btn_pgdn"
-                    android:textSize="11sp" />
+                    android:textSize="10sp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnPrtScn"
                     style="@style/Widget.RemotePocket.KeyButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="34dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
+                    android:layout_height="30dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
                     android:text="PrtScn"
-                    android:textSize="11sp" />
+                    android:textSize="10sp" />
             </LinearLayout>
         </HorizontalScrollView>
 
@@ -319,148 +385,167 @@
     </LinearLayout>
 
     <!-- ============================================================= -->
-    <!-- FULL STANDARD PC KEYBOARD (Always visible)                    -->
+    <!-- WINDOWS TOUCH KEYBOARD (ESP / ENG ISO Layout)                 -->
     <!-- ============================================================= -->
 
-    <!-- Row 1: Numbers & Symbols (1 2 3 4 5 6 7 8 9 0 - = Bksp) -->
+    <!-- Row 1: Esc, º, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, ', ¡, Bksp (15 keys) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingBottom="4dp">
+        android:paddingBottom="2dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/key_esc"
+            style="@style/Widget.RemotePocket.KeyButton"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="2dp"
+            android:layout_weight="1.0"
+            android:text="Esc"
+            android:textSize="10sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/key_ord"
+            style="@style/Widget.RemotePocket.KeyButton"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="2dp"
+            android:layout_weight="1.0"
+            android:text="º" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_1"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="1" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_2"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="2" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_3"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="3" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_4"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="4" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_5"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="5" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_6"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="6" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_7"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="7" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_8"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="8" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_9"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="9" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_0"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="0" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_minus"
+            android:id="@+id/key_quote"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
-            android:text="-" />
+            android:layout_weight="1.0"
+            android:text="'" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_equal"
+            android:id="@+id/key_excl_open"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
-            android:text="=" />
+            android:layout_weight="1.0"
+            android:text="¡" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_bksp"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_weight="1.6"
+            android:layout_height="36dp"
+            android:layout_weight="1.3"
             android:text="⌫"
-            android:textSize="14sp" />
+            android:textSize="13sp" />
     </LinearLayout>
 
-    <!-- Row 2: Tab + Q W E R T Y U I O P [ ] -->
+    <!-- Row 2: Tab, Q, W, E, R, T, Y, U, I, O, P, `, +, Enter (14 keys) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingBottom="4dp">
+        android:paddingBottom="2dp">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_tab"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1.3"
+            android:layout_weight="1.2"
             android:text="@string/btn_tab"
             android:textSize="10sp" />
 
@@ -468,9 +553,9 @@
             android:id="@+id/key_q"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="Q"
             android:textStyle="bold" />
 
@@ -478,9 +563,9 @@
             android:id="@+id/key_w"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="W"
             android:textStyle="bold" />
 
@@ -488,9 +573,9 @@
             android:id="@+id/key_e"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="E"
             android:textStyle="bold" />
 
@@ -498,9 +583,9 @@
             android:id="@+id/key_r"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="R"
             android:textStyle="bold" />
 
@@ -508,9 +593,9 @@
             android:id="@+id/key_t"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="T"
             android:textStyle="bold" />
 
@@ -518,9 +603,9 @@
             android:id="@+id/key_y"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="Y"
             android:textStyle="bold" />
 
@@ -528,9 +613,9 @@
             android:id="@+id/key_u"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="U"
             android:textStyle="bold" />
 
@@ -538,9 +623,9 @@
             android:id="@+id/key_i"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="I"
             android:textStyle="bold" />
 
@@ -548,9 +633,9 @@
             android:id="@+id/key_o"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="O"
             android:textStyle="bold" />
 
@@ -558,44 +643,55 @@
             android:id="@+id/key_p"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="P"
             android:textStyle="bold" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_bracket_left"
+            android:id="@+id/key_grave"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
-            android:text="[" />
+            android:layout_weight="1.0"
+            android:text="`" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_bracket_right"
+            android:id="@+id/key_plus"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_weight="1"
-            android:text="]" />
+            android:layout_height="36dp"
+            android:layout_marginEnd="2dp"
+            android:layout_weight="1.0"
+            android:text="+" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/key_enter"
+            style="@style/Widget.RemotePocket.KeyButton"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1.5"
+            android:backgroundTint="@color/accent_indigo"
+            android:text="@string/btn_enter"
+            android:textSize="11sp" />
     </LinearLayout>
 
-    <!-- Row 3: Caps + A S D F G H J K L ; ' Enter -->
+    <!-- Row 3: Caps, A, S, D, F, G, H, J, K, L, Ñ, ´, ç (13 keys) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingBottom="4dp">
+        android:paddingBottom="2dp">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_caps"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1.4"
+            android:layout_weight="1.3"
             android:text="@string/btn_caps"
             android:textSize="10sp" />
 
@@ -603,9 +699,9 @@
             android:id="@+id/key_a"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="A"
             android:textStyle="bold" />
 
@@ -613,9 +709,9 @@
             android:id="@+id/key_s"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="S"
             android:textStyle="bold" />
 
@@ -623,9 +719,9 @@
             android:id="@+id/key_d"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="D"
             android:textStyle="bold" />
 
@@ -633,9 +729,9 @@
             android:id="@+id/key_f"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="F"
             android:textStyle="bold" />
 
@@ -643,9 +739,9 @@
             android:id="@+id/key_g"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="G"
             android:textStyle="bold" />
 
@@ -653,9 +749,9 @@
             android:id="@+id/key_h"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="H"
             android:textStyle="bold" />
 
@@ -663,9 +759,9 @@
             android:id="@+id/key_j"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="J"
             android:textStyle="bold" />
 
@@ -673,9 +769,9 @@
             android:id="@+id/key_k"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="K"
             android:textStyle="bold" />
 
@@ -683,9 +779,9 @@
             android:id="@+id/key_l"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="L"
             android:textStyle="bold" />
 
@@ -693,74 +789,63 @@
             android:id="@+id/key_nn"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="Ñ"
             android:textStyle="bold" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_semicolon"
+            android:id="@+id/key_acute"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
-            android:text=";" />
+            android:layout_weight="1.0"
+            android:text="´" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_quote"
+            android:id="@+id/key_cedilla"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_marginEnd="2dp"
-            android:layout_weight="1"
-            android:text="'" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_enter"
-            style="@style/Widget.RemotePocket.KeyButton"
-            android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_weight="1.8"
-            android:backgroundTint="@color/accent_indigo"
-            android:text="@string/btn_enter"
-            android:textSize="11sp" />
+            android:layout_height="36dp"
+            android:layout_weight="1.0"
+            android:text="ç" />
     </LinearLayout>
 
-    <!-- Row 4: Shift + \ + Z X C V B N M , . / ▲ -->
+    <!-- Row 4: Shift, <, Z, X, C, V, B, N, M, ,, ., -, ▲, Shift, Supr (15 keys) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingBottom="4dp">
+        android:paddingBottom="2dp">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_shift"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1.4"
+            android:layout_weight="1.3"
             android:text="@string/btn_shift"
             android:textSize="10sp" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_backslash"
+            android:id="@+id/key_less"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
-            android:text="\\" />
+            android:layout_weight="1.0"
+            android:text="&lt;" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_z"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="Z"
             android:textStyle="bold" />
 
@@ -768,9 +853,9 @@
             android:id="@+id/key_x"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="X"
             android:textStyle="bold" />
 
@@ -778,9 +863,9 @@
             android:id="@+id/key_c"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="C"
             android:textStyle="bold" />
 
@@ -788,9 +873,9 @@
             android:id="@+id/key_v"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="V"
             android:textStyle="bold" />
 
@@ -798,9 +883,9 @@
             android:id="@+id/key_b"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="B"
             android:textStyle="bold" />
 
@@ -808,9 +893,9 @@
             android:id="@+id/key_n"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="N"
             android:textStyle="bold" />
 
@@ -818,9 +903,9 @@
             android:id="@+id/key_m"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="M"
             android:textStyle="bold" />
 
@@ -828,102 +913,152 @@
             android:id="@+id/key_comma"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="," />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_period"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
+            android:layout_weight="1.0"
             android:text="." />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/key_slash"
+            android:id="@+id/key_minus"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1"
-            android:text="/" />
+            android:layout_weight="1.0"
+            android:text="-" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_arrow_up"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="38dp"
-            android:layout_weight="1.2"
+            android:layout_height="36dp"
+            android:layout_marginEnd="2dp"
+            android:layout_weight="1.1"
             android:backgroundTint="@color/btn_surface_active"
             android:text="▲" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/key_shift_right"
+            style="@style/Widget.RemotePocket.KeyButton"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="2dp"
+            android:layout_weight="1.3"
+            android:text="@string/btn_shift"
+            android:textSize="10sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/key_supr"
+            style="@style/Widget.RemotePocket.KeyButton"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1.1"
+            android:text="@string/btn_del"
+            android:textSize="10sp" />
     </LinearLayout>
 
-    <!-- Row 5: Ctrl + Win + Alt + Space + ◀ ▼ ▶ -->
+    <!-- Row 5: Fn, Ctrl, Win, Alt, Space, AltGr, Ctrl, ◄, ▼, ►, Layout (11 keys) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/key_fn"
+            style="@style/Widget.RemotePocket.KeyButton"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_marginEnd="2dp"
+            android:layout_weight="1.0"
+            android:text="@string/btn_fn"
+            android:textSize="10sp" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/key_ctrl"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="38dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1.4"
+            android:layout_weight="1.1"
             android:text="@string/btn_ctrl"
-            android:textSize="11sp" />
+            android:textSize="10sp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_win"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="38dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1.2"
-            android:text="@string/btn_win"
-            android:textSize="11sp" />
+            android:layout_weight="1.0"
+            android:text="⊞"
+            android:textSize="12sp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_alt"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="38dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1.2"
+            android:layout_weight="1.0"
             android:text="@string/btn_alt"
-            android:textSize="11sp" />
+            android:textSize="10sp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_space"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="38dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="4.5"
+            android:layout_weight="3.6"
             android:text="@string/btn_space"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/key_altgr"
+            style="@style/Widget.RemotePocket.KeyButton"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_marginEnd="2dp"
+            android:layout_weight="1.1"
+            android:text="@string/btn_altgr"
+            android:textSize="10sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/key_ctrl_right"
+            style="@style/Widget.RemotePocket.KeyButton"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_marginEnd="2dp"
+            android:layout_weight="1.0"
+            android:text="@string/btn_ctrl"
+            android:textSize="10sp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_arrow_left"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="38dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1.2"
+            android:layout_weight="1.1"
             android:backgroundTint="@color/btn_surface_active"
-            android:text="◀" />
+            android:text="◄" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/key_arrow_down"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="38dp"
             android:layout_marginEnd="2dp"
-            android:layout_weight="1.2"
+            android:layout_weight="1.1"
             android:backgroundTint="@color/btn_surface_active"
             android:text="▼" />
 
@@ -931,10 +1066,22 @@
             android:id="@+id/key_arrow_right"
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="0dp"
-            android:layout_height="40dp"
-            android:layout_weight="1.2"
+            android:layout_height="38dp"
+            android:layout_marginEnd="2dp"
+            android:layout_weight="1.1"
             android:backgroundTint="@color/btn_surface_active"
-            android:text="▶" />
+            android:text="►" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/key_layout"
+            style="@style/Widget.RemotePocket.KeyButton"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_weight="1.1"
+            android:text="ESP"
+            android:textColor="@color/accent_cyan"
+            android:textSize="10sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
 </LinearLayout>

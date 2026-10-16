@@ -218,6 +218,10 @@ public class SystemSheet extends Dialog {
                         prefs.edit().putBoolean("pref_device_screen_off_" + hostKey, isScreenOffApp).apply();
                         mainHandler.post(this::updateScreenOffVisibility);
                     }
+                    if (obj.has("keyboardLayout") && !obj.get("keyboardLayout").isJsonNull()) {
+                        String kbLayout = obj.get("keyboardLayout").getAsString();
+                        prefs.edit().putString("pref_device_keyboard_layout_" + hostKey, kbLayout).apply();
+                    }
                 }
 
                 // Fetch shortcuts second

@@ -7,20 +7,21 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.text.Html;
 import android.view.Gravity;
+import android.view.HapticFeedbackConstants;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
-import android.view.HapticFeedbackConstants;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
-
-import android.os.Handler;
-import android.os.Looper;
-import android.view.MotionEvent;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
@@ -41,21 +42,103 @@ public class PcKeyboardDialog extends Dialog {
     private static final int INITIAL_REPEAT_DELAY_MS = 380;
     private static final int REPEAT_INTERVAL_MS = 65;
 
+    // Modifiers State
     private boolean isCtrlActive = false;
     private boolean isAltActive = false;
     private boolean isShiftActive = false;
     private boolean isWinActive = false;
     private boolean isCapsLockActive = false;
+    private boolean isAltGrActive = false;
 
-    private MaterialButton btnModCtrl, btnModAlt, btnModShift, btnModWin, btnModCaps;
+    // Layout: "ESP" (Spanish - Traditional / Latin America ISO) or "ENG" (US English)
+    private String currentLayout = "ESP";
+
+    private MaterialButton btnModCtrl, btnModCtrlRight, btnModAlt, btnModWin;
+    private MaterialButton btnModShift, btnModShiftRight, btnModCaps, btnModAltGr;
+    private MaterialButton btnModFn, btnLayoutToggle;
     private MaterialButton btnToggleSpecial;
     private LinearLayout layoutSpecialFunctions;
 
-    private final List<MaterialButton> letterButtons = new ArrayList<>();
+    // Key definition holder
+    private static class KeyDef {
+        final int resId;
+        final String espNormalLabel, espShiftLabel, espAltGrLabel;
+        final String espNormalVal, espShiftVal, espAltGrVal;
+        final String engNormalLabel, engShiftLabel;
+        final String engNormalVal, engShiftVal;
+        final boolean isLetter;
+        MaterialButton button;
+
+        KeyDef(int resId,
+               String espNormalLabel, String espShiftLabel, String espAltGrLabel,
+               String espNormalVal, String espShiftVal, String espAltGrVal,
+               String engNormalLabel, String engShiftLabel,
+               String engNormalVal, String engShiftVal,
+               boolean isLetter) {
+            this.resId = resId;
+            this.espNormalLabel = espNormalLabel;
+            this.espShiftLabel = espShiftLabel;
+            this.espAltGrLabel = espAltGrLabel;
+            this.espNormalVal = espNormalVal;
+            this.espShiftVal = espShiftVal;
+            this.espAltGrVal = espAltGrVal;
+            this.engNormalLabel = engNormalLabel;
+            this.engShiftLabel = engShiftLabel;
+            this.engNormalVal = engNormalVal;
+            this.engShiftVal = engShiftVal;
+            this.isLetter = isLetter;
+        }
+
+        static KeyDef letter(int resId, String letter, String espAltGrLabel, String espAltGrVal) {
+            return new KeyDef(
+                    resId,
+                    letter.toLowerCase(), letter.toUpperCase(), espAltGrLabel,
+                    letter.toLowerCase(), letter.toUpperCase(), espAltGrVal,
+                    letter.toLowerCase(), letter.toUpperCase(),
+                    letter.toLowerCase(), letter.toUpperCase(),
+                    true
+            );
+        }
+
+        static KeyDef letter(int resId, String letter) {
+            return letter(resId, letter, null, null);
+        }
+
+        static KeyDef symbol(int resId,
+                             String espNorm, String espShift, String espAltGr,
+                             String engNorm, String engShift) {
+            return new KeyDef(
+                    resId,
+                    espNorm, espShift, espAltGr,
+                    espNorm, espShift, espAltGr,
+                    engNorm, engShift,
+                    engNorm, engShift,
+                    false
+            );
+        }
+    }
+
+    private final List<KeyDef> keys = new ArrayList<>();
 
     public PcKeyboardDialog(@NonNull Context context, WebSocketManager webSocketManager) {
         super(context);
         this.webSocketManager = webSocketManager;
+        initKeyDefinitions();
+    }
+
+    public void setDetectedLayout(String layout) {
+        if (layout != null) {
+            String l = layout.trim().toUpperCase();
+            if (l.startsWith("ES") || l.contains("SPANISH")) {
+                currentLayout = "ESP";
+            } else if (l.startsWith("EN") || l.contains("US") || l.contains("ENGLISH")) {
+                currentLayout = "ENG";
+            }
+        }
+        if (btnLayoutToggle != null) {
+            btnLayoutToggle.setText(currentLayout);
+            refreshAllKeycaps();
+        }
     }
 
     public void setOnSwitchToNormalKeyboard(Runnable runnable) {
@@ -66,7 +149,7 @@ public class PcKeyboardDialog extends Dialog {
         if (root == null) return;
         ViewGroup.LayoutParams lp = root.getLayoutParams();
         if (lp != null && lp.height > 0 && !(root instanceof ViewGroup && ((ViewGroup) root).getChildCount() > 0)) {
-            float min = 26f * getContext().getResources().getDisplayMetrics().density;
+            float min = 24f * getContext().getResources().getDisplayMetrics().density;
             lp.height = Math.max((int) min, Math.round(lp.height * factor));
             root.setLayoutParams(lp);
         }
@@ -78,13 +161,79 @@ public class PcKeyboardDialog extends Dialog {
         }
     }
 
+    private void initKeyDefinitions() {
+        keys.clear();
+
+        // Row 1: Esc, º, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, ', ¡
+        keys.add(KeyDef.symbol(R.id.key_ord, "º", "ª", "\\", "`", "~"));
+        keys.add(KeyDef.symbol(R.id.key_1, "1", "!", "|", "1", "!"));
+        keys.add(KeyDef.symbol(R.id.key_2, "2", "\"", "@", "2", "@"));
+        keys.add(KeyDef.symbol(R.id.key_3, "3", "·", "#", "3", "#"));
+        keys.add(KeyDef.symbol(R.id.key_4, "4", "$", "~", "4", "$"));
+        keys.add(KeyDef.symbol(R.id.key_5, "5", "%", "€", "5", "%"));
+        keys.add(KeyDef.symbol(R.id.key_6, "6", "&", "¬", "6", "^"));
+        keys.add(KeyDef.symbol(R.id.key_7, "7", "/", null, "7", "&"));
+        keys.add(KeyDef.symbol(R.id.key_8, "8", "(", null, "8", "*"));
+        keys.add(KeyDef.symbol(R.id.key_9, "9", ")", null, "9", "("));
+        keys.add(KeyDef.symbol(R.id.key_0, "0", "=", null, "0", ")"));
+        keys.add(KeyDef.symbol(R.id.key_quote, "'", "?", null, "-", "_"));
+        keys.add(KeyDef.symbol(R.id.key_excl_open, "¡", "¿", null, "=", "+"));
+
+        // Row 2: Q W E R T Y U I O P ` +
+        keys.add(KeyDef.letter(R.id.key_q, "q"));
+        keys.add(KeyDef.letter(R.id.key_w, "w"));
+        keys.add(KeyDef.letter(R.id.key_e, "e", "€", "€"));
+        keys.add(KeyDef.letter(R.id.key_r, "r"));
+        keys.add(KeyDef.letter(R.id.key_t, "t"));
+        keys.add(KeyDef.letter(R.id.key_y, "y"));
+        keys.add(KeyDef.letter(R.id.key_u, "u"));
+        keys.add(KeyDef.letter(R.id.key_i, "i"));
+        keys.add(KeyDef.letter(R.id.key_o, "o"));
+        keys.add(KeyDef.letter(R.id.key_p, "p"));
+        keys.add(KeyDef.symbol(R.id.key_grave, "`", "^", "[", "[", "{"));
+        keys.add(KeyDef.symbol(R.id.key_plus, "+", "*", "]", "]", "}"));
+
+        // Row 3: A S D F G H J K L Ñ ´ ç
+        keys.add(KeyDef.letter(R.id.key_a, "a"));
+        keys.add(KeyDef.letter(R.id.key_s, "s"));
+        keys.add(KeyDef.letter(R.id.key_d, "d"));
+        keys.add(KeyDef.letter(R.id.key_f, "f"));
+        keys.add(KeyDef.letter(R.id.key_g, "g"));
+        keys.add(KeyDef.letter(R.id.key_h, "h"));
+        keys.add(KeyDef.letter(R.id.key_j, "j"));
+        keys.add(KeyDef.letter(R.id.key_k, "k"));
+        keys.add(KeyDef.letter(R.id.key_l, "l"));
+        // Ñ (in ENG layout corresponds to ;)
+        keys.add(new KeyDef(
+                R.id.key_nn,
+                "ñ", "Ñ", null, "ñ", "Ñ", null,
+                ";", ":", ";", ":",
+                false
+        ));
+        keys.add(KeyDef.symbol(R.id.key_acute, "´", "¨", "{", "'", "\""));
+        keys.add(KeyDef.symbol(R.id.key_cedilla, "ç", "Ç", "}", "\\", "|"));
+
+        // Row 4: < Z X C V B N M , . -
+        keys.add(KeyDef.symbol(R.id.key_less, "<", ">", null, "\\", "|"));
+        keys.add(KeyDef.letter(R.id.key_z, "z"));
+        keys.add(KeyDef.letter(R.id.key_x, "x"));
+        keys.add(KeyDef.letter(R.id.key_c, "c"));
+        keys.add(KeyDef.letter(R.id.key_v, "v"));
+        keys.add(KeyDef.letter(R.id.key_b, "b"));
+        keys.add(KeyDef.letter(R.id.key_n, "n"));
+        keys.add(KeyDef.letter(R.id.key_m, "m"));
+        keys.add(KeyDef.symbol(R.id.key_comma, ",", ";", null, ",", "<"));
+        keys.add(KeyDef.symbol(R.id.key_period, ".", ":", null, ".", ">"));
+        keys.add(KeyDef.symbol(R.id.key_minus, "-", "_", null, "/", "?"));
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.dialog_pc_keyboard);
 
-        // Landscape (e.g. fullscreen live screen): compact keys so the desktop stays visible above the keyboard
+        // Landscape compaction
         if (getContext().getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
             compactHeights(findViewById(android.R.id.content), 0.74f);
         }
@@ -118,7 +267,6 @@ public class PcKeyboardDialog extends Dialog {
             });
         }
 
-        // Special section toggle
         btnToggleSpecial = findViewById(R.id.btnToggleSpecial);
         layoutSpecialFunctions = findViewById(R.id.layoutSpecialFunctions);
         btnToggleSpecial.setOnClickListener(v -> {
@@ -126,134 +274,253 @@ public class PcKeyboardDialog extends Dialog {
             toggleSpecialSection();
         });
 
-        // Setup special panel actions
+        // Setup special panel actions (Ctrl+C and Ctrl+V FIRST!)
         setupSpecialPanel();
 
-        // Modifiers & Caps
+        // Modifiers & Controls
         btnModCtrl = findViewById(R.id.key_ctrl);
+        btnModCtrlRight = findViewById(R.id.key_ctrl_right);
         btnModWin = findViewById(R.id.key_win);
         btnModAlt = findViewById(R.id.key_alt);
         btnModShift = findViewById(R.id.key_shift);
+        btnModShiftRight = findViewById(R.id.key_shift_right);
         btnModCaps = findViewById(R.id.key_caps);
+        btnModAltGr = findViewById(R.id.key_altgr);
+        btnModFn = findViewById(R.id.key_fn);
+        btnLayoutToggle = findViewById(R.id.key_layout);
 
-        btnModCtrl.setOnClickListener(v -> {
+        View.OnClickListener ctrlListener = v -> {
             triggerHaptic(v);
             toggleModifier("ctrl");
-        });
+        };
+        btnModCtrl.setOnClickListener(ctrlListener);
+        if (btnModCtrlRight != null) btnModCtrlRight.setOnClickListener(ctrlListener);
+
         btnModWin.setOnClickListener(v -> {
             triggerHaptic(v);
             toggleModifier("win");
         });
+
         btnModAlt.setOnClickListener(v -> {
             triggerHaptic(v);
             toggleModifier("alt");
         });
-        btnModShift.setOnClickListener(v -> {
+
+        View.OnClickListener shiftListener = v -> {
             triggerHaptic(v);
             toggleModifier("shift");
-        });
+        };
+        btnModShift.setOnClickListener(shiftListener);
+        if (btnModShiftRight != null) btnModShiftRight.setOnClickListener(shiftListener);
+
         btnModCaps.setOnClickListener(v -> {
             triggerHaptic(v);
             toggleCapsLock();
         });
 
-        // Row 1: Numbers & Symbols & Backspace
-        setupKey(R.id.key_1, "1");
-        setupKey(R.id.key_2, "2");
-        setupKey(R.id.key_3, "3");
-        setupKey(R.id.key_4, "4");
-        setupKey(R.id.key_5, "5");
-        setupKey(R.id.key_6, "6");
-        setupKey(R.id.key_7, "7");
-        setupKey(R.id.key_8, "8");
-        setupKey(R.id.key_9, "9");
-        setupKey(R.id.key_0, "0");
-        setupKey(R.id.key_minus, "-");
-        setupKey(R.id.key_equal, "=");
-        setupKey(R.id.key_bksp, "backspace");
+        btnModAltGr.setOnClickListener(v -> {
+            triggerHaptic(v);
+            toggleModifier("altgr");
+        });
 
-        // Row 2: Tab, QWERTY, Brackets
-        setupKey(R.id.key_tab, "tab");
-        setupLetterKey(R.id.key_q, "q");
-        setupLetterKey(R.id.key_w, "w");
-        setupLetterKey(R.id.key_e, "e");
-        setupLetterKey(R.id.key_r, "r");
-        setupLetterKey(R.id.key_t, "t");
-        setupLetterKey(R.id.key_y, "y");
-        setupLetterKey(R.id.key_u, "u");
-        setupLetterKey(R.id.key_i, "i");
-        setupLetterKey(R.id.key_o, "o");
-        setupLetterKey(R.id.key_p, "p");
-        setupKey(R.id.key_bracket_left, "[");
-        setupKey(R.id.key_bracket_right, "]");
+        btnModFn.setOnClickListener(v -> {
+            triggerHaptic(v);
+            toggleSpecialSection();
+        });
 
-        // Row 3: ASDF, Semicolon, Quote, Enter
-        setupLetterKey(R.id.key_a, "a");
-        setupLetterKey(R.id.key_s, "s");
-        setupLetterKey(R.id.key_d, "d");
-        setupLetterKey(R.id.key_f, "f");
-        setupLetterKey(R.id.key_g, "g");
-        setupLetterKey(R.id.key_h, "h");
-        setupLetterKey(R.id.key_j, "j");
-        setupLetterKey(R.id.key_k, "k");
-        setupLetterKey(R.id.key_l, "l");
-        setupLetterKey(R.id.key_nn, "ñ");
-        setupKey(R.id.key_semicolon, ";");
-        setupKey(R.id.key_quote, "'");
-        setupKey(R.id.key_enter, "enter");
+        btnLayoutToggle.setText(currentLayout);
+        btnLayoutToggle.setOnClickListener(v -> {
+            triggerHaptic(v);
+            currentLayout = "ESP".equals(currentLayout) ? "ENG" : "ESP";
+            btnLayoutToggle.setText(currentLayout);
+            refreshAllKeycaps();
+            Toast.makeText(getContext(), getContext().getString(R.string.toast_layout_switched, currentLayout), Toast.LENGTH_SHORT).show();
+        });
 
-        // Row 4: Backslash, ZXCV, Punctuation, Arrow Up
-        setupKey(R.id.key_backslash, "\\");
-        setupLetterKey(R.id.key_z, "z");
-        setupLetterKey(R.id.key_x, "x");
-        setupLetterKey(R.id.key_c, "c");
-        setupLetterKey(R.id.key_v, "v");
-        setupLetterKey(R.id.key_b, "b");
-        setupLetterKey(R.id.key_n, "n");
-        setupLetterKey(R.id.key_m, "m");
-        setupKey(R.id.key_comma, ",");
-        setupKey(R.id.key_period, ".");
-        setupKey(R.id.key_slash, "/");
-        setupKey(R.id.key_arrow_up, "up");
+        // Setup Direct Control Keys
+        setupControlKey(R.id.key_esc, "esc");
+        setupControlKey(R.id.key_tab, "tab");
+        setupControlKey(R.id.key_enter, "enter");
+        setupControlKey(R.id.key_bksp, "backspace");
+        setupControlKey(R.id.key_supr, "delete");
+        setupControlKey(R.id.key_space, "space");
+        setupControlKey(R.id.key_arrow_up, "up");
+        setupControlKey(R.id.key_arrow_down, "down");
+        setupControlKey(R.id.key_arrow_left, "left");
+        setupControlKey(R.id.key_arrow_right, "right");
 
-        // Row 5: Space & Left/Down/Right Arrows
-        setupKey(R.id.key_space, "space");
-        setupKey(R.id.key_arrow_left, "left");
-        setupKey(R.id.key_arrow_down, "down");
-        setupKey(R.id.key_arrow_right, "right");
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        Window window = getWindow();
-        if (window != null) {
-            window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            window.setGravity(Gravity.BOTTOM);
+        // Bind all letter and symbol keys
+        for (KeyDef def : keys) {
+            def.button = findViewById(def.resId);
+            if (def.button != null) {
+                attachRepeatListener(def.button, () -> handleKeyClicked(def));
+            }
         }
+
+        refreshAllKeycaps();
     }
 
-    @Override
-    public void dismiss() {
-        repeatHandler.removeCallbacksAndMessages(null);
-        super.dismiss();
-    }
+    private void refreshAllKeycaps() {
+        boolean isEsp = "ESP".equals(currentLayout);
+        boolean isShift = isShiftActive || isCapsLockActive;
 
-    @Override
-    protected void onStop() {
-        repeatHandler.removeCallbacksAndMessages(null);
-        super.onStop();
-    }
+        for (KeyDef def : keys) {
+            if (def.button == null) continue;
 
-    private void triggerHaptic(View v) {
-        if (v != null) {
-            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-        }
-        if (vibrator != null && vibrator.hasVibrator()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator.vibrate(VibrationEffect.createOneShot(22, VibrationEffect.DEFAULT_AMPLITUDE));
+            String normLabel = isEsp ? def.espNormalLabel : def.engNormalLabel;
+            String shiftLabel = isEsp ? def.espShiftLabel : def.engShiftLabel;
+            String altGrLabel = isEsp ? def.espAltGrLabel : null;
+
+            if (isAltGrActive && altGrLabel != null) {
+                def.button.setText(Html.fromHtml("<b>" + altGrLabel + "</b>"));
+                def.button.setTextColor(ContextCompat.getColor(getContext(), R.color.accent_emerald));
+            } else if (isShift) {
+                if (def.isLetter) {
+                    def.button.setText(normLabel.toUpperCase());
+                } else if (shiftLabel != null) {
+                    def.button.setText(Html.fromHtml("<b>" + shiftLabel + "</b>"));
+                } else {
+                    def.button.setText(normLabel);
+                }
+                def.button.setTextColor(ContextCompat.getColor(getContext(), R.color.text_primary));
             } else {
-                vibrator.vibrate(22);
+                if (def.isLetter) {
+                    def.button.setText(normLabel.toLowerCase());
+                } else if (shiftLabel != null) {
+                    // Windows Touch Keyboard Style: Superscript shift symbol on top, normal label below!
+                    String html = "<small><font color='#94A3B8'>" + shiftLabel + "</font></small><br><b>" + normLabel + "</b>";
+                    def.button.setText(Html.fromHtml(html));
+                } else {
+                    def.button.setText(normLabel);
+                }
+                def.button.setTextColor(ContextCompat.getColor(getContext(), R.color.text_primary));
+            }
+        }
+    }
+
+    private void handleKeyClicked(KeyDef def) {
+        boolean isEsp = "ESP".equals(currentLayout);
+
+        String normVal = isEsp ? def.espNormalVal : def.engNormalVal;
+        String shiftVal = isEsp ? def.espShiftVal : def.engShiftVal;
+        String altGrVal = isEsp ? def.espAltGrVal : null;
+
+        if (isAltGrActive && altGrVal != null) {
+            sendDirectText(altGrVal);
+            isAltGrActive = false;
+            updateModifierVisual(btnModAltGr, false);
+            refreshAllKeycaps();
+            return;
+        }
+
+        // Modifiers (Ctrl, Alt, Win) combo
+        if (isCtrlActive || isAltActive || isWinActive) {
+            sendKeyWithModifiers(def.isLetter ? def.espNormalVal.toLowerCase() : normVal);
+            return;
+        }
+
+        // Shift or CapsLock
+        if (isShiftActive || isCapsLockActive) {
+            if (def.isLetter) {
+                sendDirectText(def.isLetter ? normVal.toUpperCase() : shiftVal);
+            } else if (shiftVal != null) {
+                sendDirectText(shiftVal);
+            } else {
+                sendDirectText(normVal);
+            }
+            if (isShiftActive) {
+                isShiftActive = false;
+                updateModifierVisual(btnModShift, false);
+                if (btnModShiftRight != null) updateModifierVisual(btnModShiftRight, false);
+                refreshAllKeycaps();
+            }
+            return;
+        }
+
+        // Normal character typing
+        sendDirectText(normVal);
+    }
+
+    private void setupControlKey(int resId, String keyName) {
+        View view = findViewById(resId);
+        if (view != null) {
+            attachRepeatListener(view, () -> sendKeyWithModifiers(keyName));
+        }
+    }
+
+    private void setupSpecialPanel() {
+        // Direct Action Shortcuts: Ctrl+C and Ctrl+V FIRST!
+        findViewById(R.id.btnShortcutCopy).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("ctrl+c");
+        });
+        findViewById(R.id.btnShortcutPaste).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("ctrl+v");
+        });
+        findViewById(R.id.btnShortcutUndo).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("ctrl+z");
+        });
+        findViewById(R.id.btnShortcutSelectAll).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("ctrl+a");
+        });
+        findViewById(R.id.btnShortcutCut).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("ctrl+x");
+        });
+        findViewById(R.id.btnShortcutSave).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("ctrl+s");
+        });
+        findViewById(R.id.btnShortcutAltTab).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("alt+tab");
+        });
+        findViewById(R.id.btnShortcutWinD).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("win+d");
+        });
+        findViewById(R.id.btnShortcutTaskMgr).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("ctrl+shift+esc");
+        });
+        findViewById(R.id.btnShortcutWinL).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("win+l");
+        });
+        findViewById(R.id.btnShortcutCtrlAltDel).setOnClickListener(v -> {
+            triggerHaptic(v);
+            sendKey("ctrl+alt+del");
+        });
+
+        // Extended Nav Keys
+        setupControlKey(R.id.btnIns, "ins");
+        setupControlKey(R.id.btnDel, "delete");
+        setupControlKey(R.id.btnHome, "home");
+        setupControlKey(R.id.btnEnd, "end");
+        setupControlKey(R.id.btnPgUp, "pageup");
+        setupControlKey(R.id.btnPgDn, "pagedown");
+        setupControlKey(R.id.btnPrtScn, "prtscn");
+
+        // F1 - F12 Keys
+        LinearLayout layoutFKeys = findViewById(R.id.layoutFKeys);
+        if (layoutFKeys != null && layoutFKeys.getChildCount() == 0) {
+            for (int i = 1; i <= 12; i++) {
+                final String fKey = "f" + i;
+                Button btnF = new Button(getContext());
+                btnF.setText("F" + i);
+                btnF.setTextSize(11f);
+                btnF.setTextColor(ContextCompat.getColor(getContext(), R.color.text_primary));
+                btnF.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getContext(), R.color.btn_surface)));
+
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dpToPx(44), dpToPx(32));
+                lp.setMargins(0, 0, dpToPx(4), 0);
+                btnF.setLayoutParams(lp);
+
+                attachRepeatListener(btnF, () -> sendKeyWithModifiers(fKey));
+                layoutFKeys.addView(btnF);
             }
         }
     }
@@ -272,62 +539,85 @@ public class PcKeyboardDialog extends Dialog {
         }
     }
 
-    private void setupSpecialPanel() {
-        // Direct Action Shortcuts
-        findViewById(R.id.btnShortcutCtrlAltDel).setOnClickListener(v -> {
-            triggerHaptic(v);
-            sendKey("ctrl+alt+del");
-        });
-        findViewById(R.id.btnShortcutAltTab).setOnClickListener(v -> {
-            triggerHaptic(v);
-            sendKey("alt+tab");
-        });
-        findViewById(R.id.btnShortcutWinD).setOnClickListener(v -> {
-            triggerHaptic(v);
-            sendKey("win+d");
-        });
-        findViewById(R.id.btnShortcutTaskMgr).setOnClickListener(v -> {
-            triggerHaptic(v);
-            sendKey("ctrl+shift+esc");
-        });
-        findViewById(R.id.btnShortcutWinL).setOnClickListener(v -> {
-            triggerHaptic(v);
-            sendKey("win+l");
-        });
-        findViewById(R.id.btnShortcutCopy).setOnClickListener(v -> {
-            triggerHaptic(v);
-            sendKey("ctrl+c");
-        });
-        findViewById(R.id.btnShortcutPaste).setOnClickListener(v -> {
-            triggerHaptic(v);
-            sendKey("ctrl+v");
-        });
+    private void toggleModifier(String mod) {
+        switch (mod) {
+            case "ctrl":
+                isCtrlActive = !isCtrlActive;
+                updateModifierVisual(btnModCtrl, isCtrlActive);
+                if (btnModCtrlRight != null) updateModifierVisual(btnModCtrlRight, isCtrlActive);
+                break;
+            case "alt":
+                isAltActive = !isAltActive;
+                updateModifierVisual(btnModAlt, isAltActive);
+                break;
+            case "shift":
+                isShiftActive = !isShiftActive;
+                updateModifierVisual(btnModShift, isShiftActive);
+                if (btnModShiftRight != null) updateModifierVisual(btnModShiftRight, isShiftActive);
+                refreshAllKeycaps();
+                break;
+            case "win":
+                isWinActive = !isWinActive;
+                updateModifierVisual(btnModWin, isWinActive);
+                break;
+            case "altgr":
+                isAltGrActive = !isAltGrActive;
+                updateModifierVisual(btnModAltGr, isAltGrActive);
+                refreshAllKeycaps();
+                break;
+        }
+    }
 
-        // Extended Nav Keys
-        setupKey(R.id.btnIns, "ins");
-        setupKey(R.id.btnDel, "delete");
-        setupKey(R.id.btnHome, "home");
-        setupKey(R.id.btnEnd, "end");
-        setupKey(R.id.btnPgUp, "pageup");
-        setupKey(R.id.btnPgDn, "pagedown");
-        setupKey(R.id.btnPrtScn, "prtscn");
+    private void toggleCapsLock() {
+        isCapsLockActive = !isCapsLockActive;
+        updateModifierVisual(btnModCaps, isCapsLockActive);
+        sendKey("capslock");
+        refreshAllKeycaps();
+    }
 
-        // F1 - F12 Keys
-        LinearLayout layoutFKeys = findViewById(R.id.layoutFKeys);
-        for (int i = 1; i <= 12; i++) {
-            final String fKey = "f" + i;
-            Button btnF = new Button(getContext());
-            btnF.setText("F" + i);
-            btnF.setTextSize(11f);
-            btnF.setTextColor(ContextCompat.getColor(getContext(), R.color.text_primary));
-            btnF.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getContext(), R.color.btn_surface)));
+    private void updateModifierVisual(MaterialButton btn, boolean active) {
+        if (btn == null) return;
+        int color = ContextCompat.getColor(getContext(), active ? R.color.accent_indigo : R.color.btn_surface);
+        btn.setBackgroundTintList(ColorStateList.valueOf(color));
+    }
 
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dpToPx(46), dpToPx(34));
-            lp.setMargins(0, 0, dpToPx(4), 0);
-            btnF.setLayoutParams(lp);
+    private void sendDirectText(String text) {
+        if (webSocketManager != null && text != null) {
+            webSocketManager.sendTypeText(text);
+        }
+    }
 
-            attachRepeatListener(btnF, () -> sendKeyWithModifiers(fKey));
-            layoutFKeys.addView(btnF);
+    private void sendKey(String keyExpr) {
+        if (webSocketManager != null) {
+            webSocketManager.sendKeyPress(keyExpr);
+        }
+    }
+
+    private void sendKeyWithModifiers(String baseKey) {
+        StringBuilder sb = new StringBuilder();
+        if (isCtrlActive) sb.append("ctrl+");
+        if (isAltActive) sb.append("alt+");
+        if (isShiftActive) sb.append("shift+");
+        if (isWinActive) sb.append("win+");
+        sb.append(baseKey);
+
+        sendKey(sb.toString());
+
+        // Reset temporary modifier latches
+        if (isCtrlActive || isAltActive || isShiftActive || isWinActive || isAltGrActive) {
+            isCtrlActive = false;
+            isAltActive = false;
+            isShiftActive = false;
+            isWinActive = false;
+            isAltGrActive = false;
+            updateModifierVisual(btnModCtrl, false);
+            if (btnModCtrlRight != null) updateModifierVisual(btnModCtrlRight, false);
+            updateModifierVisual(btnModAlt, false);
+            updateModifierVisual(btnModShift, false);
+            if (btnModShiftRight != null) updateModifierVisual(btnModShiftRight, false);
+            updateModifierVisual(btnModWin, false);
+            updateModifierVisual(btnModAltGr, false);
+            refreshAllKeycaps();
         }
     }
 
@@ -370,95 +660,35 @@ public class PcKeyboardDialog extends Dialog {
         });
     }
 
+    private void triggerHaptic(View v) {
+        if (v != null) {
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+        }
+        if (vibrator != null && vibrator.hasVibrator()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createOneShot(22, VibrationEffect.DEFAULT_AMPLITUDE));
+            } else {
+                vibrator.vibrate(22);
+            }
+        }
+    }
+
     private void triggerRepeatHaptic(View v) {
         if (v != null) {
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
         }
     }
 
-    private void setupKey(int resId, String keyName) {
-        View view = findViewById(resId);
-        if (view != null) {
-            attachRepeatListener(view, () -> sendKeyWithModifiers(keyName));
-        }
+    @Override
+    public void dismiss() {
+        repeatHandler.removeCallbacksAndMessages(null);
+        super.dismiss();
     }
 
-    private void setupLetterKey(int resId, String letter) {
-        MaterialButton btn = findViewById(resId);
-        if (btn != null) {
-            letterButtons.add(btn);
-            attachRepeatListener(btn, () -> sendKeyWithModifiers(letter));
-        }
-    }
-
-    private void toggleModifier(String mod) {
-        switch (mod) {
-            case "ctrl":
-                isCtrlActive = !isCtrlActive;
-                updateButtonVisual(btnModCtrl, isCtrlActive);
-                break;
-            case "alt":
-                isAltActive = !isAltActive;
-                updateButtonVisual(btnModAlt, isAltActive);
-                break;
-            case "shift":
-                isShiftActive = !isShiftActive;
-                updateButtonVisual(btnModShift, isShiftActive);
-                break;
-            case "win":
-                isWinActive = !isWinActive;
-                updateButtonVisual(btnModWin, isWinActive);
-                break;
-        }
-    }
-
-    private void toggleCapsLock() {
-        isCapsLockActive = !isCapsLockActive;
-        updateButtonVisual(btnModCaps, isCapsLockActive);
-        sendKey("capslock");
-
-        // Reflect visual uppercase / lowercase across letter keycaps
-        for (MaterialButton btn : letterButtons) {
-            CharSequence text = btn.getText();
-            if (text != null && text.length() == 1) {
-                btn.setText(isCapsLockActive ? text.toString().toUpperCase() : text.toString().toLowerCase());
-            }
-        }
-    }
-
-    private void updateButtonVisual(MaterialButton btn, boolean active) {
-        if (btn == null) return;
-        int color = ContextCompat.getColor(getContext(), active ? R.color.accent_indigo : R.color.btn_surface);
-        btn.setBackgroundTintList(ColorStateList.valueOf(color));
-    }
-
-    private void sendKey(String keyExpr) {
-        if (webSocketManager != null) {
-            webSocketManager.sendKeyPress(keyExpr);
-        }
-    }
-
-    private void sendKeyWithModifiers(String baseKey) {
-        StringBuilder sb = new StringBuilder();
-        if (isCtrlActive) sb.append("ctrl+");
-        if (isAltActive) sb.append("alt+");
-        if (isShiftActive) sb.append("shift+");
-        if (isWinActive) sb.append("win+");
-        sb.append(baseKey);
-
-        sendKey(sb.toString());
-
-        // Reset temporary modifier latches after dispatching
-        if (isCtrlActive || isAltActive || isShiftActive || isWinActive) {
-            isCtrlActive = false;
-            isAltActive = false;
-            isShiftActive = false;
-            isWinActive = false;
-            updateButtonVisual(btnModCtrl, false);
-            updateButtonVisual(btnModAlt, false);
-            updateButtonVisual(btnModShift, false);
-            updateButtonVisual(btnModWin, false);
-        }
+    @Override
+    protected void onStop() {
+        repeatHandler.removeCallbacksAndMessages(null);
+        super.onStop();
     }
 
     private int dpToPx(int dp) {

@@ -26,6 +26,7 @@ public class WebSocketManager {
         void onScreenFrame(byte[] jpegData);
         void onError(String error);
         default void onMonitorsInfo(JsonObject monitorsJson) {}
+        default void onDeviceInfo(JsonObject deviceInfoJson) {}
     }
 
     private final OkHttpClient client;
@@ -101,6 +102,8 @@ public class WebSocketManager {
                             String type = json.get("type").getAsString();
                             if ("monitors_info".equals(type)) {
                                 mainHandler.post(() -> listener.onMonitorsInfo(json));
+                            } else if ("device_info".equals(type)) {
+                                mainHandler.post(() -> listener.onDeviceInfo(json));
                             }
                         }
                     } catch (Exception ignored) {}

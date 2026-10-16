@@ -324,6 +324,16 @@ public class MainActivity extends AppCompatActivity {
             public void onMonitorsInfo(JsonObject monitorsJson) {
                 handleMonitorsInfo(monitorsJson);
             }
+
+            @Override
+            public void onDeviceInfo(JsonObject deviceInfoJson) {
+                if (deviceInfoJson != null && deviceInfoJson.has("keyboardLayout")) {
+                    detectedPcKeyboardLayout = deviceInfoJson.get("keyboardLayout").getAsString();
+                    if (activePcKeyboardDialog != null && activePcKeyboardDialog.isShowing()) {
+                        activePcKeyboardDialog.setDetectedLayout(detectedPcKeyboardLayout);
+                    }
+                }
+            }
         });
     }
 
@@ -574,6 +584,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private PcKeyboardDialog activePcKeyboardDialog = null;
+    private String detectedPcKeyboardLayout = "ESP";
 
     private void setupDraggableFab() {
         resetFabKeyboardFade();
@@ -687,6 +698,9 @@ public class MainActivity extends AppCompatActivity {
             activePcKeyboardDialog.dismiss();
         }
         activePcKeyboardDialog = new PcKeyboardDialog(this, webSocketManager);
+        if (detectedPcKeyboardLayout != null) {
+            activePcKeyboardDialog.setDetectedLayout(detectedPcKeyboardLayout);
+        }
         activePcKeyboardDialog.setOnSwitchToNormalKeyboard(() -> {
             activePcKeyboardDialog = null;
             showNormalKeyboard();
