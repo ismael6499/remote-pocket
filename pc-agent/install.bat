@@ -85,9 +85,14 @@ if "!HAS_SCREEN_OFF!"=="true" (
     echo [OK] PushMonitOff detected. Screen Off feature enabled.
 )
 
-:: 5. Create run_silent.vbs and Startup Shortcut
+:: 5. Configure Windows Firewall (TCP 5050 & UDP 5051) for LAN/VPN
 echo.
-echo [5/5] Configuring background auto-start at Windows logon...
+echo [5/6] Configuring Windows Firewall...
+call "%~dp0setup_firewall.bat"
+
+:: 6. Create run_silent.vbs and Startup Shortcut
+echo.
+echo [6/6] Configuring background auto-start at Windows logon...
 
 :: Create run_silent.vbs dynamically with current directory
 (
@@ -96,9 +101,10 @@ echo fullPath = fso.GetAbsolutePathName^(WScript.ScriptFullName^)
 echo scriptDir = fso.GetParentFolderName^(fullPath^)
 echo Set WshShell = CreateObject^("WScript.Shell"^)
 echo WshShell.CurrentDirectory = scriptDir
-echo WshShell.Run Chr^(34^) ^& scriptDir ^& "\stop_server.bat" ^& Chr^(34^), 0, True
-echo WScript.Sleep 1000
-echo WshShell.Run Chr^(34^) ^& scriptDir ^& "\start_server.bat" ^& Chr^(34^), 0, False
+echo On Error Resume Next
+echo WshShell.Run "cmd /c stop_server.bat", 0, True
+echo WScript.Sleep 800
+echo WshShell.Run "cmd /c start.bat", 0, False
 ) > "%~dp0run_silent.vbs"
 
 :: Create shortcut in Windows Startup folder (same as Express Gateway)

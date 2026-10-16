@@ -75,11 +75,19 @@ public class Device implements Serializable {
         this.lastSeen = lastSeen;
     }
 
+    public boolean isSecure() {
+        if (isRemote) return true;
+        if (host == null) return false;
+        String h = host.toLowerCase().trim();
+        return h.startsWith("https://") || h.startsWith("wss://") || h.contains("ngrok") || h.endsWith(".app") || h.endsWith(".dev");
+    }
+
     private void sanitizeHostAndPort() {
         if (this.host == null || this.host.trim().isEmpty()) {
             this.host = "127.0.0.1";
         }
         String h = this.host.trim();
+        boolean hadTlsPrefix = h.startsWith("https://") || h.startsWith("wss://");
         if (h.startsWith("http://")) h = h.substring(7);
         else if (h.startsWith("https://")) h = h.substring(8);
         else if (h.startsWith("ws://")) h = h.substring(5);
@@ -89,6 +97,7 @@ public class Device implements Serializable {
             h = h.substring(0, h.length() - 1).trim();
         }
 
+        boolean hasExplicitPort = false;
         int colonIdx = h.indexOf(':');
         if (colonIdx != -1) {
             String pStr = h.substring(colonIdx + 1).trim();
@@ -97,19 +106,26 @@ public class Device implements Serializable {
                 int parsedPort = Integer.parseInt(pStr);
                 if (parsedPort > 0 && parsedPort <= 65535) {
                     this.port = parsedPort;
+                    hasExplicitPort = true;
                 }
             } catch (Exception ignored) {}
         }
 
         this.host = h;
-        if (this.port <= 0 || this.port > 65535) {
-            this.port = 5050;
+        boolean isDomainOrTunnel = hadTlsPrefix || isRemote || h.contains("ngrok") || h.contains(".app") || h.contains(".dev");
+        if (!hasExplicitPort) {
+            this.port = isDomainOrTunnel ? 443 : 5050;
         }
     }
 
     public String getBaseHttpUrl() {
         sanitizeHostAndPort();
-        return "http://" + getHost() + ":" + getPort();
+        boolean secure = isSecure();
+        String scheme = secure ? "https://" : "http://";
+        if ((secure && port == 443) || (!secure && port == 80)) {
+            return scheme + getHost();
+        }
+        return scheme + getHost() + ":" + getPort();
     }
 
     public String getHttpUrl() {
@@ -118,7 +134,12 @@ public class Device implements Serializable {
 
     public String getWebSocketUrl() {
         sanitizeHostAndPort();
-        return "ws://" + getHost() + ":" + getPort();
+        boolean secure = isSecure();
+        String scheme = secure ? "wss://" : "ws://";
+        if ((secure && port == 443) || (!secure && port == 80)) {
+            return scheme + getHost();
+        }
+        return scheme + getHost() + ":" + getPort();
     }
 
     @Override
