@@ -77,13 +77,22 @@ if (!fs.existsSync(UPDATES_DIR)) {
 let inputProcess = null;
 let inputProcessReady = false;
 
+let restartingInputProcess = false;
+
 function startInputProcess() {
+  if (restartingInputProcess) return;
   if (!fs.existsSync(INPUT_HELPER_PATH)) {
     console.error(`[InputHelper] Binary not found at: ${INPUT_HELPER_PATH}. Run install.bat to compile.`);
     return;
   }
 
   try {
+    if (inputProcess) {
+      try { inputProcess.kill(); } catch (e) {}
+      inputProcess = null;
+    }
+    inputProcessReady = false;
+
     inputProcess = spawn(INPUT_HELPER_PATH, ['--pipe'], {
       stdio: ['pipe', 'pipe', 'ignore'],
       windowsHide: true
@@ -100,14 +109,22 @@ function startInputProcess() {
       if (str.includes('READY')) {
         inputProcessReady = true;
         console.log('[InputHelper] Native pipe process ready.');
+      } else if (str.includes('ERR')) {
+        console.warn('[InputHelper] Native pipe error:', str);
       }
     });
 
     inputProcess.on('exit', (code, signal) => {
-      console.warn(`[InputHelper] Pipe process exited (code=${code}, signal=${signal}). Restarting in 1s...`);
+      console.warn(`[InputHelper] Pipe process exited (code=${code}, signal=${signal}). Restarting in 250ms...`);
       inputProcessReady = false;
       inputProcess = null;
-      setTimeout(startInputProcess, 1000);
+      if (!restartingInputProcess) {
+        restartingInputProcess = true;
+        setTimeout(() => {
+          restartingInputProcess = false;
+          startInputProcess();
+        }, 250);
+      }
     });
 
     inputProcess.on('error', (err) => {
@@ -638,10 +655,6 @@ app.post('/api/system/restart', verifyPin, (req, res) => {
 function executeScreenOff() {
   console.log('[System] Screen off sequence (Win -> Win -> Alt+X) requested');
   sendInputCommand('screenoff');
-  const psCommand = 'powershell -Command "$sig = \'[DllImport(\\"user32.dll\\")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, uint dwExtraInfo);\'; $win = Add-Type -MemberDefinition $sig -Name \\"WinAPI1\\" -Namespace \\"Win32\\" -PassThru; $win::keybd_event(0x5B, 0, 0, 0); $win::keybd_event(0x5B, 0, 2, 0); Start-Sleep -Milliseconds 350; $win::keybd_event(0x5B, 0, 0, 0); $win::keybd_event(0x5B, 0, 2, 0); Start-Sleep -Milliseconds 250; $win::keybd_event(0x12, 0, 0, 0); $win::keybd_event(0x58, 0, 0, 0); $win::keybd_event(0x58, 2, 0); $win::keybd_event(0x12, 2, 0);"';
-  exec(psCommand, { windowsHide: true }, (error) => {
-    if (error) console.error(`[System] Screen Off PowerShell error: ${error.message}`);
-  });
 }
 
 app.post('/api/system/screen_off', verifyPin, (req, res) => {
@@ -725,7 +738,7 @@ wss.on('connection', (ws, req) => {
     if (isBinary) return; // ignore incoming binary frames
     try {
       const data = JSON.parse(message.toString());
-      if (data.type !== 'mouse_move') {
+      if (data.type !== 'mouse_move' && data.type !== 'mouse_abs' && data.type !== 'mouse_move_abs') {
         console.log(`[WS Input] Action: ${data.type} ${JSON.stringify(data)}`);
       }
       handleWebSocketMessage(ws, data);
