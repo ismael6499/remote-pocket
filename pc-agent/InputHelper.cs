@@ -599,6 +599,16 @@ namespace InputHelper {
                     ScreenOffSequence();
                     Console.WriteLine("OK");
                     break;
+                case "layout":
+                case "getlayout":
+                    try {
+                        string cul = System.Windows.Forms.InputLanguage.CurrentInputLanguage.Culture.Name;
+                        string lay = System.Windows.Forms.InputLanguage.CurrentInputLanguage.LayoutName;
+                        Console.WriteLine("LAYOUT:" + cul + "," + lay);
+                    } catch {
+                        Console.WriteLine("LAYOUT:es-ES,Spanish");
+                    }
+                    break;
                 default:
                     throw new ArgumentException("Unknown action: " + action);
             }
@@ -891,10 +901,10 @@ namespace InputHelper {
             { "backspace", 0x08 }, { "bksp", 0x08 },
             { "tab", 0x09 },
             { "space", 0x20 },
-            { "delete", 0x2E }, { "del", 0x2E },
+            { "delete", 0x2E }, { "del", 0x2E }, { "supr", 0x2E },
             { "insert", 0x2D }, { "ins", 0x2D },
-            { "home", 0x24 },
-            { "end", 0x23 },
+            { "home", 0x24 }, { "inicio", 0x24 },
+            { "end", 0x23 }, { "fin", 0x23 },
             { "pageup", 0x21 }, { "pgup", 0x21 }, { "repag", 0x21 },
             { "pagedown", 0x22 }, { "pgdn", 0x22 }, { "avpag", 0x22 },
             { "up", 0x26 }, { "arrowup", 0x26 },
@@ -904,8 +914,8 @@ namespace InputHelper {
             { "win", 0x5B }, { "windows", 0x5B }, { "lwin", 0x5B },
             { "ctrl", 0x11 }, { "control", 0x11 },
             { "alt", 0x12 }, { "menu", 0x12 },
-            { "shift", 0x10 },
-            { "capslock", 0x14 },
+            { "shift", 0x10 }, { "mayus", 0x10 }, { "mayús", 0x10 },
+            { "capslock", 0x14 }, { "bloqmay", 0x14 }, { "bloq_may", 0x14 },
             { "printscreen", 0x2C }, { "prtscn", 0x2C }, { "prntscrn", 0x2C },
             { "scrolllock", 0x91 },
             { "pause", 0x13 },
@@ -1005,6 +1015,11 @@ namespace InputHelper {
                     } else if (p == "win" || p == "windows" || p == "lwin") {
                         SendKeyDown(0x5B);
                         modifiersToRelease.Add(0x5B);
+                    } else if (p == "altgr" || p == "ralt") {
+                        SendKeyDown(0x11); // VK_CONTROL
+                        SendKeyDown(0x12); // VK_MENU
+                        modifiersToRelease.Add(0x12);
+                        modifiersToRelease.Add(0x11);
                     } else {
                         if (KeyMap.ContainsKey(p)) {
                             mainKeys.Add(KeyMap[p]);
@@ -1012,8 +1027,17 @@ namespace InputHelper {
                             char c = p[0];
                             if (c >= 'a' && c <= 'z') mainKeys.Add((byte)('A' + (c - 'a')));
                             else if (c >= '0' && c <= '9') mainKeys.Add((byte)c);
+                            else if (modifiersToRelease.Count == 0) {
+                                TypeText(p);
+                                return;
+                            }
                         }
                     }
+                }
+
+                if (mainKeys.Count == 0 && modifiersToRelease.Count == 0 && parts.Length == 1) {
+                    TypeText(parts[0]);
+                    return;
                 }
 
                 if (mainKeys.Count > 0) {

@@ -164,6 +164,29 @@ let currentScreenFps = 30;
 let currentMonitorIndex = 0;
 let cachedMonitorsInfo = { count: 1, active: 0, monitors: [{ index: 0, name: 'Display 1', w: 1920, h: 1080, primary: true }] };
 
+let cachedKeyboardLayout = 'ESP';
+let cachedKeyboardCulture = 'es-ES';
+let cachedKeyboardName = 'Spanish';
+
+function updateKeyboardLayout() {
+  execFile(INPUT_HELPER_PATH, ['layout'], { timeout: 2000 }, (err, stdout) => {
+    if (!err && stdout) {
+      const match = stdout.match(/LAYOUT:([^,\r\n]+),([^\r\n]+)/);
+      if (match) {
+        cachedKeyboardCulture = match[1].trim();
+        cachedKeyboardName = match[2].trim();
+        if (cachedKeyboardCulture.toLowerCase().startsWith('es') || cachedKeyboardName.toLowerCase().includes('spanish')) {
+          cachedKeyboardLayout = 'ESP';
+        } else {
+          cachedKeyboardLayout = 'ENG';
+        }
+        console.log(`[Keyboard] Detected layout: ${cachedKeyboardLayout} (${cachedKeyboardCulture} - ${cachedKeyboardName})`);
+      }
+    }
+  });
+}
+updateKeyboardLayout();
+
 function fetchMonitorsInfo(cb) {
   if (!fs.existsSync(INPUT_HELPER_PATH)) {
     if (cb) cb(cachedMonitorsInfo);
@@ -438,6 +461,9 @@ app.get('/api/status', verifyPin, async (req, res) => {
     audio,
     brightness,
     screenOffApp: Boolean(config.screenOffApp),
+    keyboardLayout: cachedKeyboardLayout,
+    keyboardCulture: cachedKeyboardCulture,
+    keyboardName: cachedKeyboardName,
     version: '1.0.6'
   });
 });
@@ -727,6 +753,16 @@ wss.on('connection', (ws, req) => {
   console.log(`[WebSocket] Client connected: ${req.socket.remoteAddress}`);
 
   ws.isSubscribedToScreen = false;
+
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({
+      type: 'device_info',
+      deviceName: config.deviceName,
+      keyboardLayout: cachedKeyboardLayout,
+      keyboardCulture: cachedKeyboardCulture,
+      keyboardName: cachedKeyboardName
+    }));
+  }
 
   fetchMonitorsInfo((info) => {
     if (ws.readyState === WebSocket.OPEN) {
