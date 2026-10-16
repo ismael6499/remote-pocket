@@ -231,6 +231,44 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private final java.util.concurrent.ExecutorService frameDecoderExecutor = java.util.concurrent.Executors.newSingleThreadExecutor();
+    private final java.util.concurrent.atomic.AtomicReference<byte[]> latestFrameRef = new java.util.concurrent.atomic.AtomicReference<>();
+    private final java.util.concurrent.atomic.AtomicBoolean isDecodingFrame = new java.util.concurrent.atomic.AtomicBoolean(false);
+
+    private void drainAndDecodeFrames() {
+        try {
+            byte[] jpegData;
+            while ((jpegData = latestFrameRef.getAndSet(null)) != null) {
+                if (!isScreenMode) break;
+                int offset = 0;
+                int curX = -1, curY = -1, scrW = 1920, scrH = 1080;
+                if (jpegData.length > 12 && jpegData[0] == 'R' && jpegData[1] == 'P' && jpegData[2] == 'K' && jpegData[3] == 'T') {
+                    curX = (jpegData[4] & 0xFF) | ((jpegData[5] & 0xFF) << 8);
+                    curY = (jpegData[6] & 0xFF) | ((jpegData[7] & 0xFF) << 8);
+                    scrW = (jpegData[8] & 0xFF) | ((jpegData[9] & 0xFF) << 8);
+                    scrH = (jpegData[10] & 0xFF) | ((jpegData[11] & 0xFF) << 8);
+                    offset = 12;
+                }
+
+                Bitmap bmp = BitmapFactory.decodeByteArray(jpegData, offset, jpegData.length - offset);
+                if (bmp != null) {
+                    final int finalCurX = curX;
+                    final int finalCurY = curY;
+                    final int finalScrW = scrW;
+                    final int finalScrH = scrH;
+                    runOnUiThread(() -> {
+                        imgScreenPreview.setImageBitmap(bmp);
+                        touchpadView.updateServerCursorPosition(finalCurX, finalCurY, finalScrW, finalScrH);
+                    });
+                }
+            }
+        } catch (Exception ignored) {
+        } finally {
+            isDecodingFrame.set(false);
+            if (latestFrameRef.get() != null && isDecodingFrame.compareAndSet(false, true)) {
+                frameDecoderExecutor.execute(this::drainAndDecodeFrames);
+            }
+        }
+    }
 
     private void initManagers() {
         webSocketManager = new WebSocketManager();
@@ -267,31 +305,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onScreenFrame(byte[] jpegData) {
                 if (isScreenMode && jpegData != null && jpegData.length > 0) {
-                    frameDecoderExecutor.execute(() -> {
-                        try {
-                            int offset = 0;
-                            int curX = -1, curY = -1, scrW = 1920, scrH = 1080;
-                            if (jpegData.length > 12 && jpegData[0] == 'R' && jpegData[1] == 'P' && jpegData[2] == 'K' && jpegData[3] == 'T') {
-                                curX = (jpegData[4] & 0xFF) | ((jpegData[5] & 0xFF) << 8);
-                                curY = (jpegData[6] & 0xFF) | ((jpegData[7] & 0xFF) << 8);
-                                scrW = (jpegData[8] & 0xFF) | ((jpegData[9] & 0xFF) << 8);
-                                scrH = (jpegData[10] & 0xFF) | ((jpegData[11] & 0xFF) << 8);
-                                offset = 12;
-                            }
-
-                            Bitmap bmp = BitmapFactory.decodeByteArray(jpegData, offset, jpegData.length - offset);
-                            if (bmp != null) {
-                                final int finalCurX = curX;
-                                final int finalCurY = curY;
-                                final int finalScrW = scrW;
-                                final int finalScrH = scrH;
-                                runOnUiThread(() -> {
-                                    imgScreenPreview.setImageBitmap(bmp);
-                                    touchpadView.updateServerCursorPosition(finalCurX, finalCurY, finalScrW, finalScrH);
-                                });
-                            }
-                        } catch (Exception ignored) {}
-                    });
+                    latestFrameRef.set(jpegData);
+                    if (isDecodingFrame.compareAndSet(false, true)) {
+                        frameDecoderExecutor.execute(MainActivity.this::drainAndDecodeFrames);
+                    }
                 }
             }
 

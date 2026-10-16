@@ -111,13 +111,25 @@ namespace InputHelper {
         private static extern IntPtr OpenWindowStation(string lpszWinSta, bool fInherit, uint dwDesiredAccess);
 
         [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool CloseWindowStation(IntPtr hWinSta);
+
+        [DllImport("user32.dll", SetLastError = true)]
         private static extern bool SetProcessWindowStation(IntPtr hWinSta);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr OpenInputDesktop(uint dwFlags, bool fInherit, uint dwDesiredAccess);
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern IntPtr OpenDesktop(string lpszDesktop, uint dwFlags, bool fInherit, uint dwDesiredAccess);
 
         [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool CloseDesktop(IntPtr hDesktop);
+
+        [DllImport("user32.dll", SetLastError = true)]
         private static extern bool SetThreadDesktop(IntPtr hDesktop);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern IntPtr GetDC(IntPtr hWnd);
@@ -147,6 +159,13 @@ namespace InputHelper {
         private const uint MOUSEEVENTF_MIDDLEDOWN = 0x0020;
         private const uint MOUSEEVENTF_MIDDLEUP = 0x0040;
         private const uint MOUSEEVENTF_WHEEL = 0x0800;
+        private const uint MOUSEEVENTF_ABSOLUTE = 0x8000;
+        private const uint MOUSEEVENTF_VIRTUALDESK = 0x4000;
+
+        private const int HWND_BROADCAST = 0xFFFF;
+        private const uint WM_SYSCOMMAND = 0x0112;
+        private const int SC_MONITORPOWER = 0xF170;
+        private const int MONITOR_OFF = 2;
 
         [StructLayout(LayoutKind.Sequential)]
         private struct MOUSEINPUT {
@@ -333,6 +352,7 @@ namespace InputHelper {
             Console.WriteLine("Usage: InputHelper.exe --pipe | --stream [fps] [quality] [height] | --capture | <command>");
         }
 
+        private static long lastDesktopAccessCheck = 0;
         private static void RunPipeLoop() {
             try { EnsureDesktopAccess(); } catch { }
             Console.WriteLine("READY");
@@ -346,6 +366,12 @@ namespace InputHelper {
                 if (line.Equals("ping", StringComparison.OrdinalIgnoreCase)) {
                     Console.WriteLine("PONG");
                     continue;
+                }
+
+                long now = Environment.TickCount;
+                if (now - lastDesktopAccessCheck > 1500) {
+                    lastDesktopAccessCheck = now;
+                    try { EnsureDesktopAccess(); } catch { }
                 }
 
                 try {
@@ -431,12 +457,10 @@ namespace InputHelper {
                 case "moveabs":
                 case "setpos":
                     MouseSetPos(rest);
-                    Console.WriteLine("OK");
                     break;
                 case "m":
                 case "move":
                     MouseMove(rest);
-                    Console.WriteLine("OK");
                     break;
                 case "c":
                 case "click":
@@ -640,6 +664,9 @@ namespace InputHelper {
                 keybd_event(0x58, 0, 0, UIntPtr.Zero);
                 keybd_event(0x58, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
                 keybd_event(0x12, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+
+                // 4. Also broadcast standard Win32 monitor power off as a guaranteed fallback
+                SendMessage((IntPtr)HWND_BROADCAST, WM_SYSCOMMAND, (IntPtr)SC_MONITORPOWER, (IntPtr)MONITOR_OFF);
             } catch { }
         }
 
@@ -657,8 +684,46 @@ namespace InputHelper {
             if (int.TryParse(coords[0], out x) && int.TryParse(coords[1], out y)) {
                 int monX, monY, monW, monH;
                 GetSelectedMonitorBounds(out monX, out monY, out monW, out monH);
-                SetCursorPos(x + monX, y + monY);
-                mouse_event(MOUSEEVENTF_MOVE, 0, 0, 0, UIntPtr.Zero);
+                int targetX = x + monX;
+                int targetY = y + monY;
+
+                bool setOk = SetCursorPos(targetX, targetY);
+                if (!setOk) {
+                    EnsureDesktopAccess();
+                    SetCursorPos(targetX, targetY);
+                }
+
+                // Inject absolute move via SendInput / mouse_event with virtual desktop coordinates
+                int vLeft = GetSystemMetrics(76); // SM_XVIRTUALSCREEN
+                int vTop = GetSystemMetrics(77);  // SM_YVIRTUALSCREEN
+                int vWidth = GetSystemMetrics(78); // SM_CXVIRTUALSCREEN
+                int vHeight = GetSystemMetrics(79); // SM_CYVIRTUALSCREEN
+                if (vWidth <= 0) vWidth = GetSystemMetrics(0);
+                if (vHeight <= 0) vHeight = GetSystemMetrics(1);
+                if (vWidth <= 0) vWidth = 1920;
+                if (vHeight <= 0) vHeight = 1080;
+
+                int normX = (int)Math.Round((double)(targetX - vLeft) * 65535.0 / (vWidth > 1 ? vWidth - 1 : 1));
+                int normY = (int)Math.Round((double)(targetY - vTop) * 65535.0 / (vHeight > 1 ? vHeight - 1 : 1));
+
+                INPUT[] inputs = new INPUT[1];
+                inputs[0] = new INPUT {
+                    type = INPUT_MOUSE,
+                    data = new INPUTDATA {
+                        mi = new MOUSEINPUT {
+                            dx = normX,
+                            dy = normY,
+                            mouseData = 0,
+                            dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK,
+                            time = 0,
+                            dwExtraInfo = IntPtr.Zero
+                        }
+                    }
+                };
+                uint sent = SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+                if (sent == 0) {
+                    mouse_event(MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK, normX, normY, 0, UIntPtr.Zero);
+                }
             }
         }
 
@@ -683,6 +748,7 @@ namespace InputHelper {
                 };
                 uint sent = SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
                 if (sent == 0) {
+                    EnsureDesktopAccess();
                     mouse_event(MOUSEEVENTF_MOVE, dx, dy, 0, UIntPtr.Zero);
                 }
             }
@@ -1045,12 +1111,31 @@ namespace InputHelper {
             }
         }
 
-        private static void EnsureDesktopAccess() {
+        private static IntPtr currentThreadDesktop = IntPtr.Zero;
+        private static IntPtr currentWinSta = IntPtr.Zero;
+
+        public static void EnsureDesktopAccess() {
             try {
                 IntPtr hwinsta = OpenWindowStation("winsta0", false, 0x000F037F);
-                if (hwinsta != IntPtr.Zero) SetProcessWindowStation(hwinsta);
-                IntPtr hdesk = OpenDesktop("default", 0, false, 0x000F01FF);
-                if (hdesk != IntPtr.Zero) SetThreadDesktop(hdesk);
+                if (hwinsta != IntPtr.Zero) {
+                    SetProcessWindowStation(hwinsta);
+                    if (currentWinSta != IntPtr.Zero && currentWinSta != hwinsta) {
+                        try { CloseWindowStation(currentWinSta); } catch { }
+                    }
+                    currentWinSta = hwinsta;
+                }
+
+                IntPtr hdesk = OpenInputDesktop(0, false, 0x000F01FF);
+                if (hdesk == IntPtr.Zero) {
+                    hdesk = OpenDesktop("default", 0, false, 0x000F01FF);
+                }
+                if (hdesk != IntPtr.Zero) {
+                    SetThreadDesktop(hdesk);
+                    if (currentThreadDesktop != IntPtr.Zero && currentThreadDesktop != hdesk) {
+                        try { CloseDesktop(currentThreadDesktop); } catch { }
+                    }
+                    currentThreadDesktop = hdesk;
+                }
             } catch { }
         }
 
