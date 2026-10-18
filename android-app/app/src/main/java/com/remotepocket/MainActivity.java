@@ -793,6 +793,44 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private int currentKeyboardInsetPx = 0;
+    private boolean isScreenAutoFitWithKeyboard = true;
+
+    public void setKeyboardBottomInset(int insetPx) {
+        this.currentKeyboardInsetPx = insetPx;
+        applyScreenLayoutInsets();
+    }
+
+    public void setScreenAutoFitWithKeyboard(boolean autoFit) {
+        this.isScreenAutoFitWithKeyboard = autoFit;
+        applyScreenLayoutInsets();
+    }
+
+    public boolean isScreenAutoFitWithKeyboard() {
+        return isScreenAutoFitWithKeyboard;
+    }
+
+    private void applyScreenLayoutInsets() {
+        if (containerMain == null) return;
+        ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) containerMain.getLayoutParams();
+        int bottomInset = isScreenAutoFitWithKeyboard ? currentKeyboardInsetPx : 0;
+
+        if (isFullscreen) {
+            lp.setMargins(0, 0, 0, bottomInset);
+        } else {
+            int margin16 = dpToPx(16);
+            lp.setMargins(margin16, margin16, margin16, Math.max(margin16, bottomInset));
+        }
+        containerMain.setLayoutParams(lp);
+
+        if (touchpadView != null) {
+            touchpadView.post(() -> {
+                touchpadView.resyncCursorFromServer();
+                touchpadView.invalidate();
+            });
+        }
+    }
+
     private void showPcKeyboard() {
         hideNormalKeyboard();
         if (layoutMouseButtons != null) {
@@ -805,12 +843,20 @@ public class MainActivity extends AppCompatActivity {
         if (detectedPcKeyboardLayout != null) {
             activePcKeyboardDialog.setDetectedLayout(detectedPcKeyboardLayout);
         }
+        activePcKeyboardDialog.setOnHeightChangeListener(heightPx -> {
+            setKeyboardBottomInset(heightPx);
+        });
+        activePcKeyboardDialog.setOnScreenFitToggleListener(isScreenAutoFitWithKeyboard, isAutoFit -> {
+            setScreenAutoFitWithKeyboard(isAutoFit);
+        });
         activePcKeyboardDialog.setOnSwitchToNormalKeyboard(() -> {
             activePcKeyboardDialog = null;
+            setKeyboardBottomInset(0);
             showNormalKeyboard();
         });
         activePcKeyboardDialog.setOnDismissListener(dialog -> {
             activePcKeyboardDialog = null;
+            setKeyboardBottomInset(0);
             if (!isFullscreen && (layoutTypingInput == null || layoutTypingInput.getVisibility() != View.VISIBLE)) {
                 if (layoutMouseButtons != null) {
                     layoutMouseButtons.setVisibility(View.VISIBLE);
@@ -964,12 +1010,10 @@ public class MainActivity extends AppCompatActivity {
             resetFullscreenControlsFade();
         }
 
-        // Expand containerMain to 0dp margins edge-to-edge with black background
+        // Expand containerMain to 0dp margins edge-to-edge with black background (respecting keyboard inset)
         if (containerMain != null) {
-            ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) containerMain.getLayoutParams();
-            lp.setMargins(0, 0, 0, 0);
-            containerMain.setLayoutParams(lp);
             containerMain.setBackgroundColor(Color.BLACK);
+            applyScreenLayoutInsets();
         }
 
         // Ensure FAB keyboard button is visible and accessible
@@ -1007,13 +1051,10 @@ public class MainActivity extends AppCompatActivity {
         if (layoutFullscreenTopBar != null) layoutFullscreenTopBar.setVisibility(View.GONE);
         if (btnExpandFullscreenControls != null) btnExpandFullscreenControls.setVisibility(View.GONE);
 
-        // Restore containerMain 16dp margins and trackpad background
+        // Restore containerMain 16dp margins and trackpad background (respecting keyboard inset)
         if (containerMain != null) {
-            int margin16 = dpToPx(16);
-            ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) containerMain.getLayoutParams();
-            lp.setMargins(margin16, margin16, margin16, margin16);
-            containerMain.setLayoutParams(lp);
             containerMain.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_trackpad));
+            applyScreenLayoutInsets();
         }
 
         // Restore view visibility according to current mode

@@ -63,6 +63,13 @@ android.applicationVariants.all { variant ->
                     if (source.exists()) {
                         java.nio.file.Files.copy(source.toPath(), genericFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
                     }
+                    def updatesDir = new File(project.rootDir, "../pc-agent/updates")
+                    if (updatesDir.exists()) {
+                        def otaFile = new File(updatesDir, "app-release.apk")
+                        if (source.exists()) {
+                            java.nio.file.Files.copy(source.toPath(), otaFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                        }
+                    }
                 }
             }
             variant.assembleProvider.get().finalizedBy(copyTask)

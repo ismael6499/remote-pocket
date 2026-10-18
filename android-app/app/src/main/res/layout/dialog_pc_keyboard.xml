@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootKeyboardLayout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_keyboard_dialog"
@@ -51,6 +52,44 @@
             android:text="@string/btn_mode_desktop"
             android:textColor="@color/accent_cyan"
             android:textSize="10sp"
+            app:cornerRadius="6dp"
+            app:strokeColor="@color/accent_cyan" />
+
+        <!-- Keyboard Height / Size Regulation (↕️ Compact / Medium / Large) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnToggleKeyboardSize"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginEnd="4dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:text="@string/btn_kb_size_medium"
+            android:textColor="@color/accent_emerald"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            app:cornerRadius="6dp"
+            app:strokeColor="@color/accent_emerald" />
+
+        <!-- Screen Fit Mode Toggle (🖥️ Fit / 🖥️ Float) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnToggleScreenFit"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginEnd="4dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:text="@string/btn_screen_fit_on"
+            android:textColor="@color/accent_cyan"
+            android:textSize="10sp"
+            android:textStyle="bold"
             app:cornerRadius="6dp"
             app:strokeColor="@color/accent_cyan" />
 

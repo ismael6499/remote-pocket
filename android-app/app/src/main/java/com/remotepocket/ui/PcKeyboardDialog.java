@@ -2,6 +2,7 @@ package com.remotepocket.ui;
 
 import android.app.Dialog;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
@@ -167,19 +168,67 @@ public class PcKeyboardDialog extends Dialog {
         this.onSwitchToNormalKeyboard = runnable;
     }
 
-    private void compactHeights(View root, float factor) {
+    public interface OnHeightChangeListener {
+        void onHeightChanged(int heightPx);
+    }
+
+    public interface OnScreenFitToggleListener {
+        void onScreenFitToggled(boolean isAutoFit);
+    }
+
+    private OnHeightChangeListener onHeightChangeListener;
+    private OnScreenFitToggleListener onScreenFitToggleListener;
+    private boolean isScreenAutoFit = true;
+
+    private static final String PREF_KB_SIZE = "pref_pc_kb_size_preset";
+    private int currentSizeIndex = 1; // 0 = Compact (0.68f), 1 = Medium (0.82f), 2 = Large (1.00f)
+    private static final float[] SIZE_FACTORS = {0.68f, 0.82f, 1.00f};
+    private static final int[] SIZE_BTN_TEXTS = {R.string.btn_kb_size_compact, R.string.btn_kb_size_medium, R.string.btn_kb_size_large};
+    private static final int[] SIZE_NAMES = {R.string.kb_size_compact, R.string.kb_size_medium, R.string.kb_size_large};
+    private static final String[] DESKTOP_PERCENTAGES = {"60%", "53%", "42%"};
+
+    private final Map<View, Integer> originalHeights = new HashMap<>();
+
+    public void setOnHeightChangeListener(OnHeightChangeListener listener) {
+        this.onHeightChangeListener = listener;
+    }
+
+    public void setOnScreenFitToggleListener(boolean currentAutoFit, OnScreenFitToggleListener listener) {
+        this.isScreenAutoFit = currentAutoFit;
+        this.onScreenFitToggleListener = listener;
+    }
+
+    private void recordOriginalHeights(View root) {
         if (root == null) return;
         ViewGroup.LayoutParams lp = root.getLayoutParams();
         if (lp != null && lp.height > 0 && !(root instanceof ViewGroup && ((ViewGroup) root).getChildCount() > 0)) {
-            float min = 24f * getContext().getResources().getDisplayMetrics().density;
-            lp.height = Math.max((int) min, Math.round(lp.height * factor));
-            root.setLayoutParams(lp);
+            originalHeights.put(root, lp.height);
         }
         if (root instanceof ViewGroup) {
             ViewGroup g = (ViewGroup) root;
             for (int i = 0; i < g.getChildCount(); i++) {
-                compactHeights(g.getChildAt(i), factor);
+                recordOriginalHeights(g.getChildAt(i));
             }
+        }
+    }
+
+    private void applyKeyboardScale(float factor) {
+        float density = getContext().getResources().getDisplayMetrics().density;
+        float minHeight = 22f * density;
+
+        for (Map.Entry<View, Integer> entry : originalHeights.entrySet()) {
+            View view = entry.getKey();
+            int orig = entry.getValue();
+            ViewGroup.LayoutParams lp = view.getLayoutParams();
+            if (lp != null) {
+                lp.height = Math.max((int) minHeight, Math.round(orig * factor));
+                view.setLayoutParams(lp);
+            }
+        }
+
+        View root = findViewById(R.id.rootKeyboardLayout);
+        if (root != null) {
+            root.requestLayout();
         }
     }
 
@@ -255,12 +304,30 @@ public class PcKeyboardDialog extends Dialog {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.dialog_pc_keyboard);
 
+        View root = findViewById(R.id.rootKeyboardLayout);
+        recordOriginalHeights(root);
+
+        SharedPreferences prefs = getContext().getSharedPreferences("remote_pocket_prefs", Context.MODE_PRIVATE);
+        currentSizeIndex = prefs.getInt(PREF_KB_SIZE, 1);
+        if (currentSizeIndex < 0 || currentSizeIndex >= SIZE_FACTORS.length) {
+            currentSizeIndex = 1;
+        }
+
         boolean isLandscape = getContext().getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
         isMobileComfortMode = !isLandscape; // Default to Mobile Comfort in portrait, Full Desktop in landscape
 
-        // Landscape compaction
+        // Apply scalable compaction
         if (isLandscape) {
-            compactHeights(findViewById(android.R.id.content), 0.74f);
+            applyKeyboardScale(SIZE_FACTORS[currentSizeIndex]);
+        }
+
+        if (root != null) {
+            root.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+                int height = bottom - top;
+                if (height > 0 && onHeightChangeListener != null) {
+                    onHeightChangeListener.onHeightChanged(height);
+                }
+            });
         }
 
         vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
@@ -316,6 +383,37 @@ public class PcKeyboardDialog extends Dialog {
             });
         }
         updateLayoutModeVisibility();
+
+        // Keyboard Height Regulation Button
+        MaterialButton btnToggleKeyboardSize = findViewById(R.id.btnToggleKeyboardSize);
+        if (btnToggleKeyboardSize != null) {
+            btnToggleKeyboardSize.setText(SIZE_BTN_TEXTS[currentSizeIndex]);
+            btnToggleKeyboardSize.setOnClickListener(v -> {
+                triggerHaptic(v);
+                currentSizeIndex = (currentSizeIndex + 1) % SIZE_FACTORS.length;
+                prefs.edit().putInt(PREF_KB_SIZE, currentSizeIndex).apply();
+                btnToggleKeyboardSize.setText(SIZE_BTN_TEXTS[currentSizeIndex]);
+                applyKeyboardScale(SIZE_FACTORS[currentSizeIndex]);
+                String sizeName = getContext().getString(SIZE_NAMES[currentSizeIndex]);
+                String desc = DESKTOP_PERCENTAGES[currentSizeIndex];
+                Toast.makeText(getContext(), getContext().getString(R.string.toast_kb_size_switched, sizeName, desc), Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        // Screen Fit Mode Toggle Button
+        MaterialButton btnToggleScreenFit = findViewById(R.id.btnToggleScreenFit);
+        if (btnToggleScreenFit != null) {
+            btnToggleScreenFit.setText(isScreenAutoFit ? R.string.btn_screen_fit_on : R.string.btn_screen_fit_off);
+            btnToggleScreenFit.setOnClickListener(v -> {
+                triggerHaptic(v);
+                isScreenAutoFit = !isScreenAutoFit;
+                btnToggleScreenFit.setText(isScreenAutoFit ? R.string.btn_screen_fit_on : R.string.btn_screen_fit_off);
+                if (onScreenFitToggleListener != null) {
+                    onScreenFitToggleListener.onScreenFitToggled(isScreenAutoFit);
+                }
+                Toast.makeText(getContext(), isScreenAutoFit ? R.string.toast_screen_fit_on : R.string.toast_screen_fit_off, Toast.LENGTH_SHORT).show();
+            });
+        }
 
         // Setup special panel actions (Ctrl+C and Ctrl+V FIRST!)
         setupSpecialPanel();

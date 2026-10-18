@@ -177,4 +177,17 @@
     <string name="confirm_clear_history_msg">Are you sure you want to clear all sent text history?</string>
     <string name="badge_this_session">🟢 This session</string>
     <string name="btn_history_chip">🕒 History</string>
+
+    <!-- Keyboard Size & Screen Fit Regulation -->
+    <string name="kb_size_compact">Compact</string>
+    <string name="kb_size_medium">Balanced</string>
+    <string name="kb_size_large">Large</string>
+    <string name="btn_kb_size_compact">↕️ Comp</string>
+    <string name="btn_kb_size_medium">↕️ Med</string>
+    <string name="btn_kb_size_large">↕️ Max</string>
+    <string name="toast_kb_size_switched">Keyboard: %1$s (Desktop: %2$s)</string>
+    <string name="btn_screen_fit_on">🖥️ Fit</string>
+    <string name="btn_screen_fit_off">🖥️ Float</string>
+    <string name="toast_screen_fit_on">Screen scaled to fit above keyboard</string>
+    <string name="toast_screen_fit_off">Screen floating mode (pan &amp; zoom enabled)</string>
 </resources>
