@@ -772,6 +772,10 @@ public class MainActivity extends AppCompatActivity {
         if (layoutMouseButtons != null) {
             layoutMouseButtons.setVisibility(View.GONE);
         }
+        if (touchpadView != null && touchpadView.getCurrentScale() > 1.05f) {
+            savedScaleBeforeKeyboard = touchpadView.getCurrentScale();
+            touchpadView.resetZoom();
+        }
         layoutTypingInput.setVisibility(View.VISIBLE);
         editTypingText.requestFocus();
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -795,14 +799,27 @@ public class MainActivity extends AppCompatActivity {
 
     private int currentKeyboardInsetPx = 0;
     private boolean isScreenAutoFitWithKeyboard = true;
+    private float savedScaleBeforeKeyboard = 1.0f;
 
     public void setKeyboardBottomInset(int insetPx) {
         this.currentKeyboardInsetPx = insetPx;
+        if (insetPx > 0 && isScreenAutoFitWithKeyboard) {
+            if (touchpadView != null && touchpadView.getCurrentScale() > 1.05f) {
+                savedScaleBeforeKeyboard = touchpadView.getCurrentScale();
+                touchpadView.resetZoom();
+            }
+        }
         applyScreenLayoutInsets();
     }
 
     public void setScreenAutoFitWithKeyboard(boolean autoFit) {
         this.isScreenAutoFitWithKeyboard = autoFit;
+        if (autoFit && currentKeyboardInsetPx > 0) {
+            if (touchpadView != null && touchpadView.getCurrentScale() > 1.05f) {
+                savedScaleBeforeKeyboard = touchpadView.getCurrentScale();
+                touchpadView.resetZoom();
+            }
+        }
         applyScreenLayoutInsets();
     }
 
@@ -812,16 +829,28 @@ public class MainActivity extends AppCompatActivity {
 
     private void applyScreenLayoutInsets() {
         if (containerMain == null) return;
-        ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) containerMain.getLayoutParams();
+        androidx.constraintlayout.widget.ConstraintLayout.LayoutParams clp =
+                (androidx.constraintlayout.widget.ConstraintLayout.LayoutParams) containerMain.getLayoutParams();
         int bottomInset = isScreenAutoFitWithKeyboard ? currentKeyboardInsetPx : 0;
 
         if (isFullscreen) {
-            lp.setMargins(0, 0, 0, bottomInset);
+            clp.setMargins(0, 0, 0, bottomInset);
+            clp.goneBottomMargin = bottomInset;
+            clp.goneTopMargin = 0;
+            clp.goneStartMargin = 0;
+            clp.goneEndMargin = 0;
         } else {
             int margin16 = dpToPx(16);
-            lp.setMargins(margin16, margin16, margin16, Math.max(margin16, bottomInset));
+            int margin4 = dpToPx(4);
+            int effectiveBottomMargin = Math.max(margin16, bottomInset);
+            clp.setMargins(margin16, margin4, margin16, effectiveBottomMargin);
+            clp.goneBottomMargin = bottomInset > 0 ? bottomInset : margin16;
+            clp.goneTopMargin = margin4;
+            clp.goneStartMargin = margin16;
+            clp.goneEndMargin = margin16;
         }
-        containerMain.setLayoutParams(lp);
+        containerMain.setLayoutParams(clp);
+        containerMain.requestLayout();
 
         if (touchpadView != null) {
             touchpadView.post(() -> {
@@ -1042,6 +1071,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Restore toolbars and tabs
         if (headerLayout != null) headerLayout.setVisibility(View.VISIBLE);
+        if (layoutTabs != null) layoutTabs.setVisibility(View.VISIBLE);
         boolean isTypingActive = (layoutTypingInput != null && layoutTypingInput.getVisibility() == View.VISIBLE)
                 || (activePcKeyboardDialog != null && activePcKeyboardDialog.isShowing());
         if (!isTypingActive && layoutMouseButtons != null) {

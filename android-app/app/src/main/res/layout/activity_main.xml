@@ -136,18 +136,168 @@
             android:textSize="13sp" />
     </LinearLayout>
 
+    <!-- Live Screen Zoom & Follow Pill -->
+    <LinearLayout
+        android:id="@+id/layoutScreenControls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginTop="4dp"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintEnd_toEndOf="parent"
+    app:layout_constraintTop_toBottomOf="@id/layoutTabs"
+        android:background="@drawable/bg_card_glass"
+        android:backgroundTint="#D90F172A"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="6dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:elevation="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/btnToggleFollow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/screen_follow_on"
+            android:textColor="@color/accent_cyan"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:paddingEnd="8dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <View
+            android:id="@+id/dividerFollow"
+            android:layout_width="1dp"
+            android:layout_height="14dp"
+            android:background="#334155" />
+
+        <TextView
+            android:id="@+id/btnZoomLevel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔍 2.0x"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="14dp"
+            android:background="#334155" />
+
+        <TextView
+            android:id="@+id/btnFpsSelector"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⚡ 30 FPS"
+            android:textColor="@color/accent_emerald"
+            android:textSize="12sp"
+            android:paddingStart="8dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="14dp"
+            android:background="#334155" />
+
+        <TextView
+            android:id="@+id/btnMonitorSelector"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🖥️ 1"
+            android:textColor="@color/accent_indigo"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="14dp"
+            android:background="#334155" />
+
+        <TextView
+            android:id="@+id/btnEnterFullscreen"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_fullscreen"
+            android:textColor="@color/accent_cyan"
+            android:textSize="12sp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:clickable="true"
+            android:focusable="true" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="14dp"
+            android:background="#334155" />
+
+        <ImageView
+            android:id="@+id/btnCollapseScreenControls"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_marginStart="6dp"
+            android:padding="3dp"
+            android:src="@drawable/ic_close"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/btn_collapse_controls"
+            app:tint="@color/text_muted" />
+    </LinearLayout>
+
+    <!-- Discrete Expand Screen Controls Pill (when collapsed in normal mode) -->
+    <LinearLayout
+        android:id="@+id/btnExpandScreenControls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+    android:layout_marginTop="4dp"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintTop_toBottomOf="@id/layoutTabs"
+        android:background="@drawable/bg_card_glass"
+        android:backgroundTint="#D90F172A"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="6dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:elevation="8dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⚙️ ⋯"
+            android:textColor="@color/accent_cyan"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
     <!-- MAIN INTERACTIVE CONTAINER -->
     <FrameLayout
         android:id="@+id/containerMain"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_margin="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="16dp"
         android:background="@drawable/bg_trackpad"
-        app:layout_goneMarginBottom="8dp"
         app:layout_constraintBottom_toTopOf="@id/layoutMouseButtons"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/layoutTabs">
+        app:layout_constraintTop_toBottomOf="@id/layoutScreenControls">
 
         <!-- Live Screen Image (Behind Touchpad) -->
         <ImageView
@@ -173,148 +323,6 @@
             android:id="@+id/touchpadView"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
-
-        <!-- Live Screen Zoom & Follow Pill -->
-        <LinearLayout
-            android:id="@+id/layoutScreenControls"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="top|end"
-            android:layout_margin="12dp"
-            android:background="@drawable/bg_card_glass"
-            android:backgroundTint="#D90F172A"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="6dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:elevation="8dp"
-            android:visibility="gone">
-
-            <TextView
-                android:id="@+id/btnToggleFollow"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/screen_follow_on"
-                android:textColor="@color/accent_cyan"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:paddingEnd="8dp"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <View
-                android:id="@+id/dividerFollow"
-                android:layout_width="1dp"
-                android:layout_height="14dp"
-                android:background="#334155" />
-
-            <TextView
-                android:id="@+id/btnZoomLevel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🔍 2.0x"
-                android:textColor="@color/text_primary"
-                android:textSize="12sp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <View
-                android:layout_width="1dp"
-                android:layout_height="14dp"
-                android:background="#334155" />
-
-            <TextView
-                android:id="@+id/btnFpsSelector"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⚡ 30 FPS"
-                android:textColor="@color/accent_emerald"
-                android:textSize="12sp"
-                android:paddingStart="8dp"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <View
-                android:layout_width="1dp"
-                android:layout_height="14dp"
-                android:background="#334155" />
-
-            <TextView
-                android:id="@+id/btnMonitorSelector"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🖥️ 1"
-                android:textColor="@color/accent_indigo"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <View
-                android:layout_width="1dp"
-                android:layout_height="14dp"
-                android:background="#334155" />
-
-            <TextView
-                android:id="@+id/btnEnterFullscreen"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/btn_fullscreen"
-                android:textColor="@color/accent_cyan"
-                android:textSize="12sp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:clickable="true"
-                android:focusable="true" />
-
-            <View
-                android:layout_width="1dp"
-                android:layout_height="14dp"
-                android:background="#334155" />
-
-            <ImageView
-                android:id="@+id/btnCollapseScreenControls"
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:layout_marginStart="6dp"
-                android:padding="3dp"
-                android:src="@drawable/ic_close"
-                android:clickable="true"
-                android:focusable="true"
-                android:contentDescription="@string/btn_collapse_controls"
-                app:tint="@color/text_muted" />
-        </LinearLayout>
-
-        <!-- Discrete Expand Screen Controls Pill (when collapsed in normal mode) -->
-        <LinearLayout
-            android:id="@+id/btnExpandScreenControls"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="top|end"
-            android:layout_margin="12dp"
-            android:background="@drawable/bg_card_glass"
-            android:backgroundTint="#D90F172A"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="6dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:elevation="8dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:visibility="gone">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⚙️ ⋯"
-                android:textColor="@color/accent_cyan"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </LinearLayout>
 
         <!-- Discrete Top-Right Fullscreen Controls (Exit Fullscreen on Top, Monitor Switcher Below) -->
         <LinearLayout

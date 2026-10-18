@@ -229,6 +229,19 @@ public class PcKeyboardDialog extends Dialog {
         View root = findViewById(R.id.rootKeyboardLayout);
         if (root != null) {
             root.requestLayout();
+            notifyHeightChanged();
+        }
+    }
+
+    public void notifyHeightChanged() {
+        View root = findViewById(R.id.rootKeyboardLayout);
+        if (root != null) {
+            root.post(() -> {
+                int h = root.getHeight();
+                if (h > 0 && onHeightChangeListener != null) {
+                    onHeightChangeListener.onHeightChanged(h);
+                }
+            });
         }
     }
 
@@ -340,6 +353,8 @@ public class PcKeyboardDialog extends Dialog {
             window.setFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL, WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL);
             window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
         }
+
+        setOnShowListener(d -> notifyHeightChanged());
 
         // Header controls
         findViewById(R.id.btnCloseKeyboard).setOnClickListener(v -> dismiss());
@@ -534,6 +549,7 @@ public class PcKeyboardDialog extends Dialog {
                 btnToggleLayoutMode.setText(R.string.btn_mode_mobile);
             }
         }
+        notifyHeightChanged();
     }
 
     private void setupMobileComfortLayout(View.OnClickListener layoutToggleListener) {
@@ -948,6 +964,7 @@ public class PcKeyboardDialog extends Dialog {
             btnToggleSpecial.setTextColor(ContextCompat.getColor(getContext(), R.color.accent_emerald));
             btnToggleSpecial.setStrokeColor(ColorStateList.valueOf(ContextCompat.getColor(getContext(), R.color.accent_emerald)));
         }
+        notifyHeightChanged();
     }
 
     private void toggleModifier(String mod) {
