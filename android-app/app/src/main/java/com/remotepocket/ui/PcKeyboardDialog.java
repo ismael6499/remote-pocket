@@ -30,6 +30,7 @@ import androidx.core.content.ContextCompat;
 import com.google.android.material.button.MaterialButton;
 import com.remotepocket.R;
 import com.remotepocket.network.WebSocketManager;
+import com.remotepocket.util.TextHistoryManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -766,6 +767,37 @@ public class PcKeyboardDialog extends Dialog {
         // Direct Action Shortcuts: Ctrl+C and Ctrl+V FIRST!
         setupActionKey(R.id.btnShortcutCopy, () -> sendKey("ctrl+c"));
         setupActionKey(R.id.btnShortcutPaste, () -> sendKey("ctrl+v"));
+
+        View btnShortcutHistory = findViewById(R.id.btnShortcutHistory);
+        if (btnShortcutHistory != null) {
+            btnShortcutHistory.setOnClickListener(v -> {
+                triggerHaptic(v);
+                TextHistoryDialog historyDialog = new TextHistoryDialog(getContext(), new TextHistoryDialog.OnTextActionListener() {
+                    @Override
+                    public void onRestoreText(String text) {
+                        dismiss();
+                        if (onSwitchToNormalKeyboard != null) {
+                            onSwitchToNormalKeyboard.run();
+                        }
+                    }
+
+                    @Override
+                    public void onResendText(String text) {
+                        if (text != null && !text.isEmpty()) {
+                            TextHistoryManager.getInstance(getContext()).recordSentText(text);
+                            if (text.length() > 25 || text.contains("\n") || text.contains("\r")) {
+                                webSocketManager.sendPaste(text);
+                            } else {
+                                webSocketManager.sendTypeText(text);
+                            }
+                            Toast.makeText(getContext(), R.string.toast_text_resent, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+                historyDialog.show();
+            });
+        }
+
         setupActionKey(R.id.btnShortcutUndo, () -> sendKey("ctrl+z"));
         setupActionKey(R.id.btnShortcutSelectAll, () -> sendKey("ctrl+a"));
         setupActionKey(R.id.btnShortcutCut, () -> sendKey("ctrl+x"));

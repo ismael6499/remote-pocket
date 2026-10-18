@@ -154,6 +154,23 @@
                     app:strokeColor="@color/accent_emerald" />
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnShortcutHistory"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="4dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:minWidth="0dp"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:text="@string/btn_history_chip"
+                    android:textColor="@color/accent_cyan"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    app:strokeColor="@color/accent_cyan" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnShortcutUndo"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"

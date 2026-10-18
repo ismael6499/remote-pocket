@@ -155,4 +155,26 @@
     <string name="dev_settings_unlocked">Developer options unlocked!</string>
     <string name="dev_settings_steps_remaining">You are %1$d steps away from developer options</string>
     <string name="toast_screen_off_sent">Screen off command sent</string>
+
+    <!-- Sent Text History & Recovery -->
+    <string name="btn_restore_last_text">↺</string>
+    <string name="desc_restore_last_text">Restore last sent text</string>
+    <string name="btn_text_history">🕒</string>
+    <string name="desc_text_history">Sent text history</string>
+    <string name="dialog_text_history_title">Sent Text History</string>
+    <string name="dialog_text_history_subtitle">Recover or resend text sent from your phone</string>
+    <string name="history_filter_session">This Session (%1$d)</string>
+    <string name="history_filter_all">All History (%1$d)</string>
+    <string name="history_empty">No text sent in this session yet</string>
+    <string name="btn_restore_last_action">↺ Restore Last: "%1$s"</string>
+    <string name="btn_restore_to_input">Restore</string>
+    <string name="btn_resend_to_pc">Resend</string>
+    <string name="toast_text_restored">Text restored to input</string>
+    <string name="toast_no_history_to_restore">No previous text to restore</string>
+    <string name="toast_text_resent">Text resent to PC</string>
+    <string name="toast_text_copied">Text copied to clipboard</string>
+    <string name="confirm_clear_history_title">Clear History</string>
+    <string name="confirm_clear_history_msg">Are you sure you want to clear all sent text history?</string>
+    <string name="badge_this_session">🟢 This session</string>
+    <string name="btn_history_chip">🕒 History</string>
 </resources>

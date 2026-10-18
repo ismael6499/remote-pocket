@@ -155,4 +155,26 @@
     <string name="dev_settings_unlocked">¡Opciones de desarrollador activadas!</string>
     <string name="dev_settings_steps_remaining">Estás a %1$d toques de las opciones de desarrollador</string>
     <string name="toast_screen_off_sent">Comando de apagar pantalla enviado</string>
+
+    <!-- Sent Text History & Recovery -->
+    <string name="btn_restore_last_text">↺</string>
+    <string name="desc_restore_last_text">Recuperar último texto enviado</string>
+    <string name="btn_text_history">🕒</string>
+    <string name="desc_text_history">Historial de texto enviado</string>
+    <string name="dialog_text_history_title">Historial de Texto Enviado</string>
+    <string name="dialog_text_history_subtitle">Recupera o reenvía texto escrito desde tu celular</string>
+    <string name="history_filter_session">Esta sesión (%1$d)</string>
+    <string name="history_filter_all">Todo el historial (%1$d)</string>
+    <string name="history_empty">Aún no has enviado texto en esta sesión</string>
+    <string name="btn_restore_last_action">↺ Recuperar último: "%1$s"</string>
+    <string name="btn_restore_to_input">Recuperar</string>
+    <string name="btn_resend_to_pc">Reenviar</string>
+    <string name="toast_text_restored">Texto recuperado en el campo de escritura</string>
+    <string name="toast_no_history_to_restore">No hay texto previo para recuperar</string>
+    <string name="toast_text_resent">Texto reenviado a la PC</string>
+    <string name="toast_text_copied">Texto copiado al portapapeles</string>
+    <string name="confirm_clear_history_title">Limpiar historial</string>
+    <string name="confirm_clear_history_msg">¿Estás seguro de que deseas borrar todo el historial de texto enviado?</string>
+    <string name="badge_this_session">🟢 Esta sesión</string>
+    <string name="btn_history_chip">🕒 Historial</string>
 </resources>
