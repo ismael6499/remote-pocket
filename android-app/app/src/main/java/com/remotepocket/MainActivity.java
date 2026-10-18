@@ -35,6 +35,7 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -48,8 +49,11 @@ import com.remotepocket.ui.DeviceManagerDialog;
 import com.remotepocket.ui.LogViewerDialog;
 import com.remotepocket.ui.PcKeyboardDialog;
 import com.remotepocket.ui.SystemSheet;
+import com.remotepocket.ui.TextHistoryDialog;
 import com.remotepocket.ui.TouchpadView;
 import com.remotepocket.util.AppLogger;
+import com.remotepocket.util.TextHistoryItem;
+import com.remotepocket.util.TextHistoryManager;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -81,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
     private Button tabTrackpad, tabScreen;
     private LinearLayout layoutTypingInput;
     private EditText editTypingText;
+    private MaterialButton btnRestoreLastText, btnTextHistory;
     private FloatingActionButton fabKeyboard;
 
     private LinearLayout layoutScreenControls;
@@ -219,6 +224,8 @@ public class MainActivity extends AppCompatActivity {
         tabScreen = findViewById(R.id.tabScreen);
         layoutTypingInput = findViewById(R.id.layoutTypingInput);
         editTypingText = findViewById(R.id.editTypingText);
+        btnRestoreLastText = findViewById(R.id.btnRestoreLastText);
+        btnTextHistory = findViewById(R.id.btnTextHistory);
         fabKeyboard = findViewById(R.id.fabKeyboard);
 
         layoutScreenControls = findViewById(R.id.layoutScreenControls);
@@ -622,6 +629,32 @@ public class MainActivity extends AppCompatActivity {
             webSocketManager.sendMouseScroll(-120);
         });
 
+        // Restore last sent text
+        if (btnRestoreLastText != null) {
+            btnRestoreLastText.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                restoreLastSentText();
+            });
+            btnRestoreLastText.setOnLongClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                showTextHistoryDialog();
+                return true;
+            });
+        }
+
+        // Sent text history
+        if (btnTextHistory != null) {
+            btnTextHistory.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                showTextHistoryDialog();
+            });
+            btnTextHistory.setOnLongClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                restoreLastSentText();
+                return true;
+            });
+        }
+
         // Send text typing
         findViewById(R.id.btnSendTyping).setOnClickListener(v -> sendEnteredText());
         View btnSwitchToPcKb = findViewById(R.id.btnSwitchToPcKb);
@@ -736,6 +769,9 @@ public class MainActivity extends AppCompatActivity {
             activePcKeyboardDialog.dismiss();
             activePcKeyboardDialog = null;
         }
+        if (layoutMouseButtons != null) {
+            layoutMouseButtons.setVisibility(View.GONE);
+        }
         layoutTypingInput.setVisibility(View.VISIBLE);
         editTypingText.requestFocus();
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -750,10 +786,18 @@ public class MainActivity extends AppCompatActivity {
         if (imm != null) {
             imm.hideSoftInputFromWindow(editTypingText.getWindowToken(), 0);
         }
+        if (!isFullscreen && (activePcKeyboardDialog == null || !activePcKeyboardDialog.isShowing())) {
+            if (layoutMouseButtons != null) {
+                layoutMouseButtons.setVisibility(View.VISIBLE);
+            }
+        }
     }
 
     private void showPcKeyboard() {
         hideNormalKeyboard();
+        if (layoutMouseButtons != null) {
+            layoutMouseButtons.setVisibility(View.GONE);
+        }
         if (activePcKeyboardDialog != null && activePcKeyboardDialog.isShowing()) {
             activePcKeyboardDialog.dismiss();
         }
@@ -767,13 +811,58 @@ public class MainActivity extends AppCompatActivity {
         });
         activePcKeyboardDialog.setOnDismissListener(dialog -> {
             activePcKeyboardDialog = null;
+            if (!isFullscreen && (layoutTypingInput == null || layoutTypingInput.getVisibility() != View.VISIBLE)) {
+                if (layoutMouseButtons != null) {
+                    layoutMouseButtons.setVisibility(View.VISIBLE);
+                }
+            }
         });
         activePcKeyboardDialog.show();
+    }
+
+    private void restoreLastSentText() {
+        TextHistoryItem lastItem = TextHistoryManager.getInstance(this).getLastSentItem();
+        if (lastItem != null && lastItem.getText() != null && !lastItem.getText().isEmpty()) {
+            editTypingText.setText(lastItem.getText());
+            editTypingText.setSelection(lastItem.getText().length());
+            editTypingText.requestFocus();
+            Toast.makeText(this, R.string.toast_text_restored, Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, R.string.toast_no_history_to_restore, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showTextHistoryDialog() {
+        TextHistoryDialog dialog = new TextHistoryDialog(this, new TextHistoryDialog.OnTextActionListener() {
+            @Override
+            public void onRestoreText(String text) {
+                showNormalKeyboard();
+                editTypingText.setText(text);
+                editTypingText.setSelection(text.length());
+                editTypingText.requestFocus();
+                Toast.makeText(MainActivity.this, R.string.toast_text_restored, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onResendText(String text) {
+                if (text != null && !text.isEmpty()) {
+                    TextHistoryManager.getInstance(MainActivity.this).recordSentText(text);
+                    if (text.length() > 25 || text.contains("\n") || text.contains("\r")) {
+                        webSocketManager.sendPaste(text);
+                    } else {
+                        webSocketManager.sendTypeText(text);
+                    }
+                    Toast.makeText(MainActivity.this, R.string.toast_text_resent, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        dialog.show();
     }
 
     private void sendEnteredText() {
         String text = editTypingText.getText().toString();
         if (!text.isEmpty()) {
+            TextHistoryManager.getInstance(this).recordSentText(text);
             if (text.length() > 25 || text.contains("\n") || text.contains("\r")) {
                 webSocketManager.sendPaste(text);
             } else {
@@ -909,8 +998,11 @@ public class MainActivity extends AppCompatActivity {
 
         // Restore toolbars and tabs
         if (headerLayout != null) headerLayout.setVisibility(View.VISIBLE);
-        if (layoutTabs != null) layoutTabs.setVisibility(View.VISIBLE);
-        if (layoutMouseButtons != null) layoutMouseButtons.setVisibility(View.VISIBLE);
+        boolean isTypingActive = (layoutTypingInput != null && layoutTypingInput.getVisibility() == View.VISIBLE)
+                || (activePcKeyboardDialog != null && activePcKeyboardDialog.isShowing());
+        if (!isTypingActive && layoutMouseButtons != null) {
+            layoutMouseButtons.setVisibility(View.VISIBLE);
+        }
         handler.removeCallbacks(fadeFullscreenControlsRunnable);
         if (layoutFullscreenTopBar != null) layoutFullscreenTopBar.setVisibility(View.GONE);
         if (btnExpandFullscreenControls != null) btnExpandFullscreenControls.setVisibility(View.GONE);
