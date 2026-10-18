@@ -48,6 +48,7 @@ public class TouchpadView extends View {
     private float downY = 0f;
     private float lastX, lastY;
     private float lastTwoFingerY;
+    private float scrollAccumulator = 0f;
     private float accumX = 0f;
     private float accumY = 0f;
 
@@ -526,6 +527,7 @@ public class TouchpadView extends View {
                 if (pointerCount == 2) {
                     isMultiTouch = true;
                     lastTwoFingerY = (event.getY(0) + event.getY(1)) / 2f;
+                    scrollAccumulator = 0f;
                 }
                 break;
 
@@ -631,25 +633,39 @@ public class TouchpadView extends View {
                     lastX = currentX;
                     lastY = currentY;
                 } else if (pointerCount == 2 && !isScaling) {
-                    // Two finger scroll
+                    // Two-finger smooth, dynamic & controllable scroll
                     float currentTwoFingerY = (event.getY(0) + event.getY(1)) / 2f;
-                    float scrollDelta = currentTwoFingerY - lastTwoFingerY;
+                    float deltaY = currentTwoFingerY - lastTwoFingerY;
+                    lastTwoFingerY = currentTwoFingerY;
 
-                    if (Math.abs(scrollDelta) > 5f) {
+                    if (Math.abs(deltaY) > 0.5f) {
                         hasMoved = true;
                         lastTapTime = 0;
-                        int scrollStep = Math.round(scrollDelta * 14f);
-                        webSocketManager.sendMouseScroll(scrollStep);
-                        lastTwoFingerY = currentTwoFingerY;
+
+                        // Dynamic progressive velocity curve:
+                        // Gentle on slow micro-scrolling (precision reading),
+                        // smoothly scaling up on faster flicks.
+                        float absDelta = Math.abs(deltaY);
+                        float dynamicMultiplier = 2.2f + Math.min(absDelta * 0.08f, 2.5f);
+
+                        scrollAccumulator += deltaY * dynamicMultiplier;
+
+                        int step = Math.round(scrollAccumulator);
+                        if (Math.abs(step) >= 12) {
+                            webSocketManager.sendMouseScroll(step);
+                            scrollAccumulator -= step;
+                        }
                     }
                 }
                 break;
 
             case MotionEvent.ACTION_POINTER_UP:
+                scrollAccumulator = 0f;
                 break;
 
             case MotionEvent.ACTION_UP:
                 isTouching = false;
+                scrollAccumulator = 0f;
                 long duration = System.currentTimeMillis() - touchDownTime;
 
                 if (isTapAndDrag) {
@@ -699,6 +715,7 @@ public class TouchpadView extends View {
                 isMultiTouch = false;
                 hasMoved = false;
                 isScaling = false;
+                scrollAccumulator = 0f;
                 break;
         }
 
