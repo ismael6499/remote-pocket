@@ -135,7 +135,13 @@
     <string name="btn_exit_fullscreen">Exit Fullscreen</string>
     <string name="monitor_format">🖥️ %1$d/%2$d</string>
     <string name="monitor_single_format">🖥️ %1$d</string>
+    <string name="monitor_mode_span">🔲 Span</string>
+    <string name="monitor_mode_single">🖥️ Sep</string>
+    <string name="monitor_span_label">🔲 All</string>
+    <string name="monitor_span_item">🔲 All Screens (Continuous Span)</string>
     <string name="toast_monitor_switched">Switched to Display %1$d</string>
+    <string name="toast_monitor_span_active">Continuous Multi-Monitor Span mode activated</string>
+    <string name="toast_monitor_single_active">Separated Monitors mode activated</string>
     <string name="toast_single_monitor">Only 1 display detected on PC</string>
     <string name="dialog_select_monitor_title">Select PC Display</string>
     <string name="btn_collapse_controls">Hide Controls</string>

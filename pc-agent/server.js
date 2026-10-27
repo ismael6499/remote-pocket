@@ -199,6 +199,7 @@ function fetchMonitorsInfo(cb) {
         if (parsed && typeof parsed.count === 'number') {
           cachedMonitorsInfo = parsed;
           cachedMonitorsInfo.active = currentMonitorIndex;
+          cachedMonitorsInfo.isContinuous = (currentMonitorIndex === -1);
         }
       } catch (e) {}
     }
@@ -777,7 +778,7 @@ app.get('/api/monitors', (req, res) => {
 app.post('/api/monitors/select', (req, res) => {
   const index = parseInt(req.body.index, 10);
   if (!isNaN(index)) {
-    const targetIndex = Math.max(0, index);
+    const targetIndex = Math.max(-1, index);
     currentMonitorIndex = targetIndex;
     console.log(`[Monitor] Switched to monitor index ${targetIndex} via REST`);
     sendInputCommand(`monitor ${targetIndex}`);
@@ -994,7 +995,7 @@ function handleWebSocketMessage(ws, data) {
     case 'select_monitor':
     case 'set_monitor':
       if (typeof data.index === 'number') {
-        const targetIndex = Math.max(0, Math.round(data.index));
+        const targetIndex = Math.max(-1, Math.round(data.index));
         currentMonitorIndex = targetIndex;
         console.log(`[Monitor] Switched to monitor index ${targetIndex}`);
         sendInputCommand(`monitor ${targetIndex}`);

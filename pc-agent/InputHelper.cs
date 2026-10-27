@@ -6,6 +6,8 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -1150,7 +1152,7 @@ namespace InputHelper {
             uint safeLevel = (uint)Math.Max(0, Math.Min(100, level));
             bool anySuccess = false;
             try {
-                var screens = Screen.AllScreens;
+                var screens = GetSortedScreens();
                 if (screens != null && screens.Length > 0) {
                     for (int i = 0; i < screens.Length; i++) {
                         if (targetMonIndex >= 0 && i != targetMonIndex) continue;
@@ -1202,9 +1204,23 @@ namespace InputHelper {
             return anySuccess;
         }
 
-        public static void SetSelectedMonitor(int index) {
+        public static Screen[] GetSortedScreens() {
             try {
                 var screens = Screen.AllScreens;
+                if (screens == null || screens.Length == 0) return new Screen[0];
+                return screens.OrderBy(s => s.Bounds.X).ThenBy(s => s.Bounds.Y).ToArray();
+            } catch {
+                return Screen.AllScreens ?? new Screen[0];
+            }
+        }
+
+        public static void SetSelectedMonitor(int index) {
+            try {
+                if (index == -1) {
+                    currentMonitorIndex = -1; // -1 represents Continuous Virtual Desktop (All Screens Span)
+                    return;
+                }
+                var screens = GetSortedScreens();
                 if (screens != null && screens.Length > 0) {
                     if (index < 0) index = 0;
                     if (index >= screens.Length) index = screens.Length - 1;
@@ -1218,8 +1234,21 @@ namespace InputHelper {
         }
 
         public static void GetSelectedMonitorBounds(out int monX, out int monY, out int monW, out int monH) {
+            if (currentMonitorIndex == -1) {
+                // Continuous / All-Screens Virtual Desktop (exact height offsets configured in Windows Display Settings)
+                monX = GetSystemMetrics(76); // SM_XVIRTUALSCREEN
+                monY = GetSystemMetrics(77); // SM_YVIRTUALSCREEN
+                monW = GetSystemMetrics(78); // SM_CXVIRTUALSCREEN
+                monH = GetSystemMetrics(79); // SM_CYVIRTUALSCREEN
+                if (monW <= 0) monW = GetSystemMetrics(0);
+                if (monH <= 0) monH = GetSystemMetrics(1);
+                if (monW <= 0) monW = 1920;
+                if (monH <= 0) monH = 1080;
+                return;
+            }
+
             try {
-                var screens = Screen.AllScreens;
+                var screens = GetSortedScreens();
                 if (screens != null && screens.Length > 0) {
                     int idx = currentMonitorIndex;
                     if (idx < 0 || idx >= screens.Length) idx = 0;
@@ -1242,23 +1271,45 @@ namespace InputHelper {
 
         public static string GetMonitorsJson() {
             try {
-                var screens = Screen.AllScreens;
+                var screens = GetSortedScreens();
                 if (screens == null || screens.Length == 0) {
-                    return "{\"count\":1,\"active\":0,\"monitors\":[{\"index\":0,\"name\":\"Primary Display\",\"w\":1920,\"h\":1080,\"x\":0,\"y\":0,\"primary\":true}]}";
+                    return "{\"count\":1,\"active\":0,\"isContinuous\":false,\"monitors\":[{\"index\":0,\"displayNumber\":1,\"name\":\"Monitor 1\",\"w\":1920,\"h\":1080,\"x\":0,\"y\":0,\"primary\":true}]}";
                 }
                 int active = currentMonitorIndex;
-                if (active < 0 || active >= screens.Length) active = 0;
+
+                int vx = GetSystemMetrics(76);
+                int vy = GetSystemMetrics(77);
+                int vw = GetSystemMetrics(78);
+                int vh = GetSystemMetrics(79);
+                if (vw <= 0) vw = GetSystemMetrics(0);
+                if (vh <= 0) vh = GetSystemMetrics(1);
+                if (vw <= 0) vw = 1920;
+                if (vh <= 0) vh = 1080;
 
                 StringBuilder sb = new StringBuilder();
-                sb.Append("{\"count\":").Append(screens.Length).Append(",\"active\":").Append(active).Append(",\"monitors\":[");
+                sb.Append("{\"count\":").Append(screens.Length)
+                  .Append(",\"active\":").Append(active)
+                  .Append(",\"isContinuous\":").Append(active == -1 ? "true" : "false")
+                  .Append(",\"virtualDesktop\":{\"x\":").Append(vx).Append(",\"y\":").Append(vy).Append(",\"w\":").Append(vw).Append(",\"h\":").Append(vh).Append("}")
+                  .Append(",\"monitors\":[");
+
                 for (int i = 0; i < screens.Length; i++) {
                     if (i > 0) sb.Append(",");
                     var s = screens[i];
-                    string cleanName = (s.DeviceName ?? "").Replace("\\", "").Replace(".", "").Trim();
-                    if (string.IsNullOrEmpty(cleanName)) cleanName = "Display " + (i + 1);
-                    else cleanName = "Display " + (i + 1) + " (" + cleanName + ")";
+
+                    // Extract actual Windows Display Number from \\.\DISPLAY<N>
+                    int winNum = i + 1;
+                    try {
+                        Match m = Regex.Match(s.DeviceName ?? "", @"DISPLAY(\d+)");
+                        if (m.Success) winNum = int.Parse(m.Groups[1].Value);
+                    } catch { }
+
+                    string cleanName = "Monitor " + winNum;
+                    if (s.Primary) cleanName += " (Primary)";
+
                     sb.Append("{")
                       .Append("\"index\":").Append(i).Append(",")
+                      .Append("\"displayNumber\":").Append(winNum).Append(",")
                       .Append("\"name\":\"").Append(cleanName).Append("\",")
                       .Append("\"w\":").Append(s.Bounds.Width).Append(",")
                       .Append("\"h\":").Append(s.Bounds.Height).Append(",")

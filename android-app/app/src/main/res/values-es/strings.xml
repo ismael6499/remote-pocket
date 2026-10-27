@@ -135,7 +135,13 @@
     <string name="btn_exit_fullscreen">Salir de pantalla completa</string>
     <string name="monitor_format">🖥️ %1$d/%2$d</string>
     <string name="monitor_single_format">🖥️ %1$d</string>
+    <string name="monitor_mode_span">🔲 Continuo</string>
+    <string name="monitor_mode_single">🖥️ Sep</string>
+    <string name="monitor_span_label">🔲 Todas</string>
+    <string name="monitor_span_item">🔲 Pantallas continuas (Escritorio completo)</string>
     <string name="toast_monitor_switched">Cambiado a Pantalla %1$d</string>
+    <string name="toast_monitor_span_active">Modo pantallas continuas activado</string>
+    <string name="toast_monitor_single_active">Modo monitores separados activado</string>
     <string name="toast_single_monitor">Solo 1 pantalla detectada en la PC</string>
     <string name="dialog_select_monitor_title">Seleccionar pantalla de PC</string>
     <string name="btn_collapse_controls">Ocultar controles</string>

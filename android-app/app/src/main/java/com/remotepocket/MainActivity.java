@@ -90,7 +90,9 @@ public class MainActivity extends AppCompatActivity {
 
     private LinearLayout layoutScreenControls;
     private TextView btnToggleFollow, btnZoomLevel, btnFpsSelector, btnEnterFullscreen, btnMonitorSelector;
-    private TextView btnFullscreenMonitor;
+    private TextView btnMonitorMode;
+    private TextView btnFullscreenMonitor, btnFullscreenMonitorMode;
+    private View dividerMonitorMode;
     private LinearLayout layoutFullscreenTopBar;
     private ImageButton btnExitFullscreen;
     private LinearLayout headerLayout, layoutTabs, layoutMouseButtons;
@@ -99,7 +101,9 @@ public class MainActivity extends AppCompatActivity {
     private int currentFps = 30;
     private int monitorCount = 1;
     private int currentMonitorIndex = 0;
+    private int lastSeparateMonitorIndex = 0;
     private final List<String> monitorNames = new ArrayList<>();
+    private final List<Integer> monitorDisplayNumbers = new ArrayList<>();
 
     private View btnCollapseScreenControls, btnExpandScreenControls;
     private View btnCollapseFullscreenControls, btnExpandFullscreenControls;
@@ -234,8 +238,11 @@ public class MainActivity extends AppCompatActivity {
         btnFpsSelector = findViewById(R.id.btnFpsSelector);
         btnEnterFullscreen = findViewById(R.id.btnEnterFullscreen);
         btnMonitorSelector = findViewById(R.id.btnMonitorSelector);
+        btnMonitorMode = findViewById(R.id.btnMonitorMode);
+        dividerMonitorMode = findViewById(R.id.dividerMonitorMode);
         btnExitFullscreen = findViewById(R.id.btnExitFullscreen);
         btnFullscreenMonitor = findViewById(R.id.btnFullscreenMonitor);
+        btnFullscreenMonitorMode = findViewById(R.id.btnFullscreenMonitorMode);
         layoutFullscreenTopBar = findViewById(R.id.layoutFullscreenTopBar);
         btnCollapseScreenControls = findViewById(R.id.btnCollapseScreenControls);
         btnExpandScreenControls = findViewById(R.id.btnExpandScreenControls);
@@ -530,6 +537,17 @@ public class MainActivity extends AppCompatActivity {
         if (btnFullscreenMonitor != null) {
             btnFullscreenMonitor.setOnClickListener(monitorClickListener);
             btnFullscreenMonitor.setOnLongClickListener(monitorLongClickListener);
+        }
+
+        View.OnClickListener monitorModeClickListener = v -> {
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            toggleMonitorMode();
+        };
+        if (btnMonitorMode != null) {
+            btnMonitorMode.setOnClickListener(monitorModeClickListener);
+        }
+        if (btnFullscreenMonitorMode != null) {
+            btnFullscreenMonitorMode.setOnClickListener(monitorModeClickListener);
         }
 
         // Screen Controls Collapse / Expand (Normal Mode)
@@ -1179,17 +1197,25 @@ public class MainActivity extends AppCompatActivity {
                     monitorCount = Math.max(1, json.get("count").getAsInt());
                 }
                 if (json.has("active")) {
-                    currentMonitorIndex = Math.max(0, json.get("active").getAsInt());
+                    currentMonitorIndex = json.get("active").getAsInt();
+                    if (currentMonitorIndex >= 0) {
+                        lastSeparateMonitorIndex = currentMonitorIndex;
+                    }
                 }
                 monitorNames.clear();
+                monitorDisplayNumbers.clear();
                 if (json.has("monitors") && json.get("monitors").isJsonArray()) {
+                    int i = 0;
                     for (JsonElement el : json.getAsJsonArray("monitors")) {
                         JsonObject m = el.getAsJsonObject();
-                        String name = m.has("name") ? m.get("name").getAsString() : "Display";
+                        int dispNum = m.has("displayNumber") ? m.get("displayNumber").getAsInt() : (i + 1);
+                        monitorDisplayNumbers.add(dispNum);
+                        String name = m.has("name") ? m.get("name").getAsString() : ("Monitor " + dispNum);
                         if (m.has("w") && m.has("h")) {
                             name += " (" + m.get("w").getAsInt() + "x" + m.get("h").getAsInt() + ")";
                         }
                         monitorNames.add(name);
+                        i++;
                     }
                 }
                 updateMonitorButtonsUI();
@@ -1199,25 +1225,65 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateMonitorButtonsUI() {
         runOnUiThread(() -> {
-            String text;
-            if (monitorCount > 1) {
-                text = getString(R.string.monitor_format, (currentMonitorIndex + 1), monitorCount);
+            boolean isSpan = (currentMonitorIndex == -1);
+            String selectorText;
+            if (isSpan) {
+                selectorText = getString(R.string.monitor_span_label);
             } else {
-                text = getString(R.string.monitor_single_format, (currentMonitorIndex + 1));
+                int dispNum = (currentMonitorIndex >= 0 && currentMonitorIndex < monitorDisplayNumbers.size())
+                        ? monitorDisplayNumbers.get(currentMonitorIndex)
+                        : (currentMonitorIndex + 1);
+                selectorText = getString(R.string.monitor_single_format, dispNum);
             }
+
             if (btnMonitorSelector != null) {
-                btnMonitorSelector.setText(text);
+                btnMonitorSelector.setText(selectorText);
             }
             if (btnFullscreenMonitor != null) {
-                btnFullscreenMonitor.setText(text);
+                btnFullscreenMonitor.setText(selectorText);
+            }
+
+            String modeText = isSpan ? getString(R.string.monitor_mode_span) : getString(R.string.monitor_mode_single);
+            int modeVisibility = (monitorCount > 1 || isSpan) ? View.VISIBLE : View.GONE;
+
+            if (btnMonitorMode != null) {
+                btnMonitorMode.setText(modeText);
+                btnMonitorMode.setVisibility(modeVisibility);
+            }
+            if (dividerMonitorMode != null) {
+                dividerMonitorMode.setVisibility(modeVisibility);
+            }
+            if (btnFullscreenMonitorMode != null) {
+                btnFullscreenMonitorMode.setText(modeText);
+                btnFullscreenMonitorMode.setVisibility(modeVisibility);
             }
         });
     }
 
-    private void cycleOrSelectMonitor() {
-        if (monitorCount <= 1) {
+    private void toggleMonitorMode() {
+        if (monitorCount <= 1 && currentMonitorIndex != -1) {
             Toast.makeText(this, getString(R.string.toast_single_monitor), Toast.LENGTH_SHORT).show();
             webSocketManager.sendGetMonitors();
+            return;
+        }
+        if (currentMonitorIndex == -1) {
+            int target = (lastSeparateMonitorIndex >= 0 && lastSeparateMonitorIndex < monitorCount) ? lastSeparateMonitorIndex : 0;
+            switchToMonitor(target);
+        } else {
+            lastSeparateMonitorIndex = currentMonitorIndex;
+            switchToMonitor(-1);
+        }
+    }
+
+    private void cycleOrSelectMonitor() {
+        if (monitorCount <= 1 && currentMonitorIndex != -1) {
+            Toast.makeText(this, getString(R.string.toast_single_monitor), Toast.LENGTH_SHORT).show();
+            webSocketManager.sendGetMonitors();
+            return;
+        }
+        if (currentMonitorIndex == -1) {
+            int target = (lastSeparateMonitorIndex >= 0 && lastSeparateMonitorIndex < monitorCount) ? lastSeparateMonitorIndex : 0;
+            switchToMonitor(target);
             return;
         }
         int nextMonitor = (currentMonitorIndex + 1) % monitorCount;
@@ -1226,30 +1292,51 @@ public class MainActivity extends AppCompatActivity {
 
     private void switchToMonitor(int index) {
         currentMonitorIndex = index;
+        if (index >= 0) {
+            lastSeparateMonitorIndex = index;
+        }
         webSocketManager.sendSelectMonitor(index);
         updateMonitorButtonsUI();
         if (touchpadView != null) {
             touchpadView.resyncCursorFromServer();
+            if (index == -1) {
+                touchpadView.resetZoom();
+            }
         }
-        Toast.makeText(this, getString(R.string.toast_monitor_switched, (index + 1)), Toast.LENGTH_SHORT).show();
+        if (index == -1) {
+            Toast.makeText(this, getString(R.string.toast_monitor_span_active), Toast.LENGTH_SHORT).show();
+        } else {
+            int dispNum = (index >= 0 && index < monitorDisplayNumbers.size()) ? monitorDisplayNumbers.get(index) : (index + 1);
+            Toast.makeText(this, getString(R.string.toast_monitor_switched, dispNum), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void showMonitorSelectionDialog() {
-        if (monitorCount <= 1 && monitorNames.isEmpty()) {
+        if (monitorCount <= 1 && monitorNames.isEmpty() && currentMonitorIndex != -1) {
             Toast.makeText(this, getString(R.string.toast_single_monitor), Toast.LENGTH_SHORT).show();
             webSocketManager.sendGetMonitors();
             return;
         }
 
-        String[] items = new String[monitorCount];
+        int totalItems = monitorCount + (monitorCount > 1 || currentMonitorIndex == -1 ? 1 : 0);
+        String[] items = new String[totalItems];
         for (int i = 0; i < monitorCount; i++) {
-            String name = (i < monitorNames.size()) ? monitorNames.get(i) : ("Display " + (i + 1));
+            String name = (i < monitorNames.size()) ? monitorNames.get(i) : ("Monitor " + (i + 1));
             items[i] = (i == currentMonitorIndex ? "✓ " : "   ") + name;
+        }
+        if (totalItems > monitorCount) {
+            items[monitorCount] = (currentMonitorIndex == -1 ? "✓ " : "   ") + getString(R.string.monitor_span_item);
         }
 
         new AlertDialog.Builder(this)
                 .setTitle(R.string.dialog_select_monitor_title)
-                .setItems(items, (dialog, which) -> switchToMonitor(which))
+                .setItems(items, (dialog, which) -> {
+                    if (which < monitorCount) {
+                        switchToMonitor(which);
+                    } else {
+                        switchToMonitor(-1);
+                    }
+                })
                 .setNegativeButton(R.string.btn_close, null)
                 .show();
     }
