@@ -703,7 +703,8 @@ public class MainActivity extends AppCompatActivity {
     private final Handler fabLongPressHandler = new Handler(Looper.getMainLooper());
     private boolean isFabLongPressed = false;
     private boolean hasFabMoved = false;
-    private float defaultFabY = -1f;
+    private boolean isFabCustomPositioned = false;
+    private float fabKeyboardShiftUp = 0f;
 
     private final Runnable fabLongPressRunnable = new Runnable() {
         @Override
@@ -722,16 +723,18 @@ public class MainActivity extends AppCompatActivity {
         fabKeyboard.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
             View parent = (View) v.getParent();
             if (parent != null && parent.getWidth() > 0 && parent.getHeight() > 0) {
-                int margin = (int) (8 * getResources().getDisplayMetrics().density);
-                float minX = margin;
-                float maxX = Math.max(minX, parent.getWidth() - v.getWidth() - margin);
-                float minY = margin;
-                float maxY = Math.max(minY, parent.getHeight() - v.getHeight() - margin - currentKeyboardInsetPx);
-                float curX = v.getX();
-                float curY = v.getY();
-                if (curX < minX || curX > maxX || curY < minY || curY > maxY) {
-                    v.setX(Math.max(minX, Math.min(curX, maxX)));
-                    v.setY(Math.max(minY, Math.min(curY, maxY)));
+                if (isFabCustomPositioned) {
+                    int margin = (int) (8 * getResources().getDisplayMetrics().density);
+                    float minX = margin;
+                    float maxX = Math.max(minX, parent.getWidth() - v.getWidth() - margin);
+                    float minY = margin;
+                    float maxY = Math.max(minY, parent.getHeight() - v.getHeight() - margin - currentKeyboardInsetPx);
+                    float curX = v.getX();
+                    float curY = v.getY();
+                    if (curX < minX || curX > maxX || curY < minY || curY > maxY) {
+                        v.setX(Math.max(minX, Math.min(curX, maxX)));
+                        v.setY(Math.max(minY, Math.min(curY, maxY)));
+                    }
                 }
             }
         });
@@ -761,6 +764,8 @@ public class MainActivity extends AppCompatActivity {
                         float diffY = Math.abs(event.getRawY() - startY);
                         if (diffX > CLICK_DRAG_TOLERANCE || diffY > CLICK_DRAG_TOLERANCE) {
                             hasFabMoved = true;
+                            isFabCustomPositioned = true;
+                            fabKeyboardShiftUp = 0f;
                             fabLongPressHandler.removeCallbacks(fabLongPressRunnable);
                         }
                         if (!isFabLongPressed) {
@@ -778,7 +783,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                             view.setX(targetX);
                             view.setY(targetY);
-                            defaultFabY = -1f;
+                            
                         }
                         return true;
 
@@ -928,19 +933,22 @@ public class MainActivity extends AppCompatActivity {
         if (insetPx > 0) {
             float keyboardTopY = parent.getHeight() - insetPx;
             float maxAllowedY = keyboardTopY - fabHeight - margin;
-            if (fabKeyboard.getY() > maxAllowedY || fabKeyboard.getY() <= 0) {
-                if (defaultFabY < 0) {
-                    defaultFabY = fabKeyboard.getY();
-                }
-                fabKeyboard.animate().y(maxAllowedY).setDuration(200).start();
+            if (fabKeyboardShiftUp == 0f && fabKeyboard.getY() > maxAllowedY) {
+                fabKeyboardShiftUp = fabKeyboard.getY() - maxAllowedY;
+                fabKeyboard.animate().translationY(fabKeyboard.getTranslationY() - fabKeyboardShiftUp).setDuration(200).start();
             }
             fabKeyboard.bringToFront();
             resetFabKeyboardFade();
         } else {
-            if (defaultFabY >= 0) {
-                float targetY = defaultFabY;
-                defaultFabY = -1f;
-                fabKeyboard.animate().y(targetY).setDuration(200).start();
+            if (fabKeyboardShiftUp > 0f) {
+                float restoreTranslationY = fabKeyboard.getTranslationY() + fabKeyboardShiftUp;
+                if (!isFabCustomPositioned) {
+                    restoreTranslationY = 0f;
+                }
+                fabKeyboard.animate().translationY(restoreTranslationY).setDuration(200).start();
+                fabKeyboardShiftUp = 0f;
+            } else if (!isFabCustomPositioned && fabKeyboard.getTranslationY() != 0f) {
+                fabKeyboard.animate().translationY(0f).setDuration(200).start();
             }
             resetFabKeyboardFade();
         }
@@ -1020,12 +1028,12 @@ public class MainActivity extends AppCompatActivity {
         });
         activePcKeyboardDialog.setOnDismissListener(dialog -> {
             activePcKeyboardDialog = null;
-            setKeyboardBottomInset(0);
             if (!isFullscreen && (layoutTypingInput == null || layoutTypingInput.getVisibility() != View.VISIBLE)) {
                 if (layoutMouseButtons != null) {
                     layoutMouseButtons.setVisibility(View.VISIBLE);
                 }
             }
+            setKeyboardBottomInset(0);
         });
         activePcKeyboardDialog.show();
     }
