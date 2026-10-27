@@ -139,7 +139,7 @@ public class TouchpadView extends View {
             @Override
             public boolean onScale(ScaleGestureDetector detector) {
                 currentScale *= detector.getScaleFactor();
-                currentScale = Math.max(1.0f, Math.min(currentScale, 4.0f));
+                currentScale = Math.max(1.0f, Math.min(currentScale, getMaxScale()));
 
                 if (followCursor && currentScale > 1.0f) {
                     applyCenterTranslationDirect();
@@ -215,13 +215,56 @@ public class TouchpadView extends View {
         return currentScale;
     }
 
+    public float getMaxScale() {
+        int viewW = getWidth();
+        int viewH = getHeight();
+        if (viewW > 0 && viewH > 0 && scrW > 0 && scrH > 0) {
+            float scaleFit = Math.min((float) viewW / scrW, (float) viewH / scrH);
+            if (scaleFit > 0) {
+                float singleFit = Math.min((float) viewW / 1920f, (float) viewH / 1080f);
+                float spanFactor = Math.max(1.0f, singleFit / scaleFit);
+                return Math.max(16.0f, spanFactor * 8.0f);
+            }
+        }
+        return 20.0f;
+    }
+
     public void cycleZoomLevel() {
-        if (currentScale < 1.5f) {
-            currentScale = 2.0f;
-        } else if (currentScale < 2.5f) {
-            currentScale = 3.0f;
+        float max = getMaxScale();
+        float singleScreenRatio = 1.0f;
+        int viewW = getWidth();
+        int viewH = getHeight();
+        if (viewW > 0 && viewH > 0 && scrW > 0 && scrH > 0) {
+            float singleFit = Math.min((float) viewW / 1920f, (float) viewH / 1080f);
+            float currentFit = Math.min((float) viewW / scrW, (float) viewH / scrH);
+            if (currentFit > 0) {
+                singleScreenRatio = Math.max(1.0f, singleFit / currentFit);
+            }
+        }
+
+        if (singleScreenRatio > 1.3f) {
+            float step1 = 1.0f;
+            float step2 = singleScreenRatio;
+            float step3 = singleScreenRatio * 2.0f;
+            float step4 = Math.min(max, singleScreenRatio * 4.0f);
+
+            if (currentScale < step2 * 0.85f) {
+                currentScale = step2;
+            } else if (currentScale < step3 * 0.85f) {
+                currentScale = step3;
+            } else if (currentScale < step4 * 0.85f) {
+                currentScale = step4;
+            } else {
+                currentScale = step1;
+            }
         } else {
-            currentScale = 1.0f;
+            if (currentScale < 1.8f) {
+                currentScale = 2.5f;
+            } else if (currentScale < 3.8f) {
+                currentScale = 5.0f;
+            } else {
+                currentScale = 1.0f;
+            }
         }
         applyCenterTranslationDirect();
         notifyZoomChanged();
@@ -321,8 +364,24 @@ public class TouchpadView extends View {
     private static final int SERVER_STABLE_FRAMES = 2;
 
     public void updateServerCursorPosition(int x, int y, int w, int h) {
+        int oldW = this.scrW;
+        int oldH = this.scrH;
         this.scrW = w > 0 ? w : this.scrW;
         this.scrH = h > 0 ? h : this.scrH;
+
+        if (w > 0 && h > 0 && oldW > 0 && oldH > 0 && (oldW != this.scrW || oldH != this.scrH)) {
+            int viewW = getWidth();
+            int viewH = getHeight();
+            if (viewW > 0 && viewH > 0) {
+                float oldScaleFit = Math.min((float) viewW / oldW, (float) viewH / oldH);
+                float newScaleFit = Math.min((float) viewW / this.scrW, (float) viewH / this.scrH);
+                if (oldScaleFit > 0 && newScaleFit > 0) {
+                    float ratio = oldScaleFit / newScaleFit;
+                    currentScale = Math.max(1.0f, Math.min(currentScale * ratio, getMaxScale()));
+                    notifyZoomChanged();
+                }
+            }
+        }
 
         // Delayed frames carry a "trail" of old positions while the cursor moves.
         // Only trust a position once it has been identical for several consecutive frames.

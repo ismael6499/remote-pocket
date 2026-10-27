@@ -1299,9 +1299,6 @@ public class MainActivity extends AppCompatActivity {
         updateMonitorButtonsUI();
         if (touchpadView != null) {
             touchpadView.resyncCursorFromServer();
-            if (index == -1) {
-                touchpadView.resetZoom();
-            }
         }
         if (index == -1) {
             Toast.makeText(this, getString(R.string.toast_monitor_span_active), Toast.LENGTH_SHORT).show();
