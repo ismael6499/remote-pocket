@@ -288,7 +288,6 @@ public class SystemSheet extends Dialog {
 
     private void executeShortcut(Shortcut s) {
         if (device == null) return;
-        Toast.makeText(getContext(), "Running " + s.getName(), Toast.LENGTH_SHORT).show();
         executor.execute(() -> {
             try {
                 MediaType JSON = MediaType.parse("application/json; charset=utf-8");
@@ -482,7 +481,6 @@ public class SystemSheet extends Dialog {
     }
 
     private void triggerScreenOff() {
-        Toast.makeText(getContext(), R.string.toast_screen_off_sent, Toast.LENGTH_SHORT).show();
         if (webSocketManager != null && webSocketManager.isConnected()) {
             webSocketManager.sendScreenOff();
         } else {

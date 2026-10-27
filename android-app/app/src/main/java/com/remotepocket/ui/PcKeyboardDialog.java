@@ -393,8 +393,6 @@ public class PcKeyboardDialog extends Dialog {
                 triggerHaptic(v);
                 isMobileComfortMode = !isMobileComfortMode;
                 updateLayoutModeVisibility();
-                String modeName = getContext().getString(isMobileComfortMode ? R.string.btn_mode_mobile : R.string.btn_mode_desktop);
-                Toast.makeText(getContext(), getContext().getString(R.string.toast_mode_switched, modeName), Toast.LENGTH_SHORT).show();
             });
         }
         updateLayoutModeVisibility();
@@ -409,9 +407,6 @@ public class PcKeyboardDialog extends Dialog {
                 prefs.edit().putInt(PREF_KB_SIZE, currentSizeIndex).apply();
                 btnToggleKeyboardSize.setText(SIZE_BTN_TEXTS[currentSizeIndex]);
                 applyKeyboardScale(SIZE_FACTORS[currentSizeIndex]);
-                String sizeName = getContext().getString(SIZE_NAMES[currentSizeIndex]);
-                String desc = DESKTOP_PERCENTAGES[currentSizeIndex];
-                Toast.makeText(getContext(), getContext().getString(R.string.toast_kb_size_switched, sizeName, desc), Toast.LENGTH_SHORT).show();
             });
         }
 
@@ -426,7 +421,6 @@ public class PcKeyboardDialog extends Dialog {
                 if (onScreenFitToggleListener != null) {
                     onScreenFitToggleListener.onScreenFitToggled(isScreenAutoFit);
                 }
-                Toast.makeText(getContext(), isScreenAutoFit ? R.string.toast_screen_fit_on : R.string.toast_screen_fit_off, Toast.LENGTH_SHORT).show();
             });
         }
 
@@ -904,7 +898,6 @@ public class PcKeyboardDialog extends Dialog {
                             } else {
                                 webSocketManager.sendTypeText(text);
                             }
-                            Toast.makeText(getContext(), R.string.toast_text_resent, Toast.LENGTH_SHORT).show();
                         }
                     }
                 });

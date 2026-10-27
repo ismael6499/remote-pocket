@@ -919,7 +919,6 @@ public class MainActivity extends AppCompatActivity {
             editTypingText.setText(lastItem.getText());
             editTypingText.setSelection(lastItem.getText().length());
             editTypingText.requestFocus();
-            Toast.makeText(this, R.string.toast_text_restored, Toast.LENGTH_SHORT).show();
         } else {
             Toast.makeText(this, R.string.toast_no_history_to_restore, Toast.LENGTH_SHORT).show();
         }
@@ -933,7 +932,6 @@ public class MainActivity extends AppCompatActivity {
                 editTypingText.setText(text);
                 editTypingText.setSelection(text.length());
                 editTypingText.requestFocus();
-                Toast.makeText(MainActivity.this, R.string.toast_text_restored, Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -945,7 +943,6 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         webSocketManager.sendTypeText(text);
                     }
-                    Toast.makeText(MainActivity.this, R.string.toast_text_resent, Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -1262,7 +1259,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void toggleMonitorMode() {
         if (monitorCount <= 1 && currentMonitorIndex != -1) {
-            Toast.makeText(this, getString(R.string.toast_single_monitor), Toast.LENGTH_SHORT).show();
             webSocketManager.sendGetMonitors();
             return;
         }
@@ -1277,7 +1273,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void cycleOrSelectMonitor() {
         if (monitorCount <= 1 && currentMonitorIndex != -1) {
-            Toast.makeText(this, getString(R.string.toast_single_monitor), Toast.LENGTH_SHORT).show();
             webSocketManager.sendGetMonitors();
             return;
         }
@@ -1300,17 +1295,10 @@ public class MainActivity extends AppCompatActivity {
         if (touchpadView != null) {
             touchpadView.resyncCursorFromServer();
         }
-        if (index == -1) {
-            Toast.makeText(this, getString(R.string.toast_monitor_span_active), Toast.LENGTH_SHORT).show();
-        } else {
-            int dispNum = (index >= 0 && index < monitorDisplayNumbers.size()) ? monitorDisplayNumbers.get(index) : (index + 1);
-            Toast.makeText(this, getString(R.string.toast_monitor_switched, dispNum), Toast.LENGTH_SHORT).show();
-        }
     }
 
     private void showMonitorSelectionDialog() {
         if (monitorCount <= 1 && monitorNames.isEmpty() && currentMonitorIndex != -1) {
-            Toast.makeText(this, getString(R.string.toast_single_monitor), Toast.LENGTH_SHORT).show();
             webSocketManager.sendGetMonitors();
             return;
         }
