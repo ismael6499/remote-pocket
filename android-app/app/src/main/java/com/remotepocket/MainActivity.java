@@ -700,6 +700,22 @@ public class MainActivity extends AppCompatActivity {
     private PcKeyboardDialog activePcKeyboardDialog = null;
     private String detectedPcKeyboardLayout = "ESP";
 
+    private final Handler fabLongPressHandler = new Handler(Looper.getMainLooper());
+    private boolean isFabLongPressed = false;
+    private boolean hasFabMoved = false;
+    private float defaultFabY = -1f;
+
+    private final Runnable fabLongPressRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (!hasFabMoved && fabKeyboard != null) {
+                isFabLongPressed = true;
+                fabKeyboard.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                onKeyboardFabLongPressed();
+            }
+        }
+    };
+
     private void setupDraggableFab() {
         resetFabKeyboardFade();
 
@@ -710,7 +726,7 @@ public class MainActivity extends AppCompatActivity {
                 float minX = margin;
                 float maxX = Math.max(minX, parent.getWidth() - v.getWidth() - margin);
                 float minY = margin;
-                float maxY = Math.max(minY, parent.getHeight() - v.getHeight() - margin);
+                float maxY = Math.max(minY, parent.getHeight() - v.getHeight() - margin - currentKeyboardInsetPx);
                 float curX = v.getX();
                 float curY = v.getY();
                 if (curX < minX || curX > maxX || curY < minY || curY > maxY) {
@@ -734,29 +750,41 @@ public class MainActivity extends AppCompatActivity {
                         dY = view.getY() - event.getRawY();
                         startX = event.getRawX();
                         startY = event.getRawY();
+                        isFabLongPressed = false;
+                        hasFabMoved = false;
+                        fabLongPressHandler.removeCallbacks(fabLongPressRunnable);
+                        fabLongPressHandler.postDelayed(fabLongPressRunnable, 450);
                         return true;
 
                     case MotionEvent.ACTION_MOVE:
-                        float targetX = event.getRawX() + dX;
-                        float targetY = event.getRawY() + dY;
-                        View parent = (View) view.getParent();
-                        if (parent != null) {
-                            int margin = (int) (8 * getResources().getDisplayMetrics().density);
-                            float minX = margin;
-                            float maxX = Math.max(minX, parent.getWidth() - view.getWidth() - margin);
-                            float minY = margin;
-                            float maxY = Math.max(minY, parent.getHeight() - view.getHeight() - margin);
-                            targetX = Math.max(minX, Math.min(targetX, maxX));
-                            targetY = Math.max(minY, Math.min(targetY, maxY));
+                        float diffX = Math.abs(event.getRawX() - startX);
+                        float diffY = Math.abs(event.getRawY() - startY);
+                        if (diffX > CLICK_DRAG_TOLERANCE || diffY > CLICK_DRAG_TOLERANCE) {
+                            hasFabMoved = true;
+                            fabLongPressHandler.removeCallbacks(fabLongPressRunnable);
                         }
-                        view.setX(targetX);
-                        view.setY(targetY);
+                        if (!isFabLongPressed) {
+                            float targetX = event.getRawX() + dX;
+                            float targetY = event.getRawY() + dY;
+                            View parent = (View) view.getParent();
+                            if (parent != null) {
+                                int margin = (int) (8 * getResources().getDisplayMetrics().density);
+                                float minX = margin;
+                                float maxX = Math.max(minX, parent.getWidth() - view.getWidth() - margin);
+                                float minY = margin;
+                                float maxY = Math.max(minY, parent.getHeight() - view.getHeight() - margin - currentKeyboardInsetPx);
+                                targetX = Math.max(minX, Math.min(targetX, maxX));
+                                targetY = Math.max(minY, Math.min(targetY, maxY));
+                            }
+                            view.setX(targetX);
+                            view.setY(targetY);
+                            defaultFabY = -1f;
+                        }
                         return true;
 
                     case MotionEvent.ACTION_UP:
-                        float diffX = Math.abs(event.getRawX() - startX);
-                        float diffY = Math.abs(event.getRawY() - startY);
-                        if (diffX < CLICK_DRAG_TOLERANCE && diffY < CLICK_DRAG_TOLERANCE) {
+                        fabLongPressHandler.removeCallbacks(fabLongPressRunnable);
+                        if (!isFabLongPressed && !hasFabMoved) {
                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                             onKeyboardFabClicked();
                         }
@@ -764,6 +792,9 @@ public class MainActivity extends AppCompatActivity {
                         return true;
 
                     case MotionEvent.ACTION_CANCEL:
+                        fabLongPressHandler.removeCallbacks(fabLongPressRunnable);
+                        isFabLongPressed = false;
+                        hasFabMoved = false;
                         resetFabKeyboardFade();
                         return true;
 
@@ -817,9 +848,21 @@ public class MainActivity extends AppCompatActivity {
             activePcKeyboardDialog = null;
         } else if (layoutTypingInput.getVisibility() == View.VISIBLE) {
             hideNormalKeyboard();
-            showPcKeyboard();
         } else {
             showNormalKeyboard();
+        }
+    }
+
+    private void onKeyboardFabLongPressed() {
+        if (activePcKeyboardDialog != null && activePcKeyboardDialog.isShowing()) {
+            activePcKeyboardDialog.dismiss();
+            activePcKeyboardDialog = null;
+            showNormalKeyboard();
+        } else if (layoutTypingInput.getVisibility() == View.VISIBLE) {
+            hideNormalKeyboard();
+            showPcKeyboard();
+        } else {
+            showPcKeyboard();
         }
     }
 
@@ -871,6 +914,36 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         applyScreenLayoutInsets();
+        updateFabPositionForKeyboardInset(insetPx);
+    }
+
+    private void updateFabPositionForKeyboardInset(int insetPx) {
+        if (fabKeyboard == null) return;
+        View parent = (View) fabKeyboard.getParent();
+        if (parent == null || parent.getHeight() <= 0) return;
+
+        int margin = dpToPx(16);
+        int fabHeight = fabKeyboard.getHeight() > 0 ? fabKeyboard.getHeight() : dpToPx(56);
+
+        if (insetPx > 0) {
+            float keyboardTopY = parent.getHeight() - insetPx;
+            float maxAllowedY = keyboardTopY - fabHeight - margin;
+            if (fabKeyboard.getY() > maxAllowedY || fabKeyboard.getY() <= 0) {
+                if (defaultFabY < 0) {
+                    defaultFabY = fabKeyboard.getY();
+                }
+                fabKeyboard.animate().y(maxAllowedY).setDuration(200).start();
+            }
+            fabKeyboard.bringToFront();
+            resetFabKeyboardFade();
+        } else {
+            if (defaultFabY >= 0) {
+                float targetY = defaultFabY;
+                defaultFabY = -1f;
+                fabKeyboard.animate().y(targetY).setDuration(200).start();
+            }
+            resetFabKeyboardFade();
+        }
     }
 
     public void setScreenAutoFitWithKeyboard(boolean autoFit) {

@@ -19,24 +19,6 @@
         android:orientation="horizontal"
         android:paddingBottom="4dp">
 
-        <!-- Switch to Standard Keyboard Button (Gboard) -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSwitchToNormal"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="0dp"
-            android:layout_height="32dp"
-            android:layout_weight="1"
-            android:layout_marginEnd="4dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
-            android:text="@string/btn_switch_normal_kb"
-            android:textColor="@color/text_primary"
-            android:textSize="10sp"
-            app:cornerRadius="6dp"
-            app:strokeColor="@color/surface_card_border" />
-
         <!-- Layout Mode Toggle (📱 Móvil / 💻 Completo) -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnToggleLayoutMode"
@@ -117,22 +99,9 @@
             style="@style/Widget.RemotePocket.KeyButton"
             android:layout_width="38dp"
             android:layout_height="32dp"
-            android:layout_marginEnd="4dp"
+            android:layout_marginEnd="0dp"
             android:text="@string/btn_esc"
             android:textSize="10sp" />
-
-        <!-- Close PC Keyboard (FAB button) -->
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/btnCloseKeyboard"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="2dp"
-            android:contentDescription="@string/btn_close"
-            android:src="@drawable/ic_keyboard"
-            app:backgroundTint="@color/accent_indigo"
-            app:fabCustomSize="32dp"
-            app:maxImageSize="18dp"
-            app:tint="#FFFFFF" />
     </LinearLayout>
 
     <!-- Collapsible Special Actions & F-Keys Panel -->
@@ -163,7 +132,7 @@
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="4dp"
+                    android:layout_marginEnd="0dp"
                     android:insetTop="0dp"
                     android:insetBottom="0dp"
                     android:minWidth="0dp"

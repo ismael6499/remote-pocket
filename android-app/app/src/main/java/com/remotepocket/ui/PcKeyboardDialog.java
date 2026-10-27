@@ -357,22 +357,10 @@ public class PcKeyboardDialog extends Dialog {
         setOnShowListener(d -> notifyHeightChanged());
 
         // Header controls
-        findViewById(R.id.btnCloseKeyboard).setOnClickListener(v -> dismiss());
         findViewById(R.id.btnEscHeader).setOnClickListener(v -> {
             triggerHaptic(v);
             sendKeyWithModifiers("esc");
         });
-
-        View btnSwitchToNormal = findViewById(R.id.btnSwitchToNormal);
-        if (btnSwitchToNormal != null) {
-            btnSwitchToNormal.setOnClickListener(v -> {
-                triggerHaptic(v);
-                dismiss();
-                if (onSwitchToNormalKeyboard != null) {
-                    onSwitchToNormalKeyboard.run();
-                }
-            });
-        }
 
         btnToggleSpecial = findViewById(R.id.btnToggleSpecial);
         layoutSpecialFunctions = findViewById(R.id.layoutSpecialFunctions);
