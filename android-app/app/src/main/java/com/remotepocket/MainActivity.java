@@ -85,8 +85,9 @@ public class MainActivity extends AppCompatActivity {
     private Button tabTrackpad, tabScreen;
     private LinearLayout layoutTypingInput;
     private EditText editTypingText;
-    private MaterialButton btnRestoreLastText, btnTextHistory;
+    private MaterialButton btnTextHistory, btnTypingBksp, btnTypingEnter;
     private FloatingActionButton fabKeyboard;
+    private final Handler keyRepeatHandler = new Handler(Looper.getMainLooper());
 
     private LinearLayout layoutScreenControls;
     private TextView btnToggleFollow, btnZoomLevel, btnFpsSelector, btnEnterFullscreen, btnMonitorSelector;
@@ -228,8 +229,9 @@ public class MainActivity extends AppCompatActivity {
         tabScreen = findViewById(R.id.tabScreen);
         layoutTypingInput = findViewById(R.id.layoutTypingInput);
         editTypingText = findViewById(R.id.editTypingText);
-        btnRestoreLastText = findViewById(R.id.btnRestoreLastText);
         btnTextHistory = findViewById(R.id.btnTextHistory);
+        btnTypingBksp = findViewById(R.id.btnTypingBksp);
+        btnTypingEnter = findViewById(R.id.btnTypingEnter);
         fabKeyboard = findViewById(R.id.fabKeyboard);
 
         layoutScreenControls = findViewById(R.id.layoutScreenControls);
@@ -647,20 +649,7 @@ public class MainActivity extends AppCompatActivity {
             webSocketManager.sendMouseScroll(-120);
         });
 
-        // Restore last sent text
-        if (btnRestoreLastText != null) {
-            btnRestoreLastText.setOnClickListener(v -> {
-                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-                restoreLastSentText();
-            });
-            btnRestoreLastText.setOnLongClickListener(v -> {
-                v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
-                showTextHistoryDialog();
-                return true;
-            });
-        }
-
-        // Sent text history
+        // Sent text history (Tap opens history list, Long-press quickly restores last sent text)
         if (btnTextHistory != null) {
             btnTextHistory.setOnClickListener(v -> {
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
@@ -673,15 +662,29 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        // Send text typing
-        findViewById(R.id.btnSendTyping).setOnClickListener(v -> sendEnteredText());
-        View btnSwitchToPcKb = findViewById(R.id.btnSwitchToPcKb);
-        if (btnSwitchToPcKb != null) {
-            btnSwitchToPcKb.setOnClickListener(v -> {
-                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-                showPcKeyboard();
+        // Direct PC Backspace with touch-and-hold auto-repeat (Google Remote Desktop style)
+        if (btnTypingBksp != null) {
+            setupRepeatKey(btnTypingBksp, () -> {
+                if (webSocketManager != null && webSocketManager.isConnected()) {
+                    webSocketManager.sendKeyPress("backspace");
+                }
             });
         }
+
+        // Direct PC Enter / Submit text
+        if (btnTypingEnter != null) {
+            btnTypingEnter.setOnClickListener(v -> {
+                v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                if (editTypingText != null && editTypingText.getText().length() > 0) {
+                    sendEnteredText();
+                } else if (webSocketManager != null && webSocketManager.isConnected()) {
+                    webSocketManager.sendKeyPress("enter");
+                }
+            });
+        }
+
+        // Send text typing
+        findViewById(R.id.btnSendTyping).setOnClickListener(v -> sendEnteredText());
         editTypingText.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEND) {
                 sendEnteredText();
@@ -771,12 +774,50 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void setupRepeatKey(View view, Runnable action) {
+        Runnable repeatRunnable = new Runnable() {
+            @Override
+            public void run() {
+                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                action.run();
+                keyRepeatHandler.postDelayed(this, 65);
+            }
+        };
+
+        view.setOnTouchListener((v, event) -> {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                    action.run();
+                    keyRepeatHandler.removeCallbacks(repeatRunnable);
+                    keyRepeatHandler.postDelayed(repeatRunnable, 380);
+                    v.setPressed(true);
+                    return true;
+                case MotionEvent.ACTION_MOVE:
+                    float x = event.getX();
+                    float y = event.getY();
+                    if (x < 0 || x > v.getWidth() || y < 0 || y > v.getHeight()) {
+                        keyRepeatHandler.removeCallbacks(repeatRunnable);
+                        v.setPressed(false);
+                    }
+                    return true;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    keyRepeatHandler.removeCallbacks(repeatRunnable);
+                    v.setPressed(false);
+                    return true;
+            }
+            return false;
+        });
+    }
+
     private void onKeyboardFabClicked() {
         if (activePcKeyboardDialog != null && activePcKeyboardDialog.isShowing()) {
             activePcKeyboardDialog.dismiss();
             activePcKeyboardDialog = null;
         } else if (layoutTypingInput.getVisibility() == View.VISIBLE) {
             hideNormalKeyboard();
+            showPcKeyboard();
         } else {
             showNormalKeyboard();
         }
@@ -790,7 +831,8 @@ public class MainActivity extends AppCompatActivity {
         if (layoutMouseButtons != null) {
             layoutMouseButtons.setVisibility(View.GONE);
         }
-        if (touchpadView != null && touchpadView.getCurrentScale() > 1.05f) {
+        boolean isMultiScreen = (currentMonitorIndex == -1 || monitorCount > 1);
+        if (!isMultiScreen && touchpadView != null && touchpadView.getCurrentScale() > 1.05f) {
             savedScaleBeforeKeyboard = touchpadView.getCurrentScale();
             touchpadView.resetZoom();
         }
@@ -821,7 +863,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void setKeyboardBottomInset(int insetPx) {
         this.currentKeyboardInsetPx = insetPx;
-        if (insetPx > 0 && isScreenAutoFitWithKeyboard) {
+        boolean isMultiScreen = (currentMonitorIndex == -1 || monitorCount > 1);
+        if (insetPx > 0 && isScreenAutoFitWithKeyboard && !isMultiScreen) {
             if (touchpadView != null && touchpadView.getCurrentScale() > 1.05f) {
                 savedScaleBeforeKeyboard = touchpadView.getCurrentScale();
                 touchpadView.resetZoom();
@@ -832,7 +875,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void setScreenAutoFitWithKeyboard(boolean autoFit) {
         this.isScreenAutoFitWithKeyboard = autoFit;
-        if (autoFit && currentKeyboardInsetPx > 0) {
+        boolean isMultiScreen = (currentMonitorIndex == -1 || monitorCount > 1);
+        if (autoFit && currentKeyboardInsetPx > 0 && !isMultiScreen) {
             if (touchpadView != null && touchpadView.getCurrentScale() > 1.05f) {
                 savedScaleBeforeKeyboard = touchpadView.getCurrentScale();
                 touchpadView.resetZoom();
@@ -1620,6 +1664,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        keyRepeatHandler.removeCallbacksAndMessages(null);
         udpDiscovery.stop();
         webSocketManager.disconnect();
         try {
