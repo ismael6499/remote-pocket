@@ -5,8 +5,8 @@ Set WshShell = CreateObject("WScript.Shell")
 WshShell.CurrentDirectory = scriptDir
 
 ' 1. Cleanly stop any stale process on port 5050 and InputHelper.exe
-WshShell.Run "cmd.exe /c stop_server.bat", 0, True
+WshShell.Run "cmd.exe /c """ & scriptDir & "\stop_server.bat""", 0, True
 WScript.Sleep 800
 
-' 2. Launch server.js completely invisible using system node in working directory
-WshShell.Run "cmd.exe /c node server.js", 0, False
+' 2. Launch start_server.bat completely invisible
+WshShell.Run "cmd.exe /c """ & scriptDir & "\start_server.bat""", 0, False

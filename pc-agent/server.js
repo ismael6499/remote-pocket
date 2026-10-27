@@ -384,27 +384,71 @@ function getBrightness() {
 
 let brightnessBusy = false;
 let brightnessPending = null;
+let monitorianPath = null;
 
-function setBrightness(level) {
+function detectMonitorian() {
+  const userProf = process.env.USERPROFILE || 'C:\\Users\\' + (process.env.USERNAME || 'agust');
+  const localApp = process.env.LOCALAPPDATA || path.join(userProf, 'AppData', 'Local');
+  const progFiles = process.env.ProgramFiles || 'C:\\Program Files';
+
+  const candidates = [
+    path.join(localApp, 'Microsoft', 'WindowsApps', 'Monitorian.exe'),
+    path.join(localApp, 'Monitorian', 'Monitorian.exe'),
+    path.join(localApp, 'Programs', 'Monitorian', 'Monitorian.exe'),
+    path.join(progFiles, 'Monitorian', 'Monitorian.exe'),
+    path.join(userProf, 'Tools', 'launcher', 'Monitorian.exe'),
+    path.join(userProf, 'Tools', 'Monitorian.exe')
+  ];
+  for (const c of candidates) {
+    if (c && fs.existsSync(c)) {
+      monitorianPath = c;
+      console.log(`[Brightness] Detected Monitorian CLI at: ${c}`);
+      return;
+    }
+  }
+}
+detectMonitorian();
+
+function setBrightness(level, monitorIndex = currentMonitorIndex) {
   const safeLevel = Math.max(0, Math.min(100, parseInt(level, 10) || 0));
   cachedBrightness = safeLevel;
-  if (brightnessBusy) {
-    brightnessPending = safeLevel; // keep only the latest requested value
-    return Promise.resolve(safeLevel);
+  const targetMon = (monitorIndex !== undefined && monitorIndex !== null) ? monitorIndex : currentMonitorIndex;
+
+  // 1. Send native DDC/CI & Gamma command to persistent InputHelper (0ms latency)
+  sendInputCommand(`brightness ${safeLevel} ${targetMon}`);
+
+  // 2. If Monitorian CLI is available, trigger it
+  if (monitorianPath) {
+    try {
+      const monArg = targetMon >= 0 ? String(targetMon + 1) : 'all';
+      execFile(monitorianPath, ['/set', monArg, String(safeLevel)], { windowsHide: true }, (err) => {
+        if (err) console.warn('[Brightness] Monitorian CLI warning:', err.message);
+      });
+    } catch (e) {}
   }
-  brightnessBusy = true;
-  return new Promise((resolve) => {
-    const cmd = `powershell -NoProfile -NonInteractive -Command "try { Invoke-CimMethod -InputObject (Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorBrightnessMethods -ErrorAction Stop) -MethodName WmiSetBrightness -Arguments @{ Timeout = 1; Brightness = ${safeLevel} } -ErrorAction Stop } catch { }"`;
-    exec(cmd, { timeout: 5000, windowsHide: true }, () => {
-      brightnessBusy = false;
-      resolve(safeLevel);
-      if (brightnessPending !== null) {
-        const next = brightnessPending;
-        brightnessPending = null;
-        setBrightness(next);
-      }
+
+  // 3. If primary/internal display or fallback, invoke WMI
+  if (targetMon === 0 || targetMon < 0) {
+    if (brightnessBusy) {
+      brightnessPending = safeLevel;
+      return Promise.resolve(safeLevel);
+    }
+    brightnessBusy = true;
+    return new Promise((resolve) => {
+      const cmd = `powershell -NoProfile -NonInteractive -Command "try { Invoke-CimMethod -InputObject (Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorBrightnessMethods -ErrorAction Stop) -MethodName WmiSetBrightness -Arguments @{ Timeout = 1; Brightness = ${safeLevel} } -ErrorAction Stop } catch { }"`;
+      exec(cmd, { timeout: 4000, windowsHide: true }, () => {
+        brightnessBusy = false;
+        resolve(safeLevel);
+        if (brightnessPending !== null) {
+          const next = brightnessPending;
+          brightnessPending = null;
+          setBrightness(next, targetMon);
+        }
+      });
     });
-  });
+  }
+
+  return Promise.resolve(safeLevel);
 }
 
 function getClipboardText() {
@@ -428,10 +472,25 @@ function setClipboardText(text) {
   sendInputCommand(`setclip ${b64}`);
 }
 
+function expandEnv(str) {
+  if (!str || typeof str !== 'string') return str;
+  return str.replace(/%([^%]+)%/g, (_, n) => process.env[n] || '');
+}
+
 function loadShortcuts() {
   try {
     if (fs.existsSync(SHORTCUTS_PATH)) {
-      return JSON.parse(fs.readFileSync(SHORTCUTS_PATH, 'utf-8'));
+      const items = JSON.parse(fs.readFileSync(SHORTCUTS_PATH, 'utf-8'));
+      if (Array.isArray(items)) {
+        return items.filter((item) => {
+          const check = item.checkPath || (item.checkExists ? item.path : null);
+          if (check) {
+            const exp = expandEnv(check);
+            return fs.existsSync(check) || fs.existsSync(exp);
+          }
+          return true;
+        });
+      }
     }
   } catch (err) {
     console.error('[Shortcuts] Load error:', err.message);
@@ -561,10 +620,11 @@ app.get('/api/brightness', verifyPin, async (req, res) => {
 });
 
 app.post('/api/brightness', verifyPin, async (req, res) => {
-  const { brightness } = req.body;
+  const { brightness, monitor } = req.body;
   if (brightness !== undefined) {
-    const val = await setBrightness(brightness);
-    return res.json({ success: true, brightness: val });
+    const mon = monitor !== undefined ? monitor : currentMonitorIndex;
+    const val = await setBrightness(brightness, mon);
+    return res.json({ success: true, brightness: val, monitor: mon });
   }
   res.status(400).json({ error: 'Missing brightness parameter' });
 });
@@ -650,8 +710,17 @@ app.post('/api/shortcuts/run', verifyPin, (req, res) => {
     return res.status(404).json({ error: 'Shortcut not found' });
   }
 
-  console.log(`[Shortcuts] Executing: ${target.name} (${target.command})`);
-  exec(target.command, { windowsHide: true }, (err) => {
+  let cmd = expandEnv(target.command);
+  let targetCwd = target.cwd ? expandEnv(target.cwd) : null;
+  if (!targetCwd && target.checkPath) {
+    try {
+      const expCheck = expandEnv(target.checkPath);
+      targetCwd = fs.existsSync(expCheck) ? path.dirname(expCheck) : (fs.existsSync(target.checkPath) ? path.dirname(target.checkPath) : null);
+    } catch (e) {}
+  }
+
+  console.log(`[Shortcuts] Executing: ${target.name} (${cmd}) [cwd: ${targetCwd || 'default'}]`);
+  exec(cmd, { cwd: targetCwd || undefined, windowsHide: true }, (err) => {
     if (err) console.error(`[Shortcuts] Error running ${target.name}:`, err.message);
   });
   res.json({ success: true, message: `Executed shortcut: ${target.name}` });
@@ -958,7 +1027,8 @@ function handleWebSocketMessage(ws, data) {
     case 'brightness':
       if (data.level !== undefined || data.brightness !== undefined) {
         const b = data.brightness !== undefined ? data.brightness : data.level;
-        setBrightness(b);
+        const mon = data.monitor !== undefined ? data.monitor : currentMonitorIndex;
+        setBrightness(b, mon);
       }
       break;
 

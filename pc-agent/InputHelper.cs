@@ -51,8 +51,60 @@ namespace InputHelper {
     internal class MMDeviceEnumeratorComObject { }
 
     public class Program {
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool SetProcessDpiAwarenessContext(IntPtr dpiContext);
+
+        [DllImport("shcore.dll", SetLastError = true)]
+        private static extern int SetProcessDpiAwareness(int awareness);
+
         [DllImport("user32.dll")]
         private static extern bool SetProcessDPIAware();
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromRect(ref RECT lprc, uint dwFlags);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT {
+            public int left;
+            public int top;
+            public int right;
+            public int bottom;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        private struct PHYSICAL_MONITOR {
+            public IntPtr hPhysicalMonitor;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+            public string szPhysicalMonitorDescription;
+        }
+
+        [DllImport("dxva2.dll", SetLastError = true)]
+        private static extern bool GetNumberOfPhysicalMonitorsFromHMONITOR(IntPtr hMonitor, out uint pdwNumberOfPhysicalMonitors);
+
+        [DllImport("dxva2.dll", SetLastError = true)]
+        private static extern bool GetPhysicalMonitorsFromHMONITOR(IntPtr hMonitor, uint dwPhysicalMonitorArraySize, [Out] PHYSICAL_MONITOR[] pPhysicalMonitorArray);
+
+        [DllImport("dxva2.dll", SetLastError = true)]
+        private static extern bool DestroyPhysicalMonitors(uint dwPhysicalMonitorArraySize, [In] PHYSICAL_MONITOR[] pPhysicalMonitorArray);
+
+        [DllImport("dxva2.dll", SetLastError = true)]
+        private static extern bool SetMonitorBrightness(IntPtr hMonitor, uint dwNewBrightness);
+
+        [DllImport("dxva2.dll", SetLastError = true)]
+        private static extern bool GetMonitorBrightness(IntPtr hMonitor, out uint pdwMinimumBrightness, out uint pdwCurrentBrightness, out uint pdwMaximumBrightness);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        private static extern bool SetDeviceGammaRamp(IntPtr hdc, ref RAMP lpRamp);
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        private struct RAMP {
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
+            public ushort[] Red;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
+            public ushort[] Green;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
+            public ushort[] Blue;
+        }
 
         [DllImport("user32.dll")]
         private static extern void mouse_event(uint dwFlags, int dx, int dy, uint dwData, UIntPtr dwExtraInfo);
@@ -304,7 +356,15 @@ namespace InputHelper {
         }
 
         public static void Main(string[] args) {
-            try { SetProcessDPIAware(); } catch { }
+            try {
+                if (!SetProcessDpiAwarenessContext((IntPtr)(-4))) {
+                    if (!SetProcessDpiAwarenessContext((IntPtr)(-3))) {
+                        try { SetProcessDpiAwareness(2); } catch { SetProcessDPIAware(); }
+                    }
+                }
+            } catch {
+                try { SetProcessDPIAware(); } catch { }
+            }
             try { EnsureDesktopAccess(); } catch { }
             try { Console.OutputEncoding = Encoding.UTF8; } catch { }
             try { Console.InputEncoding = Encoding.UTF8; } catch { }
@@ -330,6 +390,16 @@ namespace InputHelper {
                 if (args.Length > 4) int.TryParse(args[4], out mon);
                 SetSelectedMonitor(mon);
                 RunStreamLoop(fps, quality, height);
+                return;
+            }
+
+            if (args.Length > 0 && (args[0] == "brightness" || args[0] == "setbrightness")) {
+                int level = 100;
+                int mon = -1;
+                if (args.Length > 1) int.TryParse(args[1], out level);
+                if (args.Length > 2) int.TryParse(args[2], out mon);
+                SetMonitorBrightnessLevel(level, mon);
+                Console.WriteLine("OK");
                 return;
             }
 
@@ -592,6 +662,18 @@ namespace InputHelper {
                     if (int.TryParse(rest, out mIdx)) {
                         SetSelectedMonitor(mIdx);
                     }
+                    Console.WriteLine("OK");
+                    break;
+                case "brightness":
+                case "setbrightness":
+                case "b":
+                    int bLevel = 100;
+                    int bMon = -1;
+                    string[] bParts = rest.Split(new char[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (bParts.Length > 0) int.TryParse(bParts[0], out bLevel);
+                    if (bParts.Length > 1) int.TryParse(bParts[1], out bMon);
+                    else bMon = currentMonitorIndex;
+                    SetMonitorBrightnessLevel(bLevel, bMon);
                     Console.WriteLine("OK");
                     break;
                 case "screenoff":
@@ -1062,6 +1144,63 @@ namespace InputHelper {
         }
 
         private static int currentMonitorIndex = 0;
+
+
+        public static bool SetMonitorBrightnessLevel(int level, int targetMonIndex) {
+            uint safeLevel = (uint)Math.Max(0, Math.Min(100, level));
+            bool anySuccess = false;
+            try {
+                var screens = Screen.AllScreens;
+                if (screens != null && screens.Length > 0) {
+                    for (int i = 0; i < screens.Length; i++) {
+                        if (targetMonIndex >= 0 && i != targetMonIndex) continue;
+                        var s = screens[i];
+                        bool hwOk = false;
+                        try {
+                            RECT r = new RECT { left = s.Bounds.Left, top = s.Bounds.Top, right = s.Bounds.Right, bottom = s.Bounds.Bottom };
+                            IntPtr hMon = MonitorFromRect(ref r, 2);
+                            if (hMon != IntPtr.Zero) {
+                                uint count = 0;
+                                if (GetNumberOfPhysicalMonitorsFromHMONITOR(hMon, out count) && count > 0) {
+                                    PHYSICAL_MONITOR[] physMonitors = new PHYSICAL_MONITOR[count];
+                                    if (GetPhysicalMonitorsFromHMONITOR(hMon, count, physMonitors)) {
+                                        for (int m = 0; m < count; m++) {
+                                            try {
+                                                if (SetMonitorBrightness(physMonitors[m].hPhysicalMonitor, safeLevel)) {
+                                                    hwOk = true;
+                                                    anySuccess = true;
+                                                }
+                                            } catch { }
+                                        }
+                                        DestroyPhysicalMonitors(count, physMonitors);
+                                    }
+                                }
+                            }
+                        } catch { }
+                        try {
+                            IntPtr hdc = CreateDC(null, s.DeviceName, null, IntPtr.Zero);
+                            if (hdc != IntPtr.Zero) {
+                                RAMP ramp = new RAMP();
+                                ramp.Red = new ushort[256];
+                                ramp.Green = new ushort[256];
+                                ramp.Blue = new ushort[256];
+                                double factor = hwOk ? 1.0 : ((double)safeLevel / 100.0);
+                                for (int idx = 0; idx < 256; idx++) {
+                                    int val = (int)(idx * 256 * factor);
+                                    if (val > 65535) val = 65535;
+                                    ramp.Red[idx] = (ushort)val;
+                                    ramp.Green[idx] = (ushort)val;
+                                    ramp.Blue[idx] = (ushort)val;
+                                }
+                                SetDeviceGammaRamp(hdc, ref ramp);
+                                DeleteDC(hdc);
+                            }
+                        } catch { }
+                    }
+                }
+            } catch { }
+            return anySuccess;
+        }
 
         public static void SetSelectedMonitor(int index) {
             try {
