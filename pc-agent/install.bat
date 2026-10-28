@@ -108,7 +108,7 @@ echo WshShell.Run "cmd /c start.bat", 0, False
 ) > "%~dp0run_silent.vbs"
 
 :: Create shortcut in Windows Startup folder (same as Express Gateway)
-powershell -NoProfile -Command "$ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut(\"$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\RemotePocket_silent.vbs.lnk\"); $sc.TargetPath = \"%~dp0run_silent.vbs\"; $sc.WorkingDirectory = \"%~dp0\"; $sc.Save()" >nul 2>nul
+powershell -NoProfile -Command "$ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut(\"$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\RemotePocket_silent.vbs.lnk\"); $sc.TargetPath = 'wscript.exe'; $sc.Arguments = '\"%~dp0run_silent.vbs\"'; $sc.WorkingDirectory = \"%~dp0\"; $sc.Save()" >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
     echo [OK] Windows Startup shortcut created in shell:startup.
 )

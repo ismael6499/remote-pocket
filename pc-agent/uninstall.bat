@@ -9,7 +9,12 @@ echo.
 
 echo Removing Windows Startup shortcut...
 del "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\RemotePocket_silent.vbs.lnk" >nul 2>nul
+del "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\run_silent.vbs.lnk" >nul 2>nul
 echo [OK] Startup shortcut removed.
+
+echo Removing scheduled task if present...
+schtasks /delete /tn "RemotePocketAgent" /f >nul 2>&1
+echo [OK] Scheduled task removed.
 
 echo Stopping any running agent processes on port 5050...
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5050" ^| findstr "LISTENING"') do (
