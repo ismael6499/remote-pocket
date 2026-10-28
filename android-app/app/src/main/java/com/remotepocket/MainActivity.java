@@ -412,7 +412,12 @@ public class MainActivity extends AppCompatActivity {
         if (device == null) return;
         new Thread(() -> {
             try {
-                Request req = new Request.Builder().url(device.getBaseHttpUrl() + "/api/status").build();
+                Request.Builder reqBuilder = new Request.Builder().url(device.getBaseHttpUrl() + "/api/status");
+                String pin = getSavedPinForDevice(device);
+                if (pin != null && !pin.isEmpty()) {
+                    reqBuilder.addHeader("x-pin", pin);
+                }
+                Request req = reqBuilder.build();
                 Response resp = httpClient.newCall(req).execute();
                 if (resp.isSuccessful() && resp.body() != null) {
                     JsonObject obj = gson.fromJson(resp.body().string(), JsonObject.class);
@@ -1755,10 +1760,14 @@ public class MainActivity extends AppCompatActivity {
                 JsonObject bodyJson = new JsonObject();
                 bodyJson.addProperty("name", newName);
                 okhttp3.RequestBody body = okhttp3.RequestBody.create(bodyJson.toString(), JSON);
-                okhttp3.Request request = new okhttp3.Request.Builder()
+                okhttp3.Request.Builder reqBuilder = new okhttp3.Request.Builder()
                         .url(device.getHttpUrl() + "/api/device/name")
-                        .post(body)
-                        .build();
+                        .post(body);
+                String pin = getSavedPinForDevice(device);
+                if (pin != null && !pin.isEmpty()) {
+                    reqBuilder.addHeader("x-pin", pin);
+                }
+                okhttp3.Request request = reqBuilder.build();
                 new okhttp3.OkHttpClient().newCall(request).execute();
             } catch (Exception e) {
                 AppLogger.e("MainActivity", "Failed to update device name on PC", e);

@@ -199,6 +199,26 @@ public class SystemSheet extends Dialog {
         loadInitialState();
     }
 
+    private String getDevicePin() {
+        if (webSocketManager != null && webSocketManager.getActivePin() != null && !webSocketManager.getActivePin().isEmpty()) {
+            return webSocketManager.getActivePin();
+        }
+        if (device != null && device.getHost() != null && getContext() != null) {
+            android.content.SharedPreferences prefs = getContext().getSharedPreferences("remote_pocket_prefs", Context.MODE_PRIVATE);
+            return prefs.getString("pref_device_pin_" + device.getHost(), null);
+        }
+        return null;
+    }
+
+    private Request.Builder newAuthenticatedRequestBuilder(String url) {
+        Request.Builder builder = new Request.Builder().url(url);
+        String pin = getDevicePin();
+        if (pin != null && !pin.isEmpty()) {
+            builder.addHeader("x-pin", pin);
+        }
+        return builder;
+    }
+
     private void loadInitialState() {
         if (device == null) return;
         String hostKey = device.getHost() != null ? device.getHost() : "default";
@@ -207,7 +227,7 @@ public class SystemSheet extends Dialog {
         executor.execute(() -> {
             try {
                 // Fetch status first (brightness, audio, screenOffApp)
-                Request reqStatus = new Request.Builder().url(device.getBaseHttpUrl() + "/api/status").build();
+                Request reqStatus = newAuthenticatedRequestBuilder(device.getBaseHttpUrl() + "/api/status").build();
                 Response respStatus = httpClient.newCall(reqStatus).execute();
                 if (respStatus.isSuccessful() && respStatus.body() != null) {
                     String json = respStatus.body().string();
@@ -248,7 +268,7 @@ public class SystemSheet extends Dialog {
                 }
 
                 // Fetch shortcuts second
-                Request reqShortcuts = new Request.Builder().url(device.getBaseHttpUrl() + "/api/shortcuts").build();
+                Request reqShortcuts = newAuthenticatedRequestBuilder(device.getBaseHttpUrl() + "/api/shortcuts").build();
                 Response respShortcuts = httpClient.newCall(reqShortcuts).execute();
                 if (respShortcuts.isSuccessful() && respShortcuts.body() != null) {
                     String json = respShortcuts.body().string();
@@ -287,14 +307,18 @@ public class SystemSheet extends Dialog {
     }
 
     private void executeShortcut(Shortcut s) {
+        if (s == null) return;
+        if (webSocketManager != null && webSocketManager.isConnected()) {
+            webSocketManager.sendRunShortcut(s.getId());
+            return;
+        }
         if (device == null) return;
         executor.execute(() -> {
             try {
                 MediaType JSON = MediaType.parse("application/json; charset=utf-8");
                 String payload = "{\"id\":\"" + s.getId() + "\"}";
                 RequestBody body = RequestBody.create(payload, JSON);
-                Request req = new Request.Builder()
-                        .url(device.getBaseHttpUrl() + "/api/shortcuts/run")
+                Request req = newAuthenticatedRequestBuilder(device.getBaseHttpUrl() + "/api/shortcuts/run")
                         .post(body)
                         .build();
                 httpClient.newCall(req).execute();
@@ -315,8 +339,7 @@ public class SystemSheet extends Dialog {
                 MediaType JSON = MediaType.parse("application/json; charset=utf-8");
                 String payload = "{\"volume\":" + volume + "}";
                 RequestBody body = RequestBody.create(payload, JSON);
-                Request req = new Request.Builder()
-                        .url(device.getBaseHttpUrl() + "/api/audio/volume")
+                Request req = newAuthenticatedRequestBuilder(device.getBaseHttpUrl() + "/api/audio/volume")
                         .post(body)
                         .build();
                 httpClient.newCall(req).execute();
@@ -336,8 +359,7 @@ public class SystemSheet extends Dialog {
             try {
                 MediaType JSON = MediaType.parse("application/json; charset=utf-8");
                 RequestBody body = RequestBody.create("{}", JSON);
-                Request req = new Request.Builder()
-                        .url(device.getBaseHttpUrl() + "/api/audio/mute")
+                Request req = newAuthenticatedRequestBuilder(device.getBaseHttpUrl() + "/api/audio/mute")
                         .post(body)
                         .build();
                 httpClient.newCall(req).execute();
@@ -358,8 +380,7 @@ public class SystemSheet extends Dialog {
                 MediaType JSON = MediaType.parse("application/json; charset=utf-8");
                 String payload = "{\"action\":\"" + action + "\"}";
                 RequestBody body = RequestBody.create(payload, JSON);
-                Request req = new Request.Builder()
-                        .url(device.getBaseHttpUrl() + "/api/audio/action")
+                Request req = newAuthenticatedRequestBuilder(device.getBaseHttpUrl() + "/api/audio/action")
                         .post(body)
                         .build();
                 httpClient.newCall(req).execute();
@@ -380,8 +401,7 @@ public class SystemSheet extends Dialog {
                 MediaType JSON = MediaType.parse("application/json; charset=utf-8");
                 String payload = "{\"brightness\":" + level + "}";
                 RequestBody body = RequestBody.create(payload, JSON);
-                Request req = new Request.Builder()
-                        .url(device.getBaseHttpUrl() + "/api/brightness")
+                Request req = newAuthenticatedRequestBuilder(device.getBaseHttpUrl() + "/api/brightness")
                         .post(body)
                         .build();
                 httpClient.newCall(req).execute();
@@ -420,8 +440,7 @@ public class SystemSheet extends Dialog {
         executor.execute(() -> {
             try {
                 RequestBody body = RequestBody.create("", MediaType.parse("application/json"));
-                Request req = new Request.Builder()
-                        .url(device.getBaseHttpUrl() + "/api/server/restart")
+                Request req = newAuthenticatedRequestBuilder(device.getBaseHttpUrl() + "/api/server/restart")
                         .post(body)
                         .build();
                 httpClient.newCall(req).execute();
@@ -437,8 +456,7 @@ public class SystemSheet extends Dialog {
         executor.execute(() -> {
             try {
                 RequestBody body = RequestBody.create("", MediaType.parse("application/json"));
-                Request req = new Request.Builder()
-                        .url(device.getBaseHttpUrl() + "/api/system/" + action)
+                Request req = newAuthenticatedRequestBuilder(device.getBaseHttpUrl() + "/api/system/" + action)
                         .post(body)
                         .build();
                 httpClient.newCall(req).execute();

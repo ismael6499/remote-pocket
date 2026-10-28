@@ -58,6 +58,10 @@ public class WebSocketManager {
         return isConnecting;
     }
 
+    public String getActivePin() {
+        return activePin;
+    }
+
     public void connect(Device device) {
         connect(device, activePin, false);
     }
@@ -399,6 +403,14 @@ public class WebSocketManager {
     public void sendScreenOff() {
         JsonObject obj = new JsonObject();
         obj.addProperty("type", "screen_off");
+        sendJson(obj);
+    }
+
+    public void sendRunShortcut(String id) {
+        if (id == null) return;
+        JsonObject obj = new JsonObject();
+        obj.addProperty("type", "run_shortcut");
+        obj.addProperty("id", id);
         sendJson(obj);
     }
 }

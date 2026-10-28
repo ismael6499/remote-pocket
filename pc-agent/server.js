@@ -729,17 +729,12 @@ app.get('/api/logs', verifyPin, (req, res) => {
   }
 });
 
-// Shortcuts API
-app.get('/api/shortcuts', verifyPin, (req, res) => {
-  res.json(loadShortcuts());
-});
-
-app.post('/api/shortcuts/run', verifyPin, (req, res) => {
-  const { id } = req.body;
+function runShortcutById(id) {
   const shortcuts = loadShortcuts();
   const target = shortcuts.find((s) => s.id === id);
   if (!target) {
-    return res.status(404).json({ error: 'Shortcut not found' });
+    logAgent('WARN', `Shortcut not found for id: ${id}`);
+    return false;
   }
 
   let cmd = expandEnv(target.command);
@@ -755,7 +750,21 @@ app.post('/api/shortcuts/run', verifyPin, (req, res) => {
   exec(cmd, { cwd: targetCwd || undefined, windowsHide: true }, (err) => {
     if (err) logAgent('ERROR', `Error running shortcut ${target.name}: ${err.message}`);
   });
-  res.json({ success: true, message: `Executed shortcut: ${target.name}` });
+  return true;
+}
+
+// Shortcuts API
+app.get('/api/shortcuts', verifyPin, (req, res) => {
+  res.json(loadShortcuts());
+});
+
+app.post('/api/shortcuts/run', verifyPin, (req, res) => {
+  const { id } = req.body;
+  const ok = runShortcutById(id);
+  if (!ok) {
+    return res.status(404).json({ error: 'Shortcut not found' });
+  }
+  res.json({ success: true, message: `Executed shortcut id: ${id}` });
 });
 
 // System Power Controls
@@ -1019,6 +1028,11 @@ function handleWebSocketMessage(ws, data) {
       break;
     case 'release_modifiers':
       sendInputCommand('r');
+      break;
+    case 'run_shortcut':
+      if (data.id) {
+        runShortcutById(data.id);
+      }
       break;
 
     // Screen Stream control
