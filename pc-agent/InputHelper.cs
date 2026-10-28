@@ -1262,15 +1262,28 @@ namespace InputHelper {
             try {
                 if (index == -1) {
                     currentMonitorIndex = -1; // -1 represents Continuous Virtual Desktop (All Screens Span)
-                    return;
-                }
-                var screens = GetSortedScreens();
-                if (screens != null && screens.Length > 0) {
-                    if (index < 0) index = 0;
-                    if (index >= screens.Length) index = screens.Length - 1;
-                    currentMonitorIndex = index;
                 } else {
-                    currentMonitorIndex = 0;
+                    var screens = GetSortedScreens();
+                    if (screens != null && screens.Length > 0) {
+                        if (index < 0) index = 0;
+                        if (index >= screens.Length) index = screens.Length - 1;
+                        currentMonitorIndex = index;
+                    } else {
+                        currentMonitorIndex = 0;
+                    }
+                }
+
+                // Center mouse cursor on the newly selected monitor (or virtual desktop span)
+                int monX, monY, monW, monH;
+                GetSelectedMonitorBounds(out monX, out monY, out monW, out monH);
+                if (monW > 0 && monH > 0) {
+                    int centerX = monX + monW / 2;
+                    int centerY = monY + monH / 2;
+                    bool ok = SetCursorPos(centerX, centerY);
+                    if (!ok) {
+                        EnsureDesktopAccess();
+                        SetCursorPos(centerX, centerY);
+                    }
                 }
             } catch {
                 currentMonitorIndex = 0;

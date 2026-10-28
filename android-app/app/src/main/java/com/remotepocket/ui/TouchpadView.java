@@ -348,9 +348,15 @@ public class TouchpadView extends View {
      * Forgets the local cursor so the next server frame (or touch) re-syncs with the PC's real position.
      */
     public void resyncCursorFromServer() {
-        curX = -1;
-        curY = -1;
+        curX = scrW > 0 ? scrW / 2 : -1;
+        curY = scrH > 0 ? scrH / 2 : -1;
+        pendingSrvX = -1;
+        pendingSrvY = -1;
+        pendingSrvCount = 0;
         lastLocalMoveTime = 0;
+        if (followCursor && currentScale > 1.0f && curX > 0 && curY > 0) {
+            applyCenterTranslationDirect();
+        }
         invalidate();
     }
 
@@ -401,8 +407,8 @@ public class TouchpadView extends View {
         boolean inGrace = isTouching || (System.currentTimeMillis() - lastLocalMoveTime) < SERVER_SYNC_GRACE_MS;
 
         if (this.curX < 0 || this.curY < 0) {
-            this.curX = x >= 0 ? x : scrW / 2;
-            this.curY = y >= 0 ? y : scrH / 2;
+            this.curX = (x > 0) ? x : scrW / 2;
+            this.curY = (y > 0) ? y : scrH / 2;
             if (followCursor && currentScale > 1.0f) {
                 applyCenterTranslationDirect();
             }

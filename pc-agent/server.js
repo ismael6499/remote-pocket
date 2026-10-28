@@ -286,10 +286,12 @@ function startScreenStreamer(fps = currentScreenFps) {
             b64 = rest.substring(colonIdx + 1);
             const coords = coordsStr.split(',');
             if (coords.length === 4) {
-              const cx = parseInt(coords[0], 10) || 0;
-              const cy = parseInt(coords[1], 10) || 0;
+              const rawCx = parseInt(coords[0], 10);
+              const rawCy = parseInt(coords[1], 10);
               const sw = parseInt(coords[2], 10) || 0;
               const sh = parseInt(coords[3], 10) || 0;
+              const cx = (isNaN(rawCx) || rawCx < 0) ? Math.round(sw / 2) : rawCx;
+              const cy = (isNaN(rawCy) || rawCy < 0) ? Math.round(sh / 2) : rawCy;
               metaHeader = Buffer.alloc(12);
               metaHeader.write('RPKT', 0, 4, 'ascii');
               metaHeader.writeUInt16LE(Math.max(0, Math.min(65535, cx)), 4);
