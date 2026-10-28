@@ -15,6 +15,10 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
+import android.graphics.Typeface;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.util.TypedValue;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -87,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
     private Button tabTrackpad, tabScreen;
     private LinearLayout layoutTypingInput;
     private EditText editTypingText;
-    private MaterialButton btnTextHistory, btnTypingBksp, btnTypingEnter;
+    private MaterialButton btnTextHistory, btnTypingBksp, btnSendTyping;
     private FloatingActionButton fabKeyboard;
     private final Handler keyRepeatHandler = new Handler(Looper.getMainLooper());
 
@@ -235,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
         editTypingText = findViewById(R.id.editTypingText);
         btnTextHistory = findViewById(R.id.btnTextHistory);
         btnTypingBksp = findViewById(R.id.btnTypingBksp);
-        btnTypingEnter = findViewById(R.id.btnTypingEnter);
+        btnSendTyping = findViewById(R.id.btnSendTyping);
         fabKeyboard = findViewById(R.id.fabKeyboard);
 
         layoutScreenControls = findViewById(R.id.layoutScreenControls);
@@ -695,9 +699,10 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        // Direct PC Enter / Submit text
-        if (btnTypingEnter != null) {
-            btnTypingEnter.setOnClickListener(v -> {
+        // Dynamic Send / Enter typing button
+        if (btnSendTyping != null) {
+            updateSendEnterButtonState(editTypingText != null && editTypingText.getText().length() > 0);
+            btnSendTyping.setOnClickListener(v -> {
                 v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
                 if (editTypingText != null && editTypingText.getText().length() > 0) {
                     sendEnteredText();
@@ -707,15 +712,28 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        // Send text typing
-        findViewById(R.id.btnSendTyping).setOnClickListener(v -> sendEnteredText());
-        editTypingText.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_SEND) {
-                sendEnteredText();
-                return true;
-            }
-            return false;
-        });
+        if (editTypingText != null) {
+            editTypingText.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    updateSendEnterButtonState(s != null && s.length() > 0);
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {}
+            });
+
+            editTypingText.setOnEditorActionListener((v, actionId, event) -> {
+                if (actionId == EditorInfo.IME_ACTION_SEND) {
+                    sendEnteredText();
+                    return true;
+                }
+                return false;
+            });
+        }
 
         // Draggable Floating Keyboard Action Button (FAB)
         setupDraggableFab();
@@ -1104,6 +1122,26 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
         if (webSocketManager != null && webSocketManager.isConnected()) {
             webSocketManager.sendGetClipboard();
+        }
+    }
+
+    private void updateSendEnterButtonState(boolean hasText) {
+        if (btnSendTyping == null) return;
+        if (hasText) {
+            btnSendTyping.setText(R.string.btn_send_text);
+            btnSendTyping.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+            btnSendTyping.setTypeface(null, Typeface.NORMAL);
+            btnSendTyping.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.accent_indigo)));
+            btnSendTyping.setStrokeWidth(0);
+            btnSendTyping.setContentDescription(getString(R.string.btn_send_text));
+        } else {
+            btnSendTyping.setText("↵");
+            btnSendTyping.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+            btnSendTyping.setTypeface(null, Typeface.BOLD);
+            btnSendTyping.setBackgroundTintList(ColorStateList.valueOf(Color.TRANSPARENT));
+            btnSendTyping.setStrokeColor(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.surface_card_border)));
+            btnSendTyping.setStrokeWidth(dpToPx(1));
+            btnSendTyping.setContentDescription(getString(R.string.btn_enter));
         }
     }
 
