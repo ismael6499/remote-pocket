@@ -196,4 +196,15 @@
     <string name="btn_screen_fit_off">🖥️ Flotante</string>
     <string name="toast_screen_fit_on">Pantalla ajustada completamente sobre el teclado</string>
     <string name="toast_screen_fit_off">Pantalla en modo superpuesto (zoom y paneo libres)</string>
+
+    <!-- PIN & PC Clipboard -->
+    <string name="pin_dialog_title">Ingresar PIN de %1$s</string>
+    <string name="pin_dialog_hint">PIN del equipo</string>
+    <string name="pin_dialog_wrong">PIN incorrecto. Reingrésalo:</string>
+    <string name="remember_pin">Recordar PIN en este celular</string>
+    <string name="pc_clipboard_title">Portapapeles de la PC</string>
+    <string name="pc_clipboard_empty">El portapapeles de la PC está vacío</string>
+    <string name="pc_clipboard_copied">Copiado de la PC al celular</string>
+    <string name="btn_copy_to_phone">Copiar</string>
+    <string name="action_connect">Conectar</string>
 </resources>

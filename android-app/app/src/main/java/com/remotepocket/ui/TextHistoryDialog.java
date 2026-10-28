@@ -50,6 +50,11 @@ public class TextHistoryDialog extends Dialog {
     private MaterialButton btnFilterAll;
     private boolean filterThisSessionOnly = true;
 
+    private View cardPcClipboard;
+    private TextView txtPcClipboardPreview;
+    private MaterialButton btnCopyPcClipToPhone;
+    private String pcClipboardContent = null;
+
     public TextHistoryDialog(@NonNull Context context, OnTextActionListener listener) {
         super(context);
         this.listener = listener;
@@ -73,6 +78,39 @@ public class TextHistoryDialog extends Dialog {
         txtHistoryEmpty = findViewById(R.id.txtHistoryEmpty);
         btnFilterSession = findViewById(R.id.btnFilterSession);
         btnFilterAll = findViewById(R.id.btnFilterAll);
+
+        cardPcClipboard = findViewById(R.id.cardPcClipboard);
+        txtPcClipboardPreview = findViewById(R.id.txtPcClipboardPreview);
+        btnCopyPcClipToPhone = findViewById(R.id.btnCopyPcClipToPhone);
+
+        if (cardPcClipboard != null) {
+            cardPcClipboard.setOnClickListener(v -> {
+                if (pcClipboardContent != null && !pcClipboardContent.isEmpty()) {
+                    v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                    if (listener != null) {
+                        listener.onRestoreText(pcClipboardContent);
+                    }
+                    dismiss();
+                }
+            });
+        }
+
+        if (btnCopyPcClipToPhone != null) {
+            btnCopyPcClipToPhone.setOnClickListener(v -> {
+                if (pcClipboardContent != null && !pcClipboardContent.isEmpty()) {
+                    ClipboardManager cm = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                    if (cm != null) {
+                        cm.setPrimaryClip(ClipData.newPlainText("PC Clipboard", pcClipboardContent));
+                    }
+                    v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+                    Toast.makeText(getContext(), R.string.pc_clipboard_copied, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        if (pcClipboardContent != null && !pcClipboardContent.trim().isEmpty()) {
+            setPcClipboardText(pcClipboardContent);
+        }
 
         findViewById(R.id.btnCloseHistory).setOnClickListener(v -> dismiss());
 
@@ -214,6 +252,18 @@ public class TextHistoryDialog extends Dialog {
             });
 
             layoutHistoryList.addView(itemView);
+        }
+    }
+
+    public void setPcClipboardText(String text) {
+        this.pcClipboardContent = text;
+        if (cardPcClipboard != null && txtPcClipboardPreview != null) {
+            if (text != null && !text.trim().isEmpty()) {
+                cardPcClipboard.setVisibility(View.VISIBLE);
+                txtPcClipboardPreview.setText(text.replace('\n', ' '));
+            } else {
+                cardPcClipboard.setVisibility(View.GONE);
+            }
         }
     }
 

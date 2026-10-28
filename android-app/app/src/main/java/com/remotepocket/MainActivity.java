@@ -10,11 +10,13 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.HapticFeedbackConstants;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -126,7 +128,8 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             if (isAppInForeground && currentDevice != null && !webSocketManager.isConnected() && !webSocketManager.isConnecting()) {
                 AppLogger.i("MainActivity", "Auto-reconnecting to " + currentDevice.getHost() + ":" + currentDevice.getPort());
-                webSocketManager.connect(currentDevice, true);
+                String savedPin = getSavedPinForDevice(currentDevice);
+                webSocketManager.connect(currentDevice, savedPin, true);
             }
         }
     };
@@ -179,6 +182,7 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean isScreenMode = true;
     private DeviceManagerDialog deviceDialog;
+    private TextHistoryDialog activeTextHistoryDialog;
     private final Gson gson = new Gson();
 
     @Override
@@ -340,6 +344,26 @@ public class MainActivity extends AppCompatActivity {
                 updateConnectionUi(false);
                 if (isAppInForeground) {
                     scheduleAutoReconnect();
+                }
+            }
+
+            @Override
+            public void onAuthFailed(String reason) {
+                handler.removeCallbacks(reconnectRunnable);
+                updateConnectionUi(false);
+                txtDeviceStatus.setText(R.string.pin_dialog_wrong);
+                txtDeviceStatus.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.accent_coral));
+                viewStatusDot.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(MainActivity.this, R.color.accent_coral)));
+                AppLogger.w("MainActivity", "Authentication failed (4401): " + reason);
+                if (isAppInForeground && currentDevice != null) {
+                    promptForPin(currentDevice, true);
+                }
+            }
+
+            @Override
+            public void onClipboardContent(String text) {
+                if (activeTextHistoryDialog != null && activeTextHistoryDialog.isShowing()) {
+                    activeTextHistoryDialog.setPcClipboardText(text);
                 }
             }
 
@@ -1071,7 +1095,16 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+        activeTextHistoryDialog = dialog;
+        dialog.setOnDismissListener(d -> {
+            if (activeTextHistoryDialog == dialog) {
+                activeTextHistoryDialog = null;
+            }
+        });
         dialog.show();
+        if (webSocketManager != null && webSocketManager.isConnected()) {
+            webSocketManager.sendGetClipboard();
+        }
     }
 
     private void sendEnteredText() {
@@ -1465,6 +1498,54 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private String getSavedPinForDevice(Device device) {
+        if (device == null || device.getHost() == null) return null;
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        return prefs.getString("pref_device_pin_" + device.getHost(), null);
+    }
+
+    private void savePinForDevice(Device device, String pin, boolean remember) {
+        if (device == null || device.getHost() == null) return;
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        if (remember && pin != null && !pin.isEmpty()) {
+            editor.putString("pref_device_pin_" + device.getHost(), pin);
+        } else {
+            editor.remove("pref_device_pin_" + device.getHost());
+        }
+        editor.apply();
+    }
+
+    private void promptForPin(Device device, boolean isInvalidPrevious) {
+        if (device == null || isFinishing() || isDestroyed()) return;
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_pin_entry, null);
+        TextView txtError = view.findViewById(R.id.txtPinError);
+        EditText editPin = view.findViewById(R.id.editDevicePin);
+        CheckBox chkRemember = view.findViewById(R.id.chkRememberPin);
+
+        if (isInvalidPrevious) {
+            txtError.setVisibility(View.VISIBLE);
+        } else {
+            txtError.setVisibility(View.GONE);
+        }
+
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(getString(R.string.pin_dialog_title, device.getDeviceName()))
+                .setView(view)
+                .setPositiveButton(R.string.action_connect, (dialog, which) -> {
+                    String enteredPin = editPin.getText() != null ? editPin.getText().toString().trim() : "";
+                    savePinForDevice(device, enteredPin, chkRemember.isChecked());
+                    webSocketManager.connect(device, enteredPin, true);
+                })
+                .setNegativeButton(R.string.action_cancel, (dialog, which) -> {
+                    txtDeviceStatus.setText(R.string.status_disconnected);
+                    txtDeviceStatus.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.accent_coral));
+                    viewStatusDot.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(MainActivity.this, R.color.accent_coral)));
+                })
+                .setCancelable(false)
+                .show();
+    }
+
     private void selectDevice(Device device) {
         if (device == null) return;
         this.currentDevice = device;
@@ -1480,8 +1561,12 @@ public class MainActivity extends AppCompatActivity {
                 .putString(KEY_LAST_DEVICE_HOST, device.getHost() + ":" + device.getPort())
                 .apply();
 
-        // Connect WebSocket (force clean reconnect)
-        webSocketManager.connect(device, true);
+        String savedPin = getSavedPinForDevice(device);
+        if (device.hasPin() && (savedPin == null || savedPin.isEmpty())) {
+            promptForPin(device, false);
+        } else {
+            webSocketManager.connect(device, savedPin, true);
+        }
     }
 
     private void startUdpDiscovery(boolean forceFresh) {

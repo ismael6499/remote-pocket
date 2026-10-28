@@ -196,4 +196,15 @@
     <string name="btn_screen_fit_off">🖥️ Float</string>
     <string name="toast_screen_fit_on">Screen scaled to fit above keyboard</string>
     <string name="toast_screen_fit_off">Screen floating mode (pan &amp; zoom enabled)</string>
+
+    <!-- PIN & PC Clipboard -->
+    <string name="pin_dialog_title">Enter PIN for %1$s</string>
+    <string name="pin_dialog_hint">Device PIN</string>
+    <string name="pin_dialog_wrong">Incorrect PIN. Please re-enter:</string>
+    <string name="remember_pin">Remember PIN on this phone</string>
+    <string name="pc_clipboard_title">PC Clipboard</string>
+    <string name="pc_clipboard_empty">PC clipboard is empty</string>
+    <string name="pc_clipboard_copied">Copied PC clipboard to phone</string>
+    <string name="btn_copy_to_phone">Copy</string>
+    <string name="action_connect">Connect</string>
 </resources>

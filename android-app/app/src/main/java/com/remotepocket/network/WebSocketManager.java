@@ -25,8 +25,10 @@ public class WebSocketManager {
         void onDisconnected();
         void onScreenFrame(byte[] jpegData);
         void onError(String error);
+        default void onAuthFailed(String reason) {}
         default void onMonitorsInfo(JsonObject monitorsJson) {}
         default void onDeviceInfo(JsonObject deviceInfoJson) {}
+        default void onClipboardContent(String text) {}
     }
 
     private final OkHttpClient client;
@@ -38,6 +40,7 @@ public class WebSocketManager {
     private boolean isConnecting = false;
     private volatile boolean isConnected = false;
     private Device currentDevice;
+    private String activePin = null;
 
     public WebSocketManager() {
         this.client = new OkHttpClient.Builder()
@@ -56,11 +59,16 @@ public class WebSocketManager {
     }
 
     public void connect(Device device) {
-        connect(device, false);
+        connect(device, activePin, false);
     }
 
     public void connect(Device device, boolean forceReconnect) {
+        connect(device, activePin, forceReconnect);
+    }
+
+    public void connect(Device device, String pin, boolean forceReconnect) {
         if (device == null) return;
+        this.activePin = pin;
         if (!forceReconnect && currentDevice != null && currentDevice.getHost().equals(device.getHost()) && currentDevice.getPort() == device.getPort()) {
             if (isConnected() || isConnecting) {
                 Log.d(TAG, "Already connected or connecting to: " + device.getHost());
@@ -72,14 +80,21 @@ public class WebSocketManager {
 
         isConnecting = true;
         isConnected = false;
-        String wsUrl = device.getWebSocketUrl();
+        String rawWsUrl = device.getWebSocketUrl();
+        if (activePin != null && !activePin.trim().isEmpty()) {
+            String encodedPin = android.net.Uri.encode(activePin.trim());
+            rawWsUrl += (rawWsUrl.contains("?") ? "&" : "?") + "pin=" + encodedPin;
+        }
+        final String wsUrl = rawWsUrl;
         Log.d(TAG, "Connecting to WebSocket: " + wsUrl);
         com.remotepocket.util.AppLogger.i(TAG, "Connecting to WebSocket: " + wsUrl + " (" + device.getDeviceName() + ")");
 
         try {
-            Request request = new Request.Builder()
-                    .url(wsUrl)
-                    .build();
+            Request.Builder reqBuilder = new Request.Builder().url(wsUrl);
+            if (activePin != null && !activePin.trim().isEmpty()) {
+                reqBuilder.addHeader("x-pin", activePin.trim());
+            }
+            Request request = reqBuilder.build();
 
             webSocket = client.newWebSocket(request, new WebSocketListener() {
                 @Override
@@ -104,6 +119,9 @@ public class WebSocketManager {
                                 mainHandler.post(() -> listener.onMonitorsInfo(json));
                             } else if ("device_info".equals(type)) {
                                 mainHandler.post(() -> listener.onDeviceInfo(json));
+                            } else if ("clipboard_content".equals(type)) {
+                                String clipText = json.has("text") && !json.get("text").isJsonNull() ? json.get("text").getAsString() : "";
+                                mainHandler.post(() -> listener.onClipboardContent(clipText));
                             }
                         }
                     } catch (Exception ignored) {}
@@ -122,6 +140,13 @@ public class WebSocketManager {
             @Override
             public void onClosing(WebSocket ws, int code, String reason) {
                 com.remotepocket.util.AppLogger.w(TAG, "WebSocket closing (code " + code + "): " + reason);
+                if (code == 4401) {
+                    isConnecting = false;
+                    isConnected = false;
+                    if (listener != null) {
+                        mainHandler.post(() -> listener.onAuthFailed(reason));
+                    }
+                }
                 ws.close(1000, null);
             }
 
@@ -133,7 +158,13 @@ public class WebSocketManager {
                     webSocket = null;
                 }
                 Log.d(TAG, "WebSocket closed: " + reason);
-                com.remotepocket.util.AppLogger.i(TAG, "WebSocket closed: " + reason);
+                com.remotepocket.util.AppLogger.i(TAG, "WebSocket closed (code " + code + "): " + reason);
+                if (code == 4401) {
+                    if (listener != null) {
+                        mainHandler.post(() -> listener.onAuthFailed(reason));
+                    }
+                    return;
+                }
                 if (listener != null) {
                     mainHandler.post(listener::onDisconnected);
                 }
@@ -149,6 +180,12 @@ public class WebSocketManager {
                 String responseInfo = response != null ? " [HTTP " + response.code() + " " + response.message() + "]" : "";
                 Log.e(TAG, "WebSocket failure: " + t.getMessage() + responseInfo);
                 com.remotepocket.util.AppLogger.e(TAG, "WebSocket failure: " + wsUrl + responseInfo, t);
+                if (response != null && response.code() == 401) {
+                    if (listener != null) {
+                        mainHandler.post(() -> listener.onAuthFailed("Unauthorized"));
+                    }
+                    return;
+                }
                 if (listener != null) {
                     mainHandler.post(() -> listener.onError(t.getMessage()));
                 }
@@ -185,6 +222,12 @@ public class WebSocketManager {
 
     public boolean isConnected() {
         return isConnected && webSocket != null;
+    }
+
+    public void sendGetClipboard() {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("type", "get_clipboard");
+        sendJson(obj);
     }
 
     public void sendScreenFps(int fps) {
