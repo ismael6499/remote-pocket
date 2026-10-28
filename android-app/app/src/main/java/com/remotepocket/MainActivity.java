@@ -1127,6 +1127,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateSendEnterButtonState(boolean hasText) {
         if (btnSendTyping == null) return;
+        int fixedMin = dpToPx(72);
+        btnSendTyping.setMinWidth(fixedMin);
+        btnSendTyping.setMinimumWidth(fixedMin);
         if (hasText) {
             btnSendTyping.setText(R.string.btn_send_text);
             btnSendTyping.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
