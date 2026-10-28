@@ -33,8 +33,30 @@ process.on('exit', (code) => {
 });
 
 // ==========================================
-// CONFIGURATION & PATHS
+// CONFIGURATION & LOGGING
 // ==========================================
+const LOGS_DIR = path.join(__dirname, 'logs');
+if (!fs.existsSync(LOGS_DIR)) {
+  try { fs.mkdirSync(LOGS_DIR, { recursive: true }); } catch (e) {}
+}
+const AGENT_LOG_PATH = path.join(LOGS_DIR, 'agent.log');
+
+function logAgent(level, message) {
+  const ts = new Date().toISOString();
+  const line = `[${ts}] [${level}] ${message}\n`;
+  try {
+    fs.appendFileSync(AGENT_LOG_PATH, line, 'utf-8');
+  } catch (err) {
+    console.error('[Logger] Failed to write to agent.log:', err.message);
+  }
+  if (level === 'ERROR') {
+    console.error(`[${level}] ${message}`);
+  } else if (level === 'WARN') {
+    console.warn(`[${level}] ${message}`);
+  } else {
+    console.log(`[${level}] ${message}`);
+  }
+}
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 const SHORTCUTS_PATH = path.join(__dirname, 'shortcuts.json');
 const UPDATES_DIR = path.join(__dirname, 'updates');
@@ -94,9 +116,18 @@ function startInputProcess() {
     inputProcessReady = false;
 
     inputProcess = spawn(INPUT_HELPER_PATH, ['--pipe'], {
-      stdio: ['pipe', 'pipe', 'ignore'],
+      stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true
     });
+
+    if (inputProcess.stderr) {
+      inputProcess.stderr.on('data', (data) => {
+        const str = data.toString().trim();
+        if (str) {
+          logAgent('ERROR', `InputHelper: ${str}`);
+        }
+      });
+    }
 
     if (inputProcess.stdin) {
       inputProcess.stdin.on('error', (err) => {
@@ -115,7 +146,7 @@ function startInputProcess() {
     });
 
     inputProcess.on('exit', (code, signal) => {
-      console.warn(`[InputHelper] Pipe process exited (code=${code}, signal=${signal}). Restarting in 250ms...`);
+      logAgent('WARN', `InputHelper pipe process exited (code=${code}, signal=${signal}). Restarting in 250ms...`);
       inputProcessReady = false;
       inputProcess = null;
       if (!restartingInputProcess) {
@@ -511,6 +542,8 @@ function verifyPin(req, res, next) {
   if (!config.pin || config.pin.trim() === '') return next();
   const reqPin = req.headers['x-pin'] || req.query.pin || req.body?.pin;
   if (reqPin === config.pin) return next();
+  const clientIp = req.ip || req.socket?.remoteAddress || 'unknown';
+  logAgent('WARN', `Unauthorized HTTP ${req.method} ${req.path} from ${clientIp} - invalid or missing PIN`);
   return res.status(401).json({ error: 'Unauthorized: Invalid PIN' });
 }
 
@@ -660,10 +693,6 @@ app.post('/api/device/name', verifyPin, (req, res) => {
 });
 
 // Mobile Diagnostics & Logs API
-const LOGS_DIR = path.join(__dirname, 'logs');
-if (!fs.existsSync(LOGS_DIR)) {
-  try { fs.mkdirSync(LOGS_DIR, { recursive: true }); } catch (e) {}
-}
 
 app.post('/api/logs', (req, res) => {
   const { logs, deviceName, clientInfo } = req.body || {};
@@ -720,9 +749,9 @@ app.post('/api/shortcuts/run', verifyPin, (req, res) => {
     } catch (e) {}
   }
 
-  console.log(`[Shortcuts] Executing: ${target.name} (${cmd}) [cwd: ${targetCwd || 'default'}]`);
+  logAgent('INFO', `Executing shortcut: ${target.name} (id: ${target.id})`);
   exec(cmd, { cwd: targetCwd || undefined, windowsHide: true }, (err) => {
-    if (err) console.error(`[Shortcuts] Error running ${target.name}:`, err.message);
+    if (err) logAgent('ERROR', `Error running shortcut ${target.name}: ${err.message}`);
   });
   res.json({ success: true, message: `Executed shortcut: ${target.name}` });
 });
@@ -830,7 +859,30 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 wss.on('connection', (ws, req) => {
-  console.log(`[WebSocket] Client connected: ${req.socket.remoteAddress}`);
+  const clientIp = req.socket?.remoteAddress || 'unknown';
+
+  let reqPin = null;
+  try {
+    const parsedUrl = new URL(req.url, 'http://localhost');
+    reqPin = parsedUrl.searchParams.get('pin');
+  } catch (e) {}
+  if (!reqPin && req.headers) {
+    reqPin = req.headers['x-pin'];
+  }
+
+  if (config.pin && config.pin.trim() !== '') {
+    if (reqPin !== config.pin) {
+      logAgent('WARN', `Rejected WebSocket connection from ${clientIp} - invalid or missing PIN`);
+      try {
+        ws.close(4401, 'Unauthorized');
+      } catch (e) {
+        try { ws.terminate(); } catch (ignored) {}
+      }
+      return;
+    }
+  }
+
+  logAgent('INFO', `WebSocket client connected from ${clientIp}`);
 
   ws.isSubscribedToScreen = false;
 
@@ -866,15 +918,15 @@ wss.on('connection', (ws, req) => {
     }
   });
 
-  ws.on('close', () => {
-    console.log(`[WebSocket] Client disconnected: ${req.socket.remoteAddress}`);
+  ws.on('close', (code) => {
+    logAgent('INFO', `WebSocket client disconnected from ${clientIp} (code=${code})`);
     if (ws.isSubscribedToScreen) {
       unsubscribeScreen(ws);
     }
   });
 
   ws.on('error', (err) => {
-    console.error('[WebSocket] Error:', err.message);
+    logAgent('ERROR', `WebSocket error from ${clientIp}: ${err.message}`);
     if (ws.isSubscribedToScreen) {
       unsubscribeScreen(ws);
     }
@@ -910,6 +962,20 @@ function handleWebSocketMessage(ws, data) {
     case 'mouse_scroll':
       if (typeof data.delta === 'number') {
         sendInputCommand(`s ${Math.round(data.delta)}`);
+      }
+      break;
+
+    // Clipboard
+    case 'get_clipboard':
+      getClipboardText().then((clipText) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'clipboard_content', text: clipText }));
+        }
+      });
+      break;
+    case 'set_clipboard':
+      if (typeof data.text === 'string') {
+        setClipboardText(data.text);
       }
       break;
 
@@ -1163,11 +1229,16 @@ function startHttpServer(initialPort, maxAttempts = 15) {
 
     server.listen(candidatePort, '0.0.0.0', () => {
       activePort = candidatePort;
-      console.log('====================================================');
-      console.log(`  Remote Pocket PC Agent running on port ${activePort}`);
-      console.log(`  Device Name: "${config.deviceName}"`);
-      console.log(`  UDP Discovery: Port ${config.udpPort || 5051}`);
-      console.log('====================================================');
+      logAgent('INFO', '====================================================');
+      logAgent('INFO', `Remote Pocket PC Agent running on port ${activePort}`);
+      logAgent('INFO', `Device Name: "${config.deviceName}"`);
+      logAgent('INFO', `UDP Discovery: Port ${config.udpPort || 5051}`);
+      if (!config.pin || config.pin.trim() === '') {
+        logAgent('WARN', 'Security warning: PIN is not configured. Endpoints and WebSocket are unprotected.');
+      } else {
+        logAgent('INFO', 'Security: PIN protection is enabled for HTTP and WebSocket.');
+      }
+      logAgent('INFO', '====================================================');
       initNgrok(activePort);
       getAudioStatus().catch(() => {});
       getBrightness().catch(() => {});

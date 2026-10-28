@@ -269,6 +269,50 @@ namespace InputHelper {
         [DllImport("user32.dll", SetLastError = true)]
         private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool GetUserObjectInformation(IntPtr hObj, int nIndex, [Out] byte[] pvInfo, uint nLength, out uint lpnLengthNeeded);
+
+        [DllImport("kernel32.dll")]
+        private static extern uint GetCurrentThreadId();
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetThreadDesktop(uint dwThreadId);
+
+        private const int UOI_NAME = 2;
+
+        public static string GetActiveDesktopName() {
+            try {
+                IntPtr hdesk = OpenInputDesktop(0, false, 0x000F01FF);
+                bool openedInput = (hdesk != IntPtr.Zero);
+                if (hdesk == IntPtr.Zero) hdesk = GetThreadDesktop(GetCurrentThreadId());
+                if (hdesk != IntPtr.Zero) {
+                    byte[] buf = new byte[256];
+                    uint needed;
+                    if (GetUserObjectInformation(hdesk, UOI_NAME, buf, (uint)buf.Length, out needed)) {
+                        string name = Encoding.Unicode.GetString(buf, 0, (int)needed).TrimEnd('\0');
+                        if (openedInput) {
+                            try { CloseDesktop(hdesk); } catch { }
+                        }
+                        return name;
+                    }
+                    if (openedInput) {
+                        try { CloseDesktop(hdesk); } catch { }
+                    }
+                }
+            } catch { }
+            return "unknown";
+        }
+
+        private static uint SafeSendInput(uint nInputs, INPUT[] pInputs, int cbSize, string context) {
+            uint sent = SendInput(nInputs, pInputs, cbSize);
+            if (sent == 0 && nInputs > 0) {
+                int err = Marshal.GetLastWin32Error();
+                string desk = GetActiveDesktopName();
+                Console.Error.WriteLine(string.Format("[InputHelper Error] SendInput failed for '{0}': sent=0/{1}, GetLastError={2}, activeDesktop='{3}'", context, nInputs, err, desk));
+            }
+            return sent;
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         private struct POINT {
             public int X;
@@ -315,7 +359,7 @@ namespace InputHelper {
                     }
                 }
             };
-            uint sent = SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+            uint sent = SafeSendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)), "key_down " + vk);
             if (sent == 0) {
                 keybd_event(vk, (byte)scan, flags, UIntPtr.Zero);
             }
@@ -339,7 +383,7 @@ namespace InputHelper {
                     }
                 }
             };
-            uint sent = SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+            uint sent = SafeSendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)), "key_up " + vk);
             if (sent == 0) {
                 keybd_event(vk, (byte)scan, flags, UIntPtr.Zero);
             }
@@ -814,7 +858,7 @@ namespace InputHelper {
                         }
                     }
                 };
-                uint sent = SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+                uint sent = SafeSendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)), "mouse_abs");
                 if (sent == 0) {
                     mouse_event(MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK, normX, normY, 0, UIntPtr.Zero);
                 }
@@ -840,7 +884,7 @@ namespace InputHelper {
                         }
                     }
                 };
-                uint sent = SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+                uint sent = SafeSendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)), "mouse_move");
                 if (sent == 0) {
                     EnsureDesktopAccess();
                     mouse_event(MOUSEEVENTF_MOVE, dx, dy, 0, UIntPtr.Zero);
@@ -880,7 +924,7 @@ namespace InputHelper {
                     }
                 }
             };
-            uint sent = SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+            uint sent = SafeSendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)), "mouse_down " + btn);
             if (sent == 0) {
                 mouse_event(flag, 0, 0, 0, UIntPtr.Zero);
             }
@@ -906,7 +950,7 @@ namespace InputHelper {
                     }
                 }
             };
-            uint sent = SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+            uint sent = SafeSendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)), "mouse_up " + btn);
             if (sent == 0) {
                 mouse_event(flag, 0, 0, 0, UIntPtr.Zero);
             }
@@ -929,7 +973,7 @@ namespace InputHelper {
                         }
                     }
                 };
-                uint sent = SendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)));
+                uint sent = SafeSendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)), "mouse_scroll");
                 if (sent == 0) {
                     mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)d, UIntPtr.Zero);
                 }
@@ -976,7 +1020,7 @@ namespace InputHelper {
                 };
             }
 
-            SendInput((uint)inputs.Length, inputs, structSize);
+            SafeSendInput((uint)inputs.Length, inputs, structSize, "type_text");
         }
 
         private static readonly Dictionary<string, byte> KeyMap = new Dictionary<string, byte>(StringComparer.OrdinalIgnoreCase) {
