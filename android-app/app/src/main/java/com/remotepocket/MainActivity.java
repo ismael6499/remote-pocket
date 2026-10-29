@@ -12,7 +12,10 @@ import android.os.Looper;
 import android.view.HapticFeedbackConstants;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
+import android.annotation.SuppressLint;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.graphics.Typeface;
@@ -448,36 +451,144 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean isManualDragActive = false;
 
-    private void setupListeners() {
-        // Device Selector Click (Click anywhere on card, texts, dot or arrow to open selector)
-        View.OnClickListener openDeviceSelectorClick = v -> {
-            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-            showDeviceManagerDialog();
-        };
-        findViewById(R.id.btnDeviceSelector).setOnClickListener(openDeviceSelectorClick);
-        txtDeviceName.setOnClickListener(v -> {
-            long now = System.currentTimeMillis();
-            if (now - lastDevTapTime > 2500) {
-                devTapCount = 0;
+    private void cycleDevice(boolean forward) {
+        if (knownDevices == null || knownDevices.isEmpty()) return;
+        if (knownDevices.size() == 1) {
+            // Only 1 device known - subtle horizontal bounce to indicate no other PCs
+            View card = findViewById(R.id.btnDeviceSelector);
+            if (card != null) {
+                card.animate().translationX(forward ? -dpToPx(12) : dpToPx(12)).setDuration(80).withEndAction(() -> {
+                    card.animate().translationX(0f).setDuration(80).start();
+                }).start();
             }
-            lastDevTapTime = now;
-            devTapCount++;
+            return;
+        }
 
-            if (devTapCount >= 4 && devTapCount < 7) {
-                int remaining = 7 - devTapCount;
-                Toast.makeText(this, getString(R.string.dev_settings_steps_remaining, remaining), Toast.LENGTH_SHORT).show();
-            } else if (devTapCount == 7) {
-                devTapCount = 0;
-                Toast.makeText(this, R.string.dev_settings_unlocked, Toast.LENGTH_SHORT).show();
-                new com.remotepocket.ui.DeveloperSettingsDialog(this, null).show();
-            } else {
-                openDeviceSelectorClick.onClick(v);
+        int currentIndex = -1;
+        if (currentDevice != null) {
+            for (int i = 0; i < knownDevices.size(); i++) {
+                if (knownDevices.get(i).getHost().equals(currentDevice.getHost())
+                        && knownDevices.get(i).getPort() == currentDevice.getPort()) {
+                    currentIndex = i;
+                    break;
+                }
+            }
+        }
+
+        int nextIndex;
+        if (forward) {
+            nextIndex = (currentIndex + 1) % knownDevices.size();
+        } else {
+            nextIndex = (currentIndex - 1 + knownDevices.size()) % knownDevices.size();
+        }
+
+        Device target = knownDevices.get(nextIndex);
+        View card = findViewById(R.id.btnDeviceSelector);
+        if (card != null) {
+            card.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+        }
+
+        float exitTranslation = forward ? -dpToPx(40) : dpToPx(40);
+        float enterTranslation = forward ? dpToPx(40) : -dpToPx(40);
+
+        View textContainer = txtDeviceName.getParent() instanceof View ? (View) txtDeviceName.getParent() : txtDeviceName;
+        textContainer.animate().translationX(exitTranslation).alpha(0.2f).setDuration(110).withEndAction(() -> {
+            textContainer.setTranslationX(enterTranslation);
+            selectDevice(target);
+            textContainer.animate().translationX(0f).alpha(1f).setDuration(140).start();
+        }).start();
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private void setupDeviceSelectorSwipe() {
+        View card = findViewById(R.id.btnDeviceSelector);
+        if (card == null) return;
+
+        final int touchSlop = ViewConfiguration.get(this).getScaledTouchSlop();
+        final int swipeThreshold = dpToPx(38);
+
+        card.setOnTouchListener(new View.OnTouchListener() {
+            private float startX = 0f;
+            private float startY = 0f;
+            private boolean isSwiping = false;
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN:
+                        startX = event.getRawX();
+                        startY = event.getRawY();
+                        isSwiping = false;
+                        return true;
+
+                    case MotionEvent.ACTION_MOVE:
+                        float dx = event.getRawX() - startX;
+                        float dy = event.getRawY() - startY;
+                        if (!isSwiping && Math.abs(dx) > touchSlop && Math.abs(dx) > Math.abs(dy) * 1.3f) {
+                            isSwiping = true;
+                        }
+                        if (isSwiping) {
+                            View textContainer = txtDeviceName.getParent() instanceof View ? (View) txtDeviceName.getParent() : txtDeviceName;
+                            textContainer.setTranslationX(dx * 0.35f);
+                            return true;
+                        }
+                        break;
+
+                    case MotionEvent.ACTION_UP:
+                        float totalDx = event.getRawX() - startX;
+                        float totalDy = event.getRawY() - startY;
+                        View textContainer = txtDeviceName.getParent() instanceof View ? (View) txtDeviceName.getParent() : txtDeviceName;
+                        textContainer.setTranslationX(0f);
+
+                        if (isSwiping && Math.abs(totalDx) >= swipeThreshold) {
+                            cycleDevice(totalDx < 0);
+                            return true;
+                        }
+
+                        if (!isSwiping && Math.hypot(totalDx, totalDy) < touchSlop * 2) {
+                            handleDeviceSelectorTap();
+                            return true;
+                        }
+                        break;
+
+                    case MotionEvent.ACTION_CANCEL:
+                        View tc = txtDeviceName.getParent() instanceof View ? (View) txtDeviceName.getParent() : txtDeviceName;
+                        tc.setTranslationX(0f);
+                        isSwiping = false;
+                        break;
+                }
+                return false;
             }
         });
-        txtDeviceStatus.setOnClickListener(openDeviceSelectorClick);
-        viewStatusDot.setOnClickListener(openDeviceSelectorClick);
-        View arrowView = findViewById(R.id.btnDeviceSelectorArrow);
-        if (arrowView != null) arrowView.setOnClickListener(openDeviceSelectorClick);
+    }
+
+    private void handleDeviceSelectorTap() {
+        long now = System.currentTimeMillis();
+        if (now - lastDevTapTime > 2500) {
+            devTapCount = 0;
+        }
+        lastDevTapTime = now;
+        devTapCount++;
+
+        if (devTapCount >= 4 && devTapCount < 7) {
+            int remaining = 7 - devTapCount;
+            Toast.makeText(this, getString(R.string.dev_settings_steps_remaining, remaining), Toast.LENGTH_SHORT).show();
+        } else if (devTapCount == 7) {
+            devTapCount = 0;
+            Toast.makeText(this, R.string.dev_settings_unlocked, Toast.LENGTH_SHORT).show();
+            new com.remotepocket.ui.DeveloperSettingsDialog(this, null).show();
+        } else {
+            View card = findViewById(R.id.btnDeviceSelector);
+            if (card != null) {
+                card.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+            }
+            showDeviceManagerDialog();
+        }
+    }
+
+    private void setupListeners() {
+        // Device Selector: Swipe horizontally to switch PCs directly, tap to open manager dialog
+        setupDeviceSelectorSwipe();
 
         // Refresh Discovery (Single tap = Fresh force scan, Long press = Diagnostics Logs)
         findViewById(R.id.btnRefreshDiscovery).setOnClickListener(v -> {
@@ -494,6 +605,7 @@ public class MainActivity extends AppCompatActivity {
         txtDeviceStatus.setOnLongClickListener(openLogsLongClick);
         txtDeviceName.setOnLongClickListener(openLogsLongClick);
         viewStatusDot.setOnLongClickListener(openLogsLongClick);
+        View arrowView = findViewById(R.id.btnDeviceSelectorArrow);
         if (arrowView != null) arrowView.setOnLongClickListener(openLogsLongClick);
         findViewById(R.id.btnRefreshDiscovery).setOnLongClickListener(openLogsLongClick);
 
@@ -502,6 +614,7 @@ public class MainActivity extends AppCompatActivity {
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
             if (currentDevice != null) {
                 SystemSheet sheet = new SystemSheet(this, currentDevice, webSocketManager);
+                sheet.setMonitorInfo(currentMonitorIndex, lastSeparateMonitorIndex, monitorCount, monitorNames);
                 sheet.show();
             } else {
                 Toast.makeText(this, R.string.no_device_selected, Toast.LENGTH_SHORT).show();

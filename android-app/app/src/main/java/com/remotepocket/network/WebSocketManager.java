@@ -394,9 +394,16 @@ public class WebSocketManager {
     }
 
     public void sendBrightness(int level) {
+        sendBrightness(level, -1);
+    }
+
+    public void sendBrightness(int level, int monitorIndex) {
         JsonObject obj = new JsonObject();
         obj.addProperty("type", "set_brightness");
         obj.addProperty("level", level);
+        if (monitorIndex >= 0) {
+            obj.addProperty("monitor", monitorIndex);
+        }
         sendJson(obj);
     }
 

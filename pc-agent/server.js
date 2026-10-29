@@ -443,33 +443,39 @@ function detectMonitorian() {
 }
 detectMonitorian();
 
+let cachedMonitorBrightness = {};
+
 function setBrightness(level, monitorIndex = currentMonitorIndex) {
   const safeLevel = Math.max(0, Math.min(100, parseInt(level, 10) || 0));
+  const targetMon = (monitorIndex !== undefined && monitorIndex !== null && monitorIndex >= 0)
+    ? monitorIndex
+    : (currentMonitorIndex >= 0 ? currentMonitorIndex : 0);
+
+  cachedMonitorBrightness[targetMon] = safeLevel;
   cachedBrightness = safeLevel;
-  const targetMon = (monitorIndex !== undefined && monitorIndex !== null) ? monitorIndex : currentMonitorIndex;
 
   // 1. Send native DDC/CI & Gamma command to persistent InputHelper (0ms latency)
   sendInputCommand(`brightness ${safeLevel} ${targetMon}`);
 
-  // 2. If Monitorian CLI is available, trigger it
+  // 2. If Monitorian CLI is available, trigger it for this exact monitor
   if (monitorianPath) {
     try {
-      const monArg = targetMon >= 0 ? String(targetMon + 1) : 'all';
+      const monArg = String(targetMon + 1);
       execFile(monitorianPath, ['/set', monArg, String(safeLevel)], { windowsHide: true }, (err) => {
         if (err) console.warn('[Brightness] Monitorian CLI warning:', err.message);
       });
     } catch (e) {}
   }
 
-  // 3. If primary/internal display or fallback, invoke WMI
-  if (targetMon === 0 || targetMon < 0) {
+  // 3. If primary/internal display (monitor 0) only, invoke WMI
+  if (targetMon === 0) {
     if (brightnessBusy) {
       brightnessPending = safeLevel;
       return Promise.resolve(safeLevel);
     }
     brightnessBusy = true;
     return new Promise((resolve) => {
-      const cmd = `powershell -NoProfile -NonInteractive -Command "try { Invoke-CimMethod -InputObject (Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorBrightnessMethods -ErrorAction Stop) -MethodName WmiSetBrightness -Arguments @{ Timeout = 1; Brightness = ${safeLevel} } -ErrorAction Stop } catch { }"`;
+      const cmd = `powershell -NoProfile -NonInteractive -Command "try { Invoke-CimMethod -InputObject (Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorBrightnessMethods -ErrorAction Stop)[0] -MethodName WmiSetBrightness -Arguments @{ Timeout = 1; Brightness = ${safeLevel} } -ErrorAction Stop } catch { try { Invoke-CimMethod -InputObject (Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorBrightnessMethods -ErrorAction Stop) -MethodName WmiSetBrightness -Arguments @{ Timeout = 1; Brightness = ${safeLevel} } -ErrorAction Stop } catch {} }"`;
       exec(cmd, { timeout: 4000, windowsHide: true }, () => {
         brightnessBusy = false;
         resolve(safeLevel);
@@ -746,10 +752,19 @@ function runShortcutById(id) {
     } catch (e) {}
   }
 
-  logAgent('INFO', `Executing shortcut: ${target.name} (id: ${target.id})`);
-  exec(cmd, { cwd: targetCwd || undefined, windowsHide: true }, (err) => {
-    if (err) logAgent('ERROR', `Error running shortcut ${target.name}: ${err.message}`);
-  });
+  logAgent('INFO', `Executing shortcut: ${target.name} (id: ${target.id}, cmd: ${cmd})`);
+  try {
+    const child = spawn(cmd, {
+      cwd: targetCwd || undefined,
+      shell: true,
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: Boolean(target.hideWindow)
+    });
+    child.unref();
+  } catch (err) {
+    logAgent('ERROR', `Error spawning shortcut ${target.name}: ${err.message}`);
+  }
   return true;
 }
 

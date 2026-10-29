@@ -1198,12 +1198,18 @@ namespace InputHelper {
             try {
                 var screens = GetSortedScreens();
                 if (screens != null && screens.Length > 0) {
+                    int safeTarget = (targetMonIndex >= 0 && targetMonIndex < screens.Length)
+                        ? targetMonIndex
+                        : (currentMonitorIndex >= 0 && currentMonitorIndex < screens.Length ? currentMonitorIndex : 0);
+
                     for (int i = 0; i < screens.Length; i++) {
-                        if (targetMonIndex >= 0 && i != targetMonIndex) continue;
+                        if (i != safeTarget) continue;
                         var s = screens[i];
                         bool hwOk = false;
                         try {
-                            RECT r = new RECT { left = s.Bounds.Left, top = s.Bounds.Top, right = s.Bounds.Right, bottom = s.Bounds.Bottom };
+                            int cx = s.Bounds.X + s.Bounds.Width / 2;
+                            int cy = s.Bounds.Y + s.Bounds.Height / 2;
+                            RECT r = new RECT { left = cx, top = cy, right = cx + 1, bottom = cy + 1 };
                             IntPtr hMon = MonitorFromRect(ref r, 2);
                             if (hMon != IntPtr.Zero) {
                                 uint count = 0;
@@ -1224,7 +1230,10 @@ namespace InputHelper {
                             }
                         } catch { }
                         try {
-                            IntPtr hdc = CreateDC(null, s.DeviceName, null, IntPtr.Zero);
+                            IntPtr hdc = CreateDC("DISPLAY", s.DeviceName, null, IntPtr.Zero);
+                            if (hdc == IntPtr.Zero) {
+                                hdc = CreateDC(null, s.DeviceName, null, IntPtr.Zero);
+                            }
                             if (hdc != IntPtr.Zero) {
                                 RAMP ramp = new RAMP();
                                 ramp.Red = new ushort[256];

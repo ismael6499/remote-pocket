@@ -5,7 +5,13 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.view.HapticFeedbackConstants;
+import android.widget.HorizontalScrollView;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -24,6 +30,7 @@ import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.remotepocket.R;
 import com.remotepocket.model.Device;
@@ -31,6 +38,7 @@ import com.remotepocket.model.Shortcut;
 import com.remotepocket.network.WebSocketManager;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -57,11 +65,46 @@ public class SystemSheet extends Dialog {
     private boolean serverDetectedScreenOff = false;
     private int devTapCount = 0;
     private long lastDevTapTime = 0;
+    private int monitorCount = 1;
+    private int activeMonitorIndex = 0;
+    private int selectedBrightnessMonitorIndex = 0;
+    private List<String> monitorNames = new ArrayList<>();
+    private HorizontalScrollView scrollBrightnessMonitors;
+    private LinearLayout layoutBrightnessMonitors;
+    private Vibrator vibrator;
 
     public SystemSheet(@NonNull Context context, Device device, WebSocketManager webSocketManager) {
         super(context);
         this.device = device;
         this.webSocketManager = webSocketManager;
+    }
+
+    public void setMonitorInfo(int currentMonitorIndex, int lastSeparateMonitorIndex, int monitorCount, List<String> monitorNames) {
+        this.monitorCount = monitorCount;
+        this.monitorNames = monitorNames != null ? monitorNames : new ArrayList<>();
+        if (currentMonitorIndex >= 0) {
+            this.activeMonitorIndex = currentMonitorIndex;
+        } else if (lastSeparateMonitorIndex >= 0) {
+            this.activeMonitorIndex = lastSeparateMonitorIndex;
+        } else {
+            this.activeMonitorIndex = 0;
+        }
+        this.selectedBrightnessMonitorIndex = this.activeMonitorIndex;
+    }
+
+    private void triggerHaptic(View v) {
+        if (v != null) {
+            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+        }
+        if (vibrator != null && vibrator.hasVibrator()) {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(35, VibrationEffect.DEFAULT_AMPLITUDE));
+                } else {
+                    vibrator.vibrate(35);
+                }
+            } catch (Exception ignored) {}
+        }
     }
 
     @Override
@@ -77,7 +120,8 @@ public class SystemSheet extends Dialog {
             window.setGravity(Gravity.BOTTOM);
         }
 
-        findViewById(R.id.btnCloseSystemSheet).setOnClickListener(v -> dismiss());
+        vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
+        findViewById(R.id.btnCloseSystemSheet).setOnClickListener(v -> { triggerHaptic(v); dismiss(); });
 
         seekBrightness = findViewById(R.id.seekBrightness);
         txtBrightnessVal = findViewById(R.id.txtBrightnessVal);
@@ -85,13 +129,18 @@ public class SystemSheet extends Dialog {
         txtVolumeVal = findViewById(R.id.txtVolumeVal);
         layoutShortcutsContainer = findViewById(R.id.layoutShortcutsContainer);
         btnScreenOff = findViewById(R.id.btnScreenOff);
+        scrollBrightnessMonitors = findViewById(R.id.scrollBrightnessMonitors);
+        layoutBrightnessMonitors = findViewById(R.id.layoutBrightnessMonitors);
 
         String hostKey = (device != null && device.getHost() != null) ? device.getHost() : "default";
         android.content.SharedPreferences prefs = getContext().getSharedPreferences("remote_pocket_prefs", Context.MODE_PRIVATE);
         serverDetectedScreenOff = prefs.getBoolean("pref_device_screen_off_" + hostKey, true);
 
-        // Pre-load cached Brightness & Volume immediately to eliminate visual slider jump/movement
-        int cachedBrightness = prefs.getInt("pref_device_brightness_" + hostKey, 100);
+        setupMonitorChips();
+
+        // Pre-load cached Brightness for selected monitor & Volume immediately
+        int cachedBrightness = prefs.getInt("pref_device_brightness_" + hostKey + "_mon_" + selectedBrightnessMonitorIndex,
+                                prefs.getInt("pref_device_brightness_" + hostKey, 100));
         seekBrightness.setProgress(cachedBrightness);
         txtBrightnessVal.setText(cachedBrightness + "%");
 
@@ -99,9 +148,6 @@ public class SystemSheet extends Dialog {
         seekVolume.setProgress(cachedVolume);
         txtVolumeVal.setText(cachedVolume + "%");
 
-        if (btnScreenOff != null) {
-            btnScreenOff.setOnClickListener(v -> triggerScreenOff());
-        }
         updateScreenOffVisibility();
 
         View txtTitle = findViewById(R.id.txtSystemSheetTitle);
@@ -109,7 +155,7 @@ public class SystemSheet extends Dialog {
             txtTitle.setOnClickListener(v -> handleDevTitleTap());
         }
 
-        // Brightness Seek Listener (throttled: every PowerShell call is heavy on the PC)
+        // Brightness Seek Listener (targets selected screen with 0ms native DDC/CI or gamma ramp)
         seekBrightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             private long lastSend = 0;
 
@@ -117,12 +163,15 @@ public class SystemSheet extends Dialog {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 txtBrightnessVal.setText(progress + "%");
                 if (fromUser) {
-                    prefs.edit().putInt("pref_device_brightness_" + hostKey, progress).apply();
+                    prefs.edit()
+                            .putInt("pref_device_brightness_" + hostKey + "_mon_" + selectedBrightnessMonitorIndex, progress)
+                            .putInt("pref_device_brightness_" + hostKey, progress)
+                            .apply();
                 }
                 long now = System.currentTimeMillis();
-                if (fromUser && webSocketManager != null && now - lastSend >= 400) {
+                if (fromUser && webSocketManager != null && now - lastSend >= 80) {
                     lastSend = now;
-                    webSocketManager.sendBrightness(progress);
+                    webSocketManager.sendBrightness(progress, selectedBrightnessMonitorIndex);
                 }
             }
 
@@ -131,8 +180,11 @@ public class SystemSheet extends Dialog {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                prefs.edit().putInt("pref_device_brightness_" + hostKey, seekBar.getProgress()).apply();
-                postBrightness(seekBar.getProgress());
+                prefs.edit()
+                        .putInt("pref_device_brightness_" + hostKey + "_mon_" + selectedBrightnessMonitorIndex, seekBar.getProgress())
+                        .putInt("pref_device_brightness_" + hostKey, seekBar.getProgress())
+                        .apply();
+                postBrightness(seekBar.getProgress(), selectedBrightnessMonitorIndex);
             }
         });
 
@@ -163,22 +215,26 @@ public class SystemSheet extends Dialog {
             }
         });
 
+        if (btnScreenOff != null) {
+            btnScreenOff.setOnClickListener(v -> { triggerHaptic(v); triggerScreenOff(); });
+        }
+
         // Media Buttons
-        findViewById(R.id.btnMediaPrev).setOnClickListener(v -> postMediaAction("media_prev"));
-        findViewById(R.id.btnMediaPlayPause).setOnClickListener(v -> postMediaAction("media_play_pause"));
-        findViewById(R.id.btnMediaNext).setOnClickListener(v -> postMediaAction("media_next"));
-        findViewById(R.id.btnMediaMute).setOnClickListener(v -> postAudioMute());
+        findViewById(R.id.btnMediaPrev).setOnClickListener(v -> { triggerHaptic(v); postMediaAction("media_prev"); });
+        findViewById(R.id.btnMediaPlayPause).setOnClickListener(v -> { triggerHaptic(v); postMediaAction("media_play_pause"); });
+        findViewById(R.id.btnMediaNext).setOnClickListener(v -> { triggerHaptic(v); postMediaAction("media_next"); });
+        findViewById(R.id.btnMediaMute).setOnClickListener(v -> { triggerHaptic(v); postAudioMute(); });
 
         // Power Buttons
-        findViewById(R.id.btnPowerLock).setOnClickListener(v -> postSystemAction("lock"));
-        findViewById(R.id.btnPowerSleep).setOnClickListener(v -> postSystemAction("sleep"));
-        findViewById(R.id.btnPowerRestart).setOnClickListener(v -> confirmPowerAction("restart"));
-        findViewById(R.id.btnPowerShutdown).setOnClickListener(v -> confirmPowerAction("shutdown"));
+        findViewById(R.id.btnPowerLock).setOnClickListener(v -> { triggerHaptic(v); postSystemAction("lock"); });
+        findViewById(R.id.btnPowerSleep).setOnClickListener(v -> { triggerHaptic(v); postSystemAction("sleep"); });
+        findViewById(R.id.btnPowerRestart).setOnClickListener(v -> { triggerHaptic(v); confirmPowerAction("restart"); });
+        findViewById(R.id.btnPowerShutdown).setOnClickListener(v -> { triggerHaptic(v); confirmPowerAction("shutdown"); });
 
         // Restart PC Agent Button
         View btnRestartAgent = findViewById(R.id.btnRestartAgent);
         if (btnRestartAgent != null) {
-            btnRestartAgent.setOnClickListener(v -> confirmRestartAgent());
+            btnRestartAgent.setOnClickListener(v -> { triggerHaptic(v); confirmRestartAgent(); });
         }
 
         // Pre-load Cached Shortcuts immediately to avoid pop-in
@@ -283,6 +339,73 @@ public class SystemSheet extends Dialog {
         });
     }
 
+    private void setupMonitorChips() {
+        if (scrollBrightnessMonitors == null || layoutBrightnessMonitors == null) return;
+        if (monitorCount <= 1) {
+            scrollBrightnessMonitors.setVisibility(View.GONE);
+            return;
+        }
+        scrollBrightnessMonitors.setVisibility(View.VISIBLE);
+        layoutBrightnessMonitors.removeAllViews();
+
+        for (int i = 0; i < monitorCount; i++) {
+            final int mIdx = i;
+            String name = (i < monitorNames.size() && monitorNames.get(i) != null) ? monitorNames.get(i) : ("Monitor " + (i + 1));
+
+            Button chip = new Button(getContext());
+            chip.setText(name);
+            chip.setTextSize(11f);
+            chip.setSingleLine(true);
+            chip.setPadding(dpToPx(12), 0, dpToPx(12), 0);
+
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dpToPx(32));
+            lp.setMargins(0, 0, dpToPx(6), 0);
+            chip.setLayoutParams(lp);
+
+            updateMonitorChipStyle(chip, mIdx == selectedBrightnessMonitorIndex);
+
+            chip.setOnClickListener(v -> {
+                triggerHaptic(v);
+                selectBrightnessMonitor(mIdx);
+            });
+            layoutBrightnessMonitors.addView(chip);
+        }
+    }
+
+    private void updateMonitorChipStyle(Button chip, boolean isSelected) {
+        if (isSelected) {
+            chip.setTextColor(ContextCompat.getColor(getContext(), R.color.bg_dark));
+            chip.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getContext(), R.color.accent_amber)));
+            chip.setTypeface(null, Typeface.BOLD);
+        } else {
+            chip.setTextColor(ContextCompat.getColor(getContext(), R.color.text_secondary));
+            chip.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(getContext(), R.color.btn_surface)));
+            chip.setTypeface(null, Typeface.NORMAL);
+        }
+    }
+
+    private void selectBrightnessMonitor(int mIdx) {
+        this.selectedBrightnessMonitorIndex = mIdx;
+        if (layoutBrightnessMonitors != null) {
+            for (int i = 0; i < layoutBrightnessMonitors.getChildCount(); i++) {
+                View child = layoutBrightnessMonitors.getChildAt(i);
+                if (child instanceof Button) {
+                    updateMonitorChipStyle((Button) child, i == mIdx);
+                }
+            }
+        }
+        String hostKey = (device != null && device.getHost() != null) ? device.getHost() : "default";
+        android.content.SharedPreferences prefs = getContext().getSharedPreferences("remote_pocket_prefs", Context.MODE_PRIVATE);
+        int cachedBrightness = prefs.getInt("pref_device_brightness_" + hostKey + "_mon_" + mIdx,
+                                prefs.getInt("pref_device_brightness_" + hostKey, 100));
+        if (seekBrightness != null) {
+            seekBrightness.setProgress(cachedBrightness);
+        }
+        if (txtBrightnessVal != null) {
+            txtBrightnessVal.setText(cachedBrightness + "%");
+        }
+    }
+
     private void renderShortcuts(List<Shortcut> shortcuts) {
         if (shortcuts == null || layoutShortcutsContainer == null) return;
         layoutShortcutsContainer.removeAllViews();
@@ -301,7 +424,7 @@ public class SystemSheet extends Dialog {
             lp.setMargins(0, 0, dpToPx(8), 0);
             btn.setLayoutParams(lp);
 
-            btn.setOnClickListener(v -> executeShortcut(s));
+            btn.setOnClickListener(v -> { triggerHaptic(v); executeShortcut(s); });
             layoutShortcutsContainer.addView(btn);
         }
     }
@@ -390,17 +513,21 @@ public class SystemSheet extends Dialog {
         });
     }
 
-    private void postBrightness(int level) {
+    private void postBrightness(int level, int monitorIndex) {
         if (webSocketManager != null && webSocketManager.isConnected()) {
-            webSocketManager.sendBrightness(level);
+            webSocketManager.sendBrightness(level, monitorIndex);
             return;
         }
         if (device == null) return;
         executor.execute(() -> {
             try {
                 MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-                String payload = "{\"brightness\":" + level + "}";
-                RequestBody body = RequestBody.create(payload, JSON);
+                JsonObject payloadObj = new JsonObject();
+                payloadObj.addProperty("brightness", level);
+                if (monitorIndex >= 0) {
+                    payloadObj.addProperty("monitor", monitorIndex);
+                }
+                RequestBody body = RequestBody.create(payloadObj.toString(), JSON);
                 Request req = newAuthenticatedRequestBuilder(device.getBaseHttpUrl() + "/api/brightness")
                         .post(body)
                         .build();
