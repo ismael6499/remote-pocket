@@ -1245,23 +1245,27 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateSendEnterButtonState(boolean hasText) {
         if (btnSendTyping == null) return;
-        int fixedMin = dpToPx(72);
-        btnSendTyping.setMinWidth(fixedMin);
-        btnSendTyping.setMinimumWidth(fixedMin);
+        int fixedWidth = dpToPx(72);
+        btnSendTyping.setMinWidth(fixedWidth);
+        btnSendTyping.setMinimumWidth(fixedWidth);
+        ViewGroup.LayoutParams lp = btnSendTyping.getLayoutParams();
+        if (lp != null && lp.width != fixedWidth) {
+            lp.width = fixedWidth;
+            btnSendTyping.setLayoutParams(lp);
+        }
+        // Height, width and background color remain strictly identical to avoid visual jarring
+        btnSendTyping.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.accent_indigo)));
+        btnSendTyping.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        btnSendTyping.setStrokeWidth(0);
         if (hasText) {
             btnSendTyping.setText(R.string.btn_send_text);
             btnSendTyping.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-            btnSendTyping.setTypeface(null, Typeface.NORMAL);
-            btnSendTyping.setBackgroundTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.accent_indigo)));
-            btnSendTyping.setStrokeWidth(0);
+            btnSendTyping.setTypeface(null, Typeface.BOLD);
             btnSendTyping.setContentDescription(getString(R.string.btn_send_text));
         } else {
             btnSendTyping.setText("↵");
             btnSendTyping.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
             btnSendTyping.setTypeface(null, Typeface.BOLD);
-            btnSendTyping.setBackgroundTintList(ColorStateList.valueOf(Color.TRANSPARENT));
-            btnSendTyping.setStrokeColor(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.surface_card_border)));
-            btnSendTyping.setStrokeWidth(dpToPx(1));
             btnSendTyping.setContentDescription(getString(R.string.btn_enter));
         }
     }

@@ -645,22 +645,21 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSendTyping"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="wrap_content"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="72dp"
             android:layout_height="44dp"
             android:layout_marginStart="4dp"
+            android:backgroundTint="@color/accent_indigo"
             android:insetTop="0dp"
             android:insetBottom="0dp"
             android:minWidth="72dp"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
+            android:padding="0dp"
             android:text="↵"
             android:textColor="@color/text_primary"
             android:textSize="16sp"
             android:textStyle="bold"
             android:contentDescription="@string/btn_enter"
-            app:cornerRadius="8dp"
-            app:strokeColor="@color/surface_card_border" />
+            app:cornerRadius="8dp" />
     </LinearLayout>
 
     <!-- FLOATING KEYBOARD BUTTON (FAB) -->
