@@ -744,6 +744,15 @@ function runShortcutById(id) {
   }
 
   let cmd = expandEnv(target.command);
+  if (target.key || target.action === 'key' || target.id === 'grayscale' || (cmd && cmd.startsWith('InputHelper.exe key '))) {
+    const keyToSend = target.key || (target.id === 'grayscale' ? 'grayscale' : cmd.substring('InputHelper.exe key '.length).trim());
+    if (keyToSend) {
+      logAgent('INFO', `Executing shortcut key via native pipe: ${target.name} (id: ${target.id}, key: ${keyToSend})`);
+      sendInputCommand(`k ${keyToSend}`);
+      return true;
+    }
+  }
+
   let targetCwd = target.cwd ? expandEnv(target.cwd) : null;
   if (!targetCwd && target.checkPath) {
     try {

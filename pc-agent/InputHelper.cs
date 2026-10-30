@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
+using Microsoft.Win32;
 
 namespace InputHelper {
     [Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -778,6 +779,16 @@ namespace InputHelper {
             PressKey("backspace");
         }
 
+        private static void EnsureGrayscaleConfig() {
+            try {
+                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\ColorFiltering")) {
+                    if (key != null) {
+                        key.SetValue("HotkeyEnabled", 1, RegistryValueKind.DWord);
+                        key.SetValue("FilterType", 0, RegistryValueKind.DWord);
+                    }
+                }
+            } catch { }
+        }
         private static void ScreenOffSequence() {
             try {
                 ReleaseAllModifiers();
@@ -1109,6 +1120,12 @@ namespace InputHelper {
                 keyExpr.Equals("screenoff", StringComparison.OrdinalIgnoreCase) ||
                 keyExpr.Equals("screen_off", StringComparison.OrdinalIgnoreCase)) {
                 ScreenOffSequence();
+                return;
+            }
+            if (keyExpr.Equals("grayscale", StringComparison.OrdinalIgnoreCase) ||
+                keyExpr.Equals("toggle_grayscale", StringComparison.OrdinalIgnoreCase)) {
+                EnsureGrayscaleConfig();
+                PressKey("win+ctrl+c");
                 return;
             }
             string[] parts;

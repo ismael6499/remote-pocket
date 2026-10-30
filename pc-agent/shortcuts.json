@@ -7,6 +7,14 @@
     "command": "calc.exe"
   },
   {
+    "id": "grayscale",
+    "name": "Grayscale",
+    "description": "Toggle Windows Grayscale Color Filter",
+    "icon": "contrast",
+    "key": "grayscale",
+    "command": "InputHelper.exe key grayscale"
+  },
+  {
     "id": "notepad",
     "name": "Notepad",
     "description": "Open Windows Notepad",
