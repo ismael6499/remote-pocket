@@ -930,13 +930,13 @@ namespace InputHelper {
 
         private static void MouseClick(string btn) {
             MouseDown(btn);
-            Thread.Sleep(15);
+            Thread.Sleep(30);
             MouseUp(btn);
         }
 
         private static void MouseDoubleClick(string btn) {
             MouseClick(btn);
-            Thread.Sleep(80);
+            Thread.Sleep(60);
             MouseClick(btn);
         }
 
@@ -960,10 +960,9 @@ namespace InputHelper {
                     }
                 }
             };
-            uint sent = SafeSendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)), "mouse_down " + btn);
-            if (sent == 0) {
-                mouse_event(flag, 0, 0, 0, UIntPtr.Zero);
-            }
+            SafeSendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)), "mouse_down " + btn);
+            ReleaseUipiLock();
+            mouse_event(flag, 0, 0, 0, UIntPtr.Zero);
         }
 
         private static void MouseUp(string btn) {
@@ -986,10 +985,9 @@ namespace InputHelper {
                     }
                 }
             };
-            uint sent = SafeSendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)), "mouse_up " + btn);
-            if (sent == 0) {
-                mouse_event(flag, 0, 0, 0, UIntPtr.Zero);
-            }
+            SafeSendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)), "mouse_up " + btn);
+            ReleaseUipiLock();
+            mouse_event(flag, 0, 0, 0, UIntPtr.Zero);
         }
 
         private static void MouseScroll(string delta) {
