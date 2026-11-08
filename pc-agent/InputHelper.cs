@@ -960,9 +960,11 @@ namespace InputHelper {
                     }
                 }
             };
-            SafeSendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)), "mouse_down " + btn);
-            ReleaseUipiLock();
-            mouse_event(flag, 0, 0, 0, UIntPtr.Zero);
+            uint sent = SafeSendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)), "mouse_down " + btn);
+            if (sent == 0) {
+                ReleaseUipiLock();
+                mouse_event(flag, 0, 0, 0, UIntPtr.Zero);
+            }
         }
 
         private static void MouseUp(string btn) {
@@ -985,9 +987,11 @@ namespace InputHelper {
                     }
                 }
             };
-            SafeSendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)), "mouse_up " + btn);
-            ReleaseUipiLock();
-            mouse_event(flag, 0, 0, 0, UIntPtr.Zero);
+            uint sent = SafeSendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)), "mouse_up " + btn);
+            if (sent == 0) {
+                ReleaseUipiLock();
+                mouse_event(flag, 0, 0, 0, UIntPtr.Zero);
+            }
         }
 
         private static void MouseScroll(string delta) {
@@ -1468,7 +1472,6 @@ namespace InputHelper {
                     }
                     currentThreadDesktop = hdesk;
                 }
-                ReleaseUipiLock();
             } catch { }
         }
 
