@@ -9,4 +9,4 @@ WshShell.Run "cmd.exe /c stop_server.bat", 0, True
 WScript.Sleep 500
 
 ' 2. Launch server.js completely invisible using system node in working directory
-WshShell.Run "cmd.exe /c node server.js", 0, False
+WshShell.Run "node.exe """ & scriptDir & "\server.js""", 0, False

@@ -119,6 +119,7 @@ function startInputProcess() {
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true
     });
+    logAgent('INFO', '[InputHelper] Spawned pipe PID: ' + inputProcess.pid);
 
     if (inputProcess.stderr) {
       inputProcess.stderr.on('data', (data) => {
@@ -139,9 +140,9 @@ function startInputProcess() {
       const str = data.toString().trim();
       if (str.includes('READY')) {
         inputProcessReady = true;
-        console.log('[InputHelper] Native pipe process ready.');
+        logAgent('INFO', '[InputHelper] Native pipe process ready.');
       } else if (str.includes('ERR')) {
-        console.warn('[InputHelper] Native pipe error:', str);
+        logAgent('WARN', '[InputHelper] Native pipe error: ' + str);
       }
     });
 
