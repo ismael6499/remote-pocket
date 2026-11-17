@@ -831,6 +831,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (editTypingText != null) {
+            editTypingText.setPrivateImeOptions("");
             editTypingText.addTextChangedListener(new TextWatcher() {
                 @Override
                 public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -1046,10 +1047,15 @@ public class MainActivity extends AppCompatActivity {
         }
         layoutTypingInput.setVisibility(View.VISIBLE);
         editTypingText.requestFocus();
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        if (imm != null) {
-            imm.showSoftInput(editTypingText, InputMethodManager.SHOW_IMPLICIT);
-        }
+        editTypingText.post(() -> {
+            if (layoutTypingInput != null && layoutTypingInput.getVisibility() == View.VISIBLE && editTypingText != null) {
+                editTypingText.requestFocus();
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.showSoftInput(editTypingText, InputMethodManager.SHOW_IMPLICIT);
+                }
+            }
+        });
     }
 
     private void hideNormalKeyboard() {
@@ -1930,6 +1936,15 @@ public class MainActivity extends AppCompatActivity {
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
                 .putString(KEY_SAVED_DEVICES, gson.toJson(knownDevices))
                 .apply();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus && layoutTypingInput != null && layoutTypingInput.getVisibility() == View.VISIBLE
+                && editTypingText != null && !editTypingText.hasFocus()) {
+            editTypingText.requestFocus();
+        }
     }
 
     @Override
