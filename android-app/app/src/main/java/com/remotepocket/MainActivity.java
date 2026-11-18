@@ -61,6 +61,7 @@ import com.remotepocket.ui.SystemSheet;
 import com.remotepocket.ui.TextHistoryDialog;
 import com.remotepocket.ui.TouchpadView;
 import com.remotepocket.util.AppLogger;
+import com.remotepocket.util.AppSettings;
 import com.remotepocket.util.TextHistoryItem;
 import com.remotepocket.util.TextHistoryManager;
 
@@ -112,6 +113,8 @@ public class MainActivity extends AppCompatActivity {
     private int monitorCount = 1;
     private int currentMonitorIndex = 0;
     private int lastSeparateMonitorIndex = 0;
+    private int primaryMonitorIndex = 0;
+    private boolean hasAppliedStartupMonitorMode = false;
     private final List<String> monitorNames = new ArrayList<>();
     private final List<Integer> monitorDisplayNumbers = new ArrayList<>();
 
@@ -199,9 +202,22 @@ public class MainActivity extends AppCompatActivity {
 
         initViews();
         initManagers();
+        lastSeparateMonitorIndex = AppSettings.getLastSeparateMonitorIndex(this);
+        applyAppSettings(false);
         loadSavedDevices();
         setupListeners();
-        switchMode(true);
+
+        boolean startInScreenMode = !AppSettings.VIEW_MODE_TRACKPAD.equals(AppSettings.getStartupViewMode(this));
+        if (startInScreenMode && AppSettings.MONITOR_MODE_SPAN.equals(AppSettings.getDefaultMonitorMode(this))) {
+            touchpadView.prepareForSpanMode(AppSettings.getSpanInitialZoom(this), AppSettings.isFollowCursorDefault(this));
+        } else if (startInScreenMode) {
+            touchpadView.prepareForSingleMode(AppSettings.getSingleInitialZoom(this), AppSettings.isFollowCursorDefault(this));
+        }
+        switchMode(startInScreenMode);
+
+        if (startInScreenMode && AppSettings.isStartFullscreen(this) && containerMain != null) {
+            containerMain.post(this::enterFullscreen);
+        }
 
         // Handle Back button to exit fullscreen if active
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -316,7 +332,7 @@ public class MainActivity extends AppCompatActivity {
             public void onConnected() {
                 handler.removeCallbacks(reconnectRunnable);
                 updateConnectionUi(true);
-                touchpadView.resyncCursorFromServer();
+                touchpadView.resyncCursorToNextFrame();
                 webSocketManager.sendGetMonitors();
                 if (isScreenMode) {
                     webSocketManager.startScreenStream();
@@ -612,13 +628,10 @@ public class MainActivity extends AppCompatActivity {
         // Open System Controls Sheet
         findViewById(R.id.btnOpenSystemSheet).setOnClickListener(v -> {
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-            if (currentDevice != null) {
-                SystemSheet sheet = new SystemSheet(this, currentDevice, webSocketManager);
-                sheet.setMonitorInfo(currentMonitorIndex, lastSeparateMonitorIndex, monitorCount, monitorNames);
-                sheet.show();
-            } else {
-                Toast.makeText(this, R.string.no_device_selected, Toast.LENGTH_SHORT).show();
-            }
+            SystemSheet sheet = new SystemSheet(this, currentDevice, webSocketManager);
+            sheet.setMonitorInfo(currentMonitorIndex, lastSeparateMonitorIndex, monitorCount, monitorNames);
+            sheet.setOnAppSettingsChangedListener(() -> applyAppSettings(true));
+            sheet.show();
         });
 
         // Tabs
@@ -1409,7 +1422,9 @@ public class MainActivity extends AppCompatActivity {
         if (insetsController != null) {
             insetsController.show(WindowInsetsCompat.Type.systemBars());
         }
-        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        if (!AppSettings.isKeepScreenOn(this)) {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
 
         // Restore toolbars and tabs
         if (headerLayout != null) headerLayout.setVisibility(View.VISIBLE);
@@ -1513,6 +1528,82 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void applyAppSettings(boolean fromDialog) {
+        currentFps = AppSettings.getScreenFps(this);
+        updateFpsUi();
+        if (fromDialog && webSocketManager != null && webSocketManager.isConnected()) {
+            webSocketManager.sendScreenFps(currentFps);
+        }
+
+        if (touchpadView != null) {
+            touchpadView.setMouseSensitivity(AppSettings.getMouseSensitivity(this));
+            touchpadView.setScrollSensitivity(AppSettings.getScrollSensitivity(this));
+            touchpadView.setInvertScroll(AppSettings.isInvertScroll(this));
+            touchpadView.setHapticEnabled(AppSettings.isHapticEnabled(this));
+            touchpadView.setDefaultSingleZoom(AppSettings.getSingleInitialZoom(this));
+            touchpadView.setDefaultSpanZoomMultiplier(AppSettings.getSpanInitialZoom(this));
+            if (fromDialog) {
+                touchpadView.setFollowCursor(AppSettings.isFollowCursorDefault(this));
+            }
+        }
+
+        if (isFullscreen || AppSettings.isKeepScreenOn(this)) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        } else {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
+    }
+
+    private void applyStartupMonitorMode() {
+        String mode = AppSettings.getDefaultMonitorMode(this);
+        int targetIndex = currentMonitorIndex;
+
+        if (AppSettings.MONITOR_MODE_SPAN.equals(mode)) {
+            targetIndex = (monitorCount > 1) ? -1 : 0;
+        } else if (AppSettings.MONITOR_MODE_LAST.equals(mode)) {
+            int lastIdx = AppSettings.getLastMonitorIndex(this);
+            if (lastIdx == -1 && monitorCount > 1) {
+                targetIndex = -1;
+            } else if (lastIdx >= 0 && lastIdx < monitorCount) {
+                targetIndex = lastIdx;
+            } else {
+                targetIndex = (primaryMonitorIndex >= 0 && primaryMonitorIndex < monitorCount) ? primaryMonitorIndex : 0;
+            }
+        } else {
+            String singlePref = AppSettings.getDefaultSingleMonitor(this);
+            if (AppSettings.SINGLE_MONITOR_FIRST.equals(singlePref)) {
+                targetIndex = 0;
+            } else if (AppSettings.SINGLE_MONITOR_LAST.equals(singlePref)) {
+                int lastSep = AppSettings.getLastSeparateMonitorIndex(this);
+                targetIndex = (lastSep >= 0 && lastSep < monitorCount) ? lastSep : primaryMonitorIndex;
+            } else {
+                targetIndex = (primaryMonitorIndex >= 0 && primaryMonitorIndex < monitorCount) ? primaryMonitorIndex : 0;
+            }
+        }
+
+        if (targetIndex < -1 || targetIndex >= monitorCount) {
+            targetIndex = 0;
+        }
+
+        if (touchpadView != null && !isFullscreen) {
+            if (targetIndex == -1) {
+                touchpadView.prepareForSpanMode(AppSettings.getSpanInitialZoom(this), AppSettings.isFollowCursorDefault(this));
+            } else {
+                touchpadView.prepareForSingleMode(AppSettings.getSingleInitialZoom(this), AppSettings.isFollowCursorDefault(this));
+            }
+        }
+
+        if (targetIndex != currentMonitorIndex) {
+            switchToMonitor(targetIndex);
+        } else {
+            AppSettings.setLastMonitorIndex(this, targetIndex);
+            if (targetIndex >= 0) {
+                AppSettings.setLastSeparateMonitorIndex(this, targetIndex);
+            }
+            updateMonitorButtonsUI();
+        }
+    }
+
     private void handleMonitorsInfo(JsonObject json) {
         if (json == null) return;
         runOnUiThread(() -> {
@@ -1528,6 +1619,10 @@ public class MainActivity extends AppCompatActivity {
                 }
                 monitorNames.clear();
                 monitorDisplayNumbers.clear();
+                primaryMonitorIndex = 0;
+                int refW = 1920;
+                int refH = 1080;
+                boolean refSet = false;
                 if (json.has("monitors") && json.get("monitors").isJsonArray()) {
                     int i = 0;
                     for (JsonElement el : json.getAsJsonArray("monitors")) {
@@ -1535,14 +1630,37 @@ public class MainActivity extends AppCompatActivity {
                         int dispNum = m.has("displayNumber") ? m.get("displayNumber").getAsInt() : (i + 1);
                         monitorDisplayNumbers.add(dispNum);
                         String name = m.has("name") ? m.get("name").getAsString() : ("Monitor " + dispNum);
-                        if (m.has("w") && m.has("h")) {
-                            name += " (" + m.get("w").getAsInt() + "x" + m.get("h").getAsInt() + ")";
+                        int mw = m.has("w") ? m.get("w").getAsInt() : 0;
+                        int mh = m.has("h") ? m.get("h").getAsInt() : 0;
+                        if (mw > 0 && mh > 0) {
+                            name += " (" + mw + "x" + mh + ")";
+                            if (!refSet) {
+                                refW = mw;
+                                refH = mh;
+                                refSet = true;
+                            }
+                        }
+                        if (m.has("primary") && m.get("primary").getAsBoolean()) {
+                            primaryMonitorIndex = i;
+                            if (mw > 0 && mh > 0) {
+                                refW = mw;
+                                refH = mh;
+                                refSet = true;
+                            }
                         }
                         monitorNames.add(name);
                         i++;
                     }
                 }
-                updateMonitorButtonsUI();
+                if (touchpadView != null) {
+                    touchpadView.setSingleMonitorReferenceSize(refW, refH);
+                }
+                if (!hasAppliedStartupMonitorMode) {
+                    hasAppliedStartupMonitorMode = true;
+                    applyStartupMonitorMode();
+                } else {
+                    updateMonitorButtonsUI();
+                }
             } catch (Exception ignored) {}
         });
     }
@@ -1614,13 +1732,23 @@ public class MainActivity extends AppCompatActivity {
 
     private void switchToMonitor(int index) {
         currentMonitorIndex = index;
+        AppSettings.setLastMonitorIndex(this, index);
         if (index >= 0) {
             lastSeparateMonitorIndex = index;
+            AppSettings.setLastSeparateMonitorIndex(this, index);
         }
         webSocketManager.sendSelectMonitor(index);
         updateMonitorButtonsUI();
         if (touchpadView != null) {
-            touchpadView.resyncCursorFromServer();
+            if (index == -1) {
+                if (isFullscreen) {
+                    touchpadView.resyncCursorToNextFrame();
+                } else {
+                    touchpadView.prepareForSpanMode(AppSettings.getSpanInitialZoom(this), AppSettings.isFollowCursorDefault(this));
+                }
+            } else {
+                touchpadView.resyncCursorFromServer();
+            }
         }
     }
 

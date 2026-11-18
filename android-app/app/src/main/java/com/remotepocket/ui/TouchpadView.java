@@ -35,6 +35,8 @@ public class TouchpadView extends View {
     // Server-reported Desktop & Cursor Coordinates
     private int curX = -1, curY = -1;
     private int scrW = 1920, scrH = 1080;
+    private float singleMonitorRefW = 1920f;
+    private float singleMonitorRefH = 1080f;
 
     // Viewport Zoom & Translation
     private float currentScale = 1.0f;
@@ -42,6 +44,16 @@ public class TouchpadView extends View {
     private float currentTransY = 0f;
     private boolean followCursor = true;
     private boolean isScreenMode = false;
+
+    // Personalization Settings
+    private float mouseSensitivityMultiplier = 1.0f;
+    private float scrollSensitivityMultiplier = 1.0f;
+    private boolean invertScroll = false;
+    private boolean hapticEnabled = true;
+    private float defaultSingleZoom = 2.0f;
+    private float defaultSpanZoomMultiplier = 1.5f;
+    private boolean pendingSpanZoomInit = false;
+    private boolean pendingSingleZoomInit = false;
 
     // Touch interaction tracking
     private float downX = 0f;
@@ -189,15 +201,140 @@ public class TouchpadView extends View {
         this.isScreenMode = screenMode;
         if (!screenMode) {
             resetZoom();
-        } else if (currentScale < 1.5f) {
-            currentScale = 2.0f;
-            post(() -> {
-                applyCenterTranslationDirect();
-                invalidate();
-            });
+        } else if (!pendingSpanZoomInit && currentScale < 1.5f) {
+            if (scrW > singleMonitorRefW * 1.3f && getWidth() > 0 && getHeight() > 0) {
+                post(() -> {
+                    applyConfiguredSpanZoom();
+                    invalidate();
+                });
+            } else {
+                currentScale = Math.max(1.0f, defaultSingleZoom);
+                post(() -> {
+                    if (followCursor && currentScale > 1.01f) {
+                        applyCenterTranslationDirect();
+                    } else if (zoomTargetView != null) {
+                        zoomTargetView.setScaleX(currentScale);
+                        zoomTargetView.setScaleY(currentScale);
+                    }
+                    invalidate();
+                });
+            }
         }
         notifyZoomChanged();
         invalidate();
+    }
+
+    public void setSingleMonitorReferenceSize(int w, int h) {
+        if (w > 0 && h > 0) {
+            this.singleMonitorRefW = w;
+            this.singleMonitorRefH = h;
+        }
+    }
+
+    public void setMouseSensitivity(float multiplier) {
+        this.mouseSensitivityMultiplier = Math.max(0.4f, Math.min(3.0f, multiplier));
+    }
+
+    public void setScrollSensitivity(float multiplier) {
+        this.scrollSensitivityMultiplier = Math.max(0.4f, Math.min(3.0f, multiplier));
+    }
+
+    public void setInvertScroll(boolean invert) {
+        this.invertScroll = invert;
+    }
+
+    public void setHapticEnabled(boolean enabled) {
+        this.hapticEnabled = enabled;
+    }
+
+    public void setDefaultSingleZoom(float zoom) {
+        this.defaultSingleZoom = Math.max(1.0f, zoom);
+    }
+
+    public void setDefaultSpanZoomMultiplier(float mult) {
+        this.defaultSpanZoomMultiplier = Math.max(0f, mult);
+    }
+
+    public int getScrW() {
+        return scrW;
+    }
+
+    public boolean isMultiMonitorSpanActive() {
+        return scrW > singleMonitorRefW * 1.3f;
+    }
+
+    public void prepareForSpanMode(float spanZoomMult, boolean follow) {
+        this.defaultSpanZoomMultiplier = Math.max(0f, spanZoomMult);
+        this.followCursor = follow;
+        this.pendingSingleZoomInit = false;
+        this.pendingSpanZoomInit = true;
+        resyncCursorToNextFrame();
+        if (scrW > singleMonitorRefW * 1.3f && getWidth() > 0 && getHeight() > 0) {
+            applyConfiguredSpanZoom();
+            pendingSpanZoomInit = false;
+        }
+        notifyZoomChanged();
+        invalidate();
+    }
+
+    public void prepareForSingleMode(float singleZoom, boolean follow) {
+        this.defaultSingleZoom = Math.max(1.0f, singleZoom);
+        this.followCursor = follow;
+        this.pendingSpanZoomInit = false;
+        this.pendingSingleZoomInit = true;
+        resyncCursorToNextFrame();
+        if (scrW <= singleMonitorRefW * 1.3f && getWidth() > 0 && getHeight() > 0) {
+            currentScale = Math.max(1.0f, Math.min(this.defaultSingleZoom, getMaxScale()));
+            if (followCursor && currentScale > 1.01f) {
+                applyCenterTranslationDirect();
+            } else if (zoomTargetView != null) {
+                zoomTargetView.setTranslationX(0f);
+                zoomTargetView.setTranslationY(0f);
+                zoomTargetView.setScaleX(currentScale);
+                zoomTargetView.setScaleY(currentScale);
+            }
+            pendingSingleZoomInit = false;
+        }
+        notifyZoomChanged();
+        invalidate();
+    }
+
+    private float getSingleScreenRatio(int viewW, int viewH) {
+        if (viewW > 0 && viewH > 0 && scrW > 0 && scrH > 0) {
+            float singleFit = Math.min((float) viewW / singleMonitorRefW, (float) viewH / singleMonitorRefH);
+            float currentFit = Math.min((float) viewW / scrW, (float) viewH / scrH);
+            if (currentFit > 0) {
+                return Math.max(1.0f, singleFit / currentFit);
+            }
+        }
+        return 1.0f;
+    }
+
+    private void applyConfiguredSpanZoom() {
+        int viewW = getWidth();
+        int viewH = getHeight();
+        if (viewW <= 0 || viewH <= 0 || scrW <= 0 || scrH <= 0) return;
+        if (defaultSpanZoomMultiplier <= 0.05f) {
+            currentScale = 1.0f;
+            currentTransX = 0f;
+            currentTransY = 0f;
+            if (zoomTargetView != null) {
+                zoomTargetView.setTranslationX(0f);
+                zoomTargetView.setTranslationY(0f);
+                zoomTargetView.setScaleX(1.0f);
+                zoomTargetView.setScaleY(1.0f);
+            }
+        } else {
+            float singleScreenRatio = getSingleScreenRatio(viewW, viewH);
+            currentScale = Math.max(1.0f, Math.min(singleScreenRatio * defaultSpanZoomMultiplier, getMaxScale()));
+            if (followCursor && currentScale > 1.01f) {
+                applyCenterTranslationDirect();
+            } else if (zoomTargetView != null) {
+                zoomTargetView.setScaleX(currentScale);
+                zoomTargetView.setScaleY(currentScale);
+            }
+        }
+        notifyZoomChanged();
     }
 
     public void setFollowCursor(boolean follow) {
@@ -225,28 +362,17 @@ public class TouchpadView extends View {
         int viewW = getWidth();
         int viewH = getHeight();
         if (viewW > 0 && viewH > 0 && scrW > 0 && scrH > 0) {
-            float scaleFit = Math.min((float) viewW / scrW, (float) viewH / scrH);
-            if (scaleFit > 0) {
-                float singleFit = Math.min((float) viewW / 1920f, (float) viewH / 1080f);
-                float spanFactor = Math.max(1.0f, singleFit / scaleFit);
-                return Math.max(16.0f, spanFactor * 8.0f);
-            }
+            float spanFactor = getSingleScreenRatio(viewW, viewH);
+            return Math.max(16.0f, spanFactor * 8.0f);
         }
         return 20.0f;
     }
 
     public void cycleZoomLevel() {
         float max = getMaxScale();
-        float singleScreenRatio = 1.0f;
         int viewW = getWidth();
         int viewH = getHeight();
-        if (viewW > 0 && viewH > 0 && scrW > 0 && scrH > 0) {
-            float singleFit = Math.min((float) viewW / 1920f, (float) viewH / 1080f);
-            float currentFit = Math.min((float) viewW / scrW, (float) viewH / scrH);
-            if (currentFit > 0) {
-                singleScreenRatio = Math.max(1.0f, singleFit / currentFit);
-            }
-        }
+        float singleScreenRatio = getSingleScreenRatio(viewW, viewH);
 
         if (singleScreenRatio > 1.3f) {
             float step1 = 1.0f;
@@ -314,9 +440,19 @@ public class TouchpadView extends View {
 
     public void onExitFullscreen() {
         if (isScreenMode) {
-            currentScale = 2.0f;
             post(() -> {
-                applyCenterTranslationDirect();
+                if (scrW > singleMonitorRefW * 1.3f) {
+                    applyConfiguredSpanZoom();
+                } else {
+                    currentScale = Math.max(1.0f, Math.min(defaultSingleZoom, getMaxScale()));
+                    if (followCursor && currentScale > 1.01f) {
+                        applyCenterTranslationDirect();
+                    } else if (zoomTargetView != null) {
+                        zoomTargetView.setScaleX(currentScale);
+                        zoomTargetView.setScaleY(currentScale);
+                    }
+                    notifyZoomChanged();
+                }
                 invalidate();
             });
         } else {
@@ -330,7 +466,17 @@ public class TouchpadView extends View {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         if (w > 0 && h > 0) {
-            if (currentScale <= 1.05f) {
+            if (pendingSpanZoomInit && scrW > singleMonitorRefW * 1.3f) {
+                applyConfiguredSpanZoom();
+                pendingSpanZoomInit = false;
+            } else if (pendingSingleZoomInit && scrW <= singleMonitorRefW * 1.3f) {
+                currentScale = Math.max(1.0f, Math.min(defaultSingleZoom, getMaxScale()));
+                if (followCursor && currentScale > 1.01f) {
+                    applyCenterTranslationDirect();
+                }
+                notifyZoomChanged();
+                pendingSingleZoomInit = false;
+            } else if (currentScale <= 1.05f) {
                 currentTransX = 0f;
                 currentTransY = 0f;
                 if (zoomTargetView != null) {
@@ -367,6 +513,19 @@ public class TouchpadView extends View {
     }
 
     /**
+     * Clears local cursor so the very next incoming server frame snaps directly to the PC's real cursor.
+     */
+    public void resyncCursorToNextFrame() {
+        curX = -1;
+        curY = -1;
+        pendingSrvX = -1;
+        pendingSrvY = -1;
+        pendingSrvCount = 0;
+        lastLocalMoveTime = 0;
+        invalidate();
+    }
+
+    /**
      * Receives authoritative desktop dimensions and cursor position from PC.
      * Server frames are delayed, so they are ignored while touching and for a short grace
      * period after the last local move to avoid cursor jitter ("earthquake" effect).
@@ -381,9 +540,28 @@ public class TouchpadView extends View {
         this.scrW = w > 0 ? w : this.scrW;
         this.scrH = h > 0 ? h : this.scrH;
 
-        if (w > 0 && h > 0 && oldW > 0 && oldH > 0 && (oldW != this.scrW || oldH != this.scrH)) {
-            int viewW = getWidth();
-            int viewH = getHeight();
+        int viewW = getWidth();
+        int viewH = getHeight();
+        boolean spanDims = this.scrW > singleMonitorRefW * 1.3f;
+
+        if (pendingSpanZoomInit && spanDims && viewW > 0 && viewH > 0) {
+            this.curX = (x >= 0) ? x : this.scrW / 2;
+            this.curY = (y >= 0) ? y : this.scrH / 2;
+            applyConfiguredSpanZoom();
+            pendingSpanZoomInit = false;
+        } else if (pendingSingleZoomInit && !spanDims && viewW > 0 && viewH > 0) {
+            this.curX = (x >= 0) ? x : this.scrW / 2;
+            this.curY = (y >= 0) ? y : this.scrH / 2;
+            currentScale = Math.max(1.0f, Math.min(defaultSingleZoom, getMaxScale()));
+            if (followCursor && currentScale > 1.01f) {
+                applyCenterTranslationDirect();
+            } else if (zoomTargetView != null) {
+                zoomTargetView.setScaleX(currentScale);
+                zoomTargetView.setScaleY(currentScale);
+            }
+            notifyZoomChanged();
+            pendingSingleZoomInit = false;
+        } else if (w > 0 && h > 0 && oldW > 0 && oldH > 0 && (oldW != this.scrW || oldH != this.scrH)) {
             if (viewW > 0 && viewH > 0) {
                 float oldScaleFit = Math.min((float) viewW / oldW, (float) viewH / oldH);
                 float newScaleFit = Math.min((float) viewW / this.scrW, (float) viewH / this.scrH);
@@ -413,8 +591,8 @@ public class TouchpadView extends View {
         boolean inGrace = isTouching || (System.currentTimeMillis() - lastLocalMoveTime) < SERVER_SYNC_GRACE_MS;
 
         if (this.curX < 0 || this.curY < 0) {
-            this.curX = (x > 0) ? x : scrW / 2;
-            this.curY = (y > 0) ? y : scrH / 2;
+            this.curX = (x >= 0) ? x : scrW / 2;
+            this.curY = (y >= 0) ? y : scrH / 2;
             if (followCursor && currentScale > 1.0f) {
                 applyCenterTranslationDirect();
             }
@@ -479,6 +657,7 @@ public class TouchpadView extends View {
     }
 
     private void triggerHaptic(int durationMs) {
+        if (!hapticEnabled) return;
         performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
         if (vibrator != null && vibrator.hasVibrator()) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -628,8 +807,8 @@ public class TouchpadView extends View {
                     if (isTapAndDrag) {
                         accel = Math.min(accel, 1.8f);
                     }
-                    float effectiveDeltaX = deltaRawX * accel;
-                    float effectiveDeltaY = deltaRawY * accel;
+                    float effectiveDeltaX = deltaRawX * accel * mouseSensitivityMultiplier;
+                    float effectiveDeltaY = deltaRawY * accel * mouseSensitivityMultiplier;
 
                     if (isScreenMode) {
                         if (currentScale > 1.05f) {
@@ -725,9 +904,10 @@ public class TouchpadView extends View {
                         // Gentle on slow micro-scrolling (precision reading),
                         // smoothly scaling up on faster flicks.
                         float absDelta = Math.abs(deltaY);
-                        float dynamicMultiplier = 2.2f + Math.min(absDelta * 0.08f, 2.5f);
+                        float dynamicMultiplier = (2.2f + Math.min(absDelta * 0.08f, 2.5f)) * scrollSensitivityMultiplier;
+                        float scrollDir = invertScroll ? -1f : 1f;
 
-                        scrollAccumulator += deltaY * dynamicMultiplier;
+                        scrollAccumulator += deltaY * dynamicMultiplier * scrollDir;
 
                         int step = Math.round(scrollAccumulator);
                         if (Math.abs(step) >= 12) {

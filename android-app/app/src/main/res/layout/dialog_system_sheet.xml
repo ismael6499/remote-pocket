@@ -34,6 +34,16 @@
             android:tint="@color/text_secondary" />
     </LinearLayout>
 
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
     <!-- SECTION: DISPLAY BRIGHTNESS -->
     <LinearLayout
         android:layout_width="match_parent"
@@ -324,7 +334,7 @@
         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
         android:layout_width="match_parent"
         android:layout_height="44dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="8dp"
         android:insetTop="0dp"
         android:insetBottom="0dp"
         android:text="@string/btn_restart_agent"
@@ -335,6 +345,23 @@
         app:iconGravity="textStart"
         app:iconTint="@color/accent_indigo"
         app:strokeColor="@color/accent_indigo" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAppSettings"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginBottom="16dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:text="@string/btn_app_settings"
+        android:textColor="@color/accent_cyan"
+        android:textSize="13sp"
+        app:cornerRadius="10dp"
+        app:icon="@drawable/ic_settings"
+        app:iconGravity="textStart"
+        app:iconTint="@color/accent_cyan"
+        app:strokeColor="@color/accent_cyan" />
 
     <!-- SECTION: SHORTCUTS -->
     <TextView
@@ -362,5 +389,8 @@
             android:minHeight="42dp"
             android:orientation="horizontal" />
     </HorizontalScrollView>
+
+        </LinearLayout>
+    </ScrollView>
 
 </LinearLayout>

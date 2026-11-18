@@ -36,6 +36,7 @@ import com.remotepocket.R;
 import com.remotepocket.model.Device;
 import com.remotepocket.model.Shortcut;
 import com.remotepocket.network.WebSocketManager;
+import com.remotepocket.util.AppSettings;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -72,11 +73,16 @@ public class SystemSheet extends Dialog {
     private HorizontalScrollView scrollBrightnessMonitors;
     private LinearLayout layoutBrightnessMonitors;
     private Vibrator vibrator;
+    private AppSettingsDialog.OnSettingsChangedListener appSettingsChangedListener;
 
     public SystemSheet(@NonNull Context context, Device device, WebSocketManager webSocketManager) {
         super(context);
         this.device = device;
         this.webSocketManager = webSocketManager;
+    }
+
+    public void setOnAppSettingsChangedListener(AppSettingsDialog.OnSettingsChangedListener listener) {
+        this.appSettingsChangedListener = listener;
     }
 
     public void setMonitorInfo(int currentMonitorIndex, int lastSeparateMonitorIndex, int monitorCount, List<String> monitorNames) {
@@ -93,6 +99,7 @@ public class SystemSheet extends Dialog {
     }
 
     private void triggerHaptic(View v) {
+        if (!AppSettings.isHapticEnabled(getContext())) return;
         if (v != null) {
             v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
         }
@@ -235,6 +242,15 @@ public class SystemSheet extends Dialog {
         View btnRestartAgent = findViewById(R.id.btnRestartAgent);
         if (btnRestartAgent != null) {
             btnRestartAgent.setOnClickListener(v -> { triggerHaptic(v); confirmRestartAgent(); });
+        }
+
+        // App Settings Button
+        View btnAppSettings = findViewById(R.id.btnAppSettings);
+        if (btnAppSettings != null) {
+            btnAppSettings.setOnClickListener(v -> {
+                triggerHaptic(v);
+                new AppSettingsDialog(getContext(), appSettingsChangedListener).show();
+            });
         }
 
         // Pre-load Cached Shortcuts immediately to avoid pop-in

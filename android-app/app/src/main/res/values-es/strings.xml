@@ -207,4 +207,42 @@
     <string name="pc_clipboard_copied">Copiado de la PC al celular</string>
     <string name="btn_copy_to_phone">Copiar</string>
     <string name="action_connect">Conectar</string>
+
+    <!-- App Settings -->
+    <string name="btn_app_settings">Ajustes de la App</string>
+    <string name="app_settings_title">⚙️ Ajustes de la App</string>
+    <string name="settings_section_startup">INICIO Y PANTALLAS</string>
+    <string name="settings_section_stream">TRANSMISIÓN Y PANTALLA</string>
+    <string name="settings_section_controls">TOUCHPAD Y CONTROLES</string>
+    <string name="settings_default_monitor_mode">Modo de Pantalla al Abrir la App</string>
+    <string name="settings_default_monitor_mode_desc">Elegí si al abrir la app se muestra una sola pantalla o todas las pantallas juntas.</string>
+    <string name="settings_opt_single_screen">Una Pantalla</string>
+    <string name="settings_opt_all_screens">Todas</string>
+    <string name="settings_opt_last_used">Último Modo</string>
+    <string name="settings_span_zoom">Zoom Inicial en Todas las Pantallas (Centrado en Mouse)</string>
+    <string name="settings_span_zoom_desc">Nivel de zoom alrededor del cursor de la PC al abrir en modo Todas las Pantallas.</string>
+    <string name="settings_zoom_fit_all">Ver Todas</string>
+    <string name="settings_zoom_one_monitor">1 Pantalla</string>
+    <string name="settings_default_single_monitor">Pantalla por Defecto (Modo Individual)</string>
+    <string name="settings_default_single_monitor_desc">Qué monitor mostrar al abrir en modo de una sola pantalla.</string>
+    <string name="settings_opt_primary">Principal</string>
+    <string name="settings_opt_display_1">Pantalla 1</string>
+    <string name="settings_startup_tab">Pestaña Inicial al Abrir</string>
+    <string name="settings_follow_cursor">Centrar Vista en el Mouse</string>
+    <string name="settings_follow_cursor_desc">Mantiene la vista con zoom centrada en el cursor de la PC.</string>
+    <string name="settings_start_fullscreen">Abrir en Pantalla Completa</string>
+    <string name="settings_start_fullscreen_desc">Inicia directamente en modo horizontal completo al abrir Pantalla en Vivo.</string>
+    <string name="settings_default_fps">Frecuencia de Transmisión (FPS)</string>
+    <string name="settings_single_zoom">Zoom Inicial (Pantalla Única)</string>
+    <string name="settings_keep_screen_on">Mantener Pantalla del Celular Encendida</string>
+    <string name="settings_keep_screen_on_desc">Evita que la pantalla del celular se apague mientras controlás la PC.</string>
+    <string name="settings_mouse_sensitivity">Sensibilidad del Cursor y Trackpad</string>
+    <string name="settings_scroll_sensitivity">Velocidad de Scroll (Dos Dedos)</string>
+    <string name="settings_invert_scroll">Scroll Natural / Invertido</string>
+    <string name="settings_invert_scroll_desc">Invierte la dirección del desplazamiento vertical con dos dedos.</string>
+    <string name="settings_haptic">Vibración Háptica</string>
+    <string name="settings_haptic_desc">Vibración sutil al tocar, hacer clic y usar los controles.</string>
+    <string name="settings_btn_reset">Restablecer</string>
+    <string name="settings_btn_done">Listo</string>
+    <string name="settings_reset_done">Ajustes restablecidos a valores por defecto</string>
 </resources>
