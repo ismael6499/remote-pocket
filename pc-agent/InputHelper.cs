@@ -1326,16 +1326,22 @@ namespace InputHelper {
                     }
                 }
 
-                // Center mouse cursor on the newly selected monitor (or virtual desktop span)
+                // Keep existing cursor position when entering Continuous Span (-1) or when cursor is already
+                // inside the selected monitor; only center the cursor if it was outside the target bounds.
                 int monX, monY, monW, monH;
                 GetSelectedMonitorBounds(out monX, out monY, out monW, out monH);
                 if (monW > 0 && monH > 0) {
-                    int centerX = monX + monW / 2;
-                    int centerY = monY + monH / 2;
-                    bool ok = SetCursorPos(centerX, centerY);
-                    if (!ok) {
-                        EnsureDesktopAccess();
-                        SetCursorPos(centerX, centerY);
+                    POINT pt;
+                    bool hasPos = GetCursorPos(out pt);
+                    bool inside = hasPos && pt.X >= monX && pt.X < monX + monW && pt.Y >= monY && pt.Y < monY + monH;
+                    if (!inside) {
+                        int centerX = monX + monW / 2;
+                        int centerY = monY + monH / 2;
+                        bool ok = SetCursorPos(centerX, centerY);
+                        if (!ok) {
+                            EnsureDesktopAccess();
+                            SetCursorPos(centerX, centerY);
+                        }
                     }
                 }
             } catch {
