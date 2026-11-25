@@ -513,6 +513,20 @@ function setClipboardText(text) {
   sendInputCommand(`setclip ${b64}`);
 }
 
+function getSystemIdleMs() {
+  return new Promise((resolve) => {
+    execFile(INPUT_HELPER_PATH, ['idle'], { timeout: 2000, windowsHide: true }, (err, stdout) => {
+      if (!err && stdout) {
+        const match = stdout.match(/IDLE:(\d+)/);
+        if (match) {
+          return resolve(parseInt(match[1], 10) || 0);
+        }
+      }
+      resolve(0);
+    });
+  });
+}
+
 function expandEnv(str) {
   if (!str || typeof str !== 'string') return str;
   return str.replace(/%([^%]+)%/g, (_, n) => process.env[n] || '');
@@ -831,6 +845,68 @@ function executeScreenOff() {
 app.post('/api/system/screen_off', verifyPin, (req, res) => {
   executeScreenOff();
   res.json({ success: true, action: 'screen_off' });
+});
+
+app.get('/api/system/idle', verifyPin, async (req, res) => {
+  const idleMs = await getSystemIdleMs();
+  res.json({
+    idleMs,
+    idleSeconds: Math.floor(idleMs / 1000),
+    deviceName: config.deviceName,
+    hostname: os.hostname()
+  });
+});
+
+app.post('/api/input/ping', verifyPin, async (req, res) => {
+  const { mode = 'both', minIdleSeconds = 45, force = false } = req.body || {};
+  const safeMode = ['both', 'mouse', 'shift'].includes(mode) ? mode : 'both';
+  const idleMs = await getSystemIdleMs();
+  const idleSeconds = Math.floor(idleMs / 1000);
+
+  if (!force && typeof minIdleSeconds === 'number' && minIdleSeconds > 0 && idleSeconds < minIdleSeconds) {
+    return res.json({
+      success: true,
+      executed: false,
+      skipped: true,
+      reason: 'user_active',
+      mode: safeMode,
+      idleMs,
+      idleSeconds
+    });
+  }
+
+  sendInputCommand(`input_ping ${safeMode}`);
+  res.json({
+    success: true,
+    executed: true,
+    skipped: false,
+    mode: safeMode,
+    idleMs,
+    idleSeconds
+  });
+});
+
+app.post('/api/input/mouse', verifyPin, (req, res) => {
+  const { action = 'move', dx = 0, dy = 0, button = 'left' } = req.body || {};
+  if (action === 'ping') {
+    sendInputCommand('input_ping mouse');
+    return res.json({ success: true, action: 'ping' });
+  }
+  if (action === 'click') {
+    sendInputCommand(`c ${button}`);
+    return res.json({ success: true, action: 'click', button });
+  }
+  sendInputCommand(`m ${Math.round(Number(dx) || 0)} ${Math.round(Number(dy) || 0)}`);
+  res.json({ success: true, action: 'move' });
+});
+
+app.post('/api/input/key', verifyPin, (req, res) => {
+  const { key } = req.body || {};
+  if (!key || typeof key !== 'string') {
+    return res.status(400).json({ error: 'Missing key parameter' });
+  }
+  sendInputCommand(`k ${key.trim()}`);
+  res.json({ success: true, key: key.trim() });
 });
 
 // Multi-Monitor API

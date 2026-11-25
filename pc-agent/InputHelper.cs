@@ -131,6 +131,15 @@ namespace InputHelper {
         private static extern short GetKeyState(int nVirtKey);
 
         [StructLayout(LayoutKind.Sequential)]
+        private struct LASTINPUTINFO {
+            public uint cbSize;
+            public uint dwTime;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
+
+        [StructLayout(LayoutKind.Sequential)]
         private struct CURSORINFO {
             public int cbSize;
             public int flags;
@@ -750,6 +759,14 @@ namespace InputHelper {
                         Console.WriteLine("LAYOUT:es-ES,Spanish");
                     }
                     break;
+                case "idle":
+                case "getidle":
+                    Console.WriteLine("IDLE:" + GetSystemIdleMs());
+                    break;
+                case "input_ping":
+                case "ping_input":
+                    ExecuteInputPing(rest);
+                    break;
                 default:
                     throw new ArgumentException("Unknown action: " + action);
             }
@@ -928,6 +945,128 @@ namespace InputHelper {
             }
         }
 
+        private static readonly Random rng = new Random();
+
+        private static uint GetSystemIdleMs() {
+            LASTINPUTINFO lii = new LASTINPUTINFO();
+            lii.cbSize = (uint)Marshal.SizeOf(typeof(LASTINPUTINFO));
+            if (GetLastInputInfo(ref lii)) {
+                return unchecked((uint)Environment.TickCount - lii.dwTime);
+            }
+            return 0;
+        }
+
+        private static void SendRelativeMouseRaw(int dx, int dy) {
+            if (dx == 0 && dy == 0) return;
+            INPUT[] inputs = new INPUT[1];
+            inputs[0] = new INPUT {
+                type = INPUT_MOUSE,
+                data = new INPUTDATA {
+                    mi = new MOUSEINPUT {
+                        dx = dx,
+                        dy = dy,
+                        mouseData = 0,
+                        dwFlags = MOUSEEVENTF_MOVE,
+                        time = 0,
+                        dwExtraInfo = IntPtr.Zero
+                    }
+                }
+            };
+            uint sent = SafeSendInput(1, inputs, Marshal.SizeOf(typeof(INPUT)), "mouse_step");
+            if (sent == 0) {
+                EnsureDesktopAccess();
+                ReleaseUipiLock();
+                mouse_event(MOUSEEVENTF_MOVE, dx, dy, 0, UIntPtr.Zero);
+            }
+        }
+
+        private static void SendMouseMicroMotion() {
+            int signX = rng.Next(2) == 0 ? 1 : -1;
+            int signY = rng.Next(2) == 0 ? 1 : -1;
+            int totalDx = signX * rng.Next(3, 19);
+            int totalDy = signY * rng.Next(2, 15);
+
+            int stepsOut = rng.Next(2, 6);
+            int remX = totalDx;
+            int remY = totalDy;
+            for (int i = 0; i < stepsOut; i++) {
+                int sx = (i == stepsOut - 1) ? remX : (remX / (stepsOut - i) + rng.Next(-1, 2));
+                int sy = (i == stepsOut - 1) ? remY : (remY / (stepsOut - i) + rng.Next(-1, 2));
+                remX -= sx;
+                remY -= sy;
+                SendRelativeMouseRaw(sx, sy);
+                Thread.Sleep(rng.Next(12, 36));
+            }
+
+            Thread.Sleep(rng.Next(45, 145));
+
+            int stepsBack = rng.Next(2, 5);
+            remX = -totalDx;
+            remY = -totalDy;
+            for (int i = 0; i < stepsBack; i++) {
+                int sx = (i == stepsBack - 1) ? remX : (remX / (stepsBack - i) + rng.Next(-1, 2));
+                int sy = (i == stepsBack - 1) ? remY : (remY / (stepsBack - i) + rng.Next(-1, 2));
+                remX -= sx;
+                remY -= sy;
+                SendRelativeMouseRaw(sx, sy);
+                if (i < stepsBack - 1) Thread.Sleep(rng.Next(12, 36));
+            }
+        }
+
+        private static void SendShiftTap() {
+            uint scan = MapVirtualKey(0x10, 0);
+            INPUT[] inputs = new INPUT[2];
+            inputs[0] = new INPUT {
+                type = INPUT_KEYBOARD,
+                data = new INPUTDATA {
+                    ki = new KEYBDINPUT {
+                        wVk = 0x10,
+                        wScan = (ushort)scan,
+                        dwFlags = 0,
+                        time = 0,
+                        dwExtraInfo = IntPtr.Zero
+                    }
+                }
+            };
+            inputs[1] = new INPUT {
+                type = INPUT_KEYBOARD,
+                data = new INPUTDATA {
+                    ki = new KEYBDINPUT {
+                        wVk = 0x10,
+                        wScan = (ushort)scan,
+                        dwFlags = KEYEVENTF_KEYUP,
+                        time = 0,
+                        dwExtraInfo = IntPtr.Zero
+                    }
+                }
+            };
+            uint sent = SafeSendInput(2, inputs, Marshal.SizeOf(typeof(INPUT)), "shift_tap");
+            if (sent < 2) {
+                keybd_event(0x10, (byte)scan, 0, UIntPtr.Zero);
+                keybd_event(0x10, (byte)scan, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            }
+        }
+
+        private static void ExecuteInputPing(string mode) {
+            EnsureDesktopAccess();
+            string m = (mode ?? "both").Trim().ToLowerInvariant();
+            if (m == "mouse") {
+                SendMouseMicroMotion();
+            } else if (m == "shift") {
+                SendShiftTap();
+            } else {
+                if (rng.Next(2) == 0) {
+                    SendMouseMicroMotion();
+                    Thread.Sleep(rng.Next(80, 320));
+                    SendShiftTap();
+                } else {
+                    SendShiftTap();
+                    Thread.Sleep(rng.Next(80, 320));
+                    SendMouseMicroMotion();
+                }
+            }
+        }
+
         private static void MouseClick(string btn) {
             MouseDown(btn);
             Thread.Sleep(30);
@@ -1088,6 +1227,7 @@ namespace InputHelper {
             { "f1", 0x70 }, { "f2", 0x71 }, { "f3", 0x72 }, { "f4", 0x73 },
             { "f5", 0x74 }, { "f6", 0x75 }, { "f7", 0x76 }, { "f8", 0x77 },
             { "f9", 0x78 }, { "f10", 0x79 }, { "f11", 0x7A }, { "f12", 0x7B },
+            { "f13", 0x7C }, { "f14", 0x7D }, { "f15", 0x7E },
             // Punctuation and symbols
             { "-", 0xBD }, { "minus", 0xBD }, { "dash", 0xBD },
             { "=", 0xBB }, { "plus", 0xBB }, { "equal", 0xBB },
